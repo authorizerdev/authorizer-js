@@ -76,18 +76,18 @@ class Authorizer {
       const res = await graphqlQuery(
         this.graphQLEndPoint,
         `
-	    query {
-	      meta {
-		version
-		isGoogleLoginEnabled
-		isGithubLoginEnabled
-		isBasicAuthenticationEnabled
-		isEmailVerificationEnabled
-		isFacebookLoginEnabled
-		isTwitterLoginEnabled
-	      }
-	    }
-	  `
+      query {
+        meta {
+          version
+          isGoogleLoginEnabled
+          isGithubLoginEnabled
+          isBasicAuthenticationEnabled
+          isEmailVerificationEnabled
+          isFacebookLoginEnabled
+          isTwitterLoginEnabled
+        }
+      }
+    `
       );
 
       return res.meta;
@@ -101,20 +101,20 @@ class Authorizer {
       const res = await graphqlQuery(
         this.graphQLEndPoint,
         `
-	    query {
-	      token {
-		accessToken
-		accessTokenExpiresAt
-		user {
-		  id
-		  email
-		  firstName
-		  lastName
-		  image
-		}
-	      }
-	    }
-	  `
+      query {
+        token {
+          accessToken
+          accessTokenExpiresAt
+          user {
+            id
+            email
+            firstName
+            lastName
+            image
+          }
+        }
+      }
+    `
       );
 
       return res.token;
