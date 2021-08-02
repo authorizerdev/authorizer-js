@@ -30,14 +30,9 @@
   },
   "name": "@authorizerdev/authorizer-js",
   "author": "Lakhan Samani",
-  "module": "dist/authorizer-js.esm.js",
   "size-limit": [
     {
-      "path": "dist/authorizer-js.cjs.production.min.js",
-      "limit": "10 KB"
-    },
-    {
-      "path": "dist/authorizer-js.esm.js",
+      "path": "lib/index.js",
       "limit": "10 KB"
     }
   ],
