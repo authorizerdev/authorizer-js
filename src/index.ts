@@ -1,5 +1,5 @@
 type ConfigType = {
-  domain: string;
+  authorizerURL: string;
   redirectURL?: string;
 };
 
@@ -52,23 +52,23 @@ class Authorizer {
       throw new Error(`Configuration is required`);
     }
     this.config = config;
-    if (!config.domain.trim()) {
-      throw new Error(`Invalid domain`);
+    if (!config.authorizerURL.trim()) {
+      throw new Error(`Invalid authorizerURL`);
     }
-    if (config.domain) {
-      const trimmedData = config.domain.trim();
+    if (config.authorizerURL) {
+      const trimmedData = config.authorizerURL.trim();
       const lastChar = trimmedData[trimmedData.length - 1];
       if (lastChar === '/') {
-        this.config.domain = trimmedData.slice(0, -1);
+        this.config.authorizerURL = trimmedData.slice(0, -1);
       } else {
-        this.config.domain = trimmedData;
+        this.config.authorizerURL = trimmedData;
       }
     }
     if (!config.redirectURL && hasWindow) {
       this.config.redirectURL = window.location.origin.toString();
     }
 
-    this.graphQLEndPoint = `${this.config.domain}/graphql`;
+    this.graphQLEndPoint = `${this.config.authorizerURL}/graphql`;
   }
 
   getMetaData = async () => {
@@ -129,14 +129,14 @@ class Authorizer {
       return token;
     } catch (err) {
       console.log({
-        loginURL: `${this.config.domain}/app?state=${btoa(
+        loginURL: `${this.config.authorizerURL}/app?state=${btoa(
           JSON.stringify(this.config)
         )}`,
       });
       if (!hasWindow()) {
         throw new Error(`browserLogin is only supported for browsers`);
       }
-      window.location.href = `${this.config.domain}/app?state=${btoa(
+      window.location.href = `${this.config.authorizerURL}/app?state=${btoa(
         JSON.stringify(this.config)
       )}`;
     }
@@ -158,7 +158,7 @@ class Authorizer {
       if (!hasWindow()) {
         throw new Error(`oauthLogin is only supported for browsers`);
       }
-      window.location.href = `${this.config.domain}/oauth_login/${oauthProvider}`;
+      window.location.href = `${this.config.authorizerURL}/oauth_login/${oauthProvider}`;
     }
   };
 }
