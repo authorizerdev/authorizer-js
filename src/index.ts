@@ -123,6 +123,23 @@ class Authorizer {
     }
   };
 
+  logout = async (): Promise<void> => {
+    try {
+      await graphqlQuery(
+        this.graphQLEndPoint,
+        `
+        mutation {
+          logout {
+            message
+          }
+        }
+    `
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   fingertipLogin = async (): Promise<TokenType | void> => {
     try {
       const token = await this.getSession();

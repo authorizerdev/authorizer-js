@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0-beta.1",
+  "version": "0.1.0-beta.2",
   "license": "MIT",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
@@ -16,7 +16,8 @@
     "ts-types": "tsc --emitDeclarationOnly --outDir lib",
     "build": "npm run clean && esbuild src/index.ts --minify --sourcemap --target=chrome58,firefox57,safari11,edge16 --outfile=lib/index.js && npm run ts-types",
     "size": "size-limit",
-    "analyze": "size-limit --why"
+    "analyze": "size-limit --why",
+    "prepublishOnly": "npm run build"
   },
   "browser": {
     "path": "path-browserify"
