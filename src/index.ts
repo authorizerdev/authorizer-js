@@ -30,6 +30,9 @@ const graphqlQuery = async (endpoint: string, query: string) => {
     body: JSON.stringify({
       query,
     }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
     credentials: 'include',
   });
 
@@ -116,7 +119,6 @@ class Authorizer {
       }
     `
       );
-
       return res.token;
     } catch (err) {
       throw err;
@@ -145,11 +147,6 @@ class Authorizer {
       const token = await this.getSession();
       return token;
     } catch (err) {
-      console.log({
-        loginURL: `${this.config.authorizerURL}/app?state=${btoa(
-          JSON.stringify(this.config)
-        )}`,
-      });
       if (!hasWindow()) {
         throw new Error(`browserLogin is only supported for browsers`);
       }
