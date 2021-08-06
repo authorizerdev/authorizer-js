@@ -1,55 +1,55 @@
 {
-  "version": "0.1.0-beta.3",
-  "license": "MIT",
-  "main": "lib/index.js",
-  "module": "lib/index.mjs",
-  "type": "module",
-  "typings": "lib/index.d.ts",
-  "files": [
-    "lib",
-    "src"
-  ],
-  "engines": {
-    "node": ">=10"
-  },
-  "scripts": {
-    "clean": "rm -rf lib",
-    "start": "esbuild src/index.ts --bundle --servedir=www --outdir=www/lib",
-    "ts-types": "tsc --emitDeclarationOnly --outDir=lib",
-    "build:umd": "esbuild src/index.ts --bundle --minify --sourcemap --target=chrome58,firefox57,safari11,edge16 --outfile=lib/index.js",
-    "build:esm": "esbuild src/lib.ts --target=esnext --format=esm --outfile=lib/index.mjs",
-    "build": "npm run clean && npm run build:umd && npm run build:esm && npm run ts-types",
-    "size": "size-limit",
-    "analyze": "size-limit --why",
-    "prepublishOnly": "npm run build"
-  },
-  "browser": {
-    "path": "path-browserify"
-  },
-  "peerDependencies": {},
-  "prettier": {
-    "printWidth": 80,
-    "semi": true,
-    "singleQuote": true,
-    "trailingComma": "es5"
-  },
-  "name": "@authorizerdev/authorizer-js",
-  "author": "Lakhan Samani",
-  "size-limit": [
-    {
-      "path": "lib/index.js",
-      "limit": "10 KB"
-    }
-  ],
-  "devDependencies": {
-    "@size-limit/preset-small-lib": "^5.0.1",
-    "esbuild": "^0.12.17",
-    "husky": "^7.0.1",
-    "size-limit": "^5.0.1",
-    "tslib": "^2.3.0",
-    "typescript": "^4.3.5"
-  },
-  "dependencies": {
-    "rimraf": "^2.7.1"
-  }
+	"version": "0.1.0-beta.3",
+	"license": "MIT",
+	"main": "lib/index.js",
+	"module": "lib/index.mjs",
+	"type": "module",
+	"typings": "lib/index.d.ts",
+	"files": [
+		"lib",
+		"src"
+	],
+	"engines": {
+		"node": ">=10"
+	},
+	"scripts": {
+		"format": "prettier --write 'src/**/*.(ts|tsx)'",
+		"clean": "rm -rf lib",
+		"start": "esbuild src/index.ts --bundle --servedir=__test__ --outdir=__test__/lib",
+		"ts-types": "tsc --emitDeclarationOnly --outDir=lib",
+		"build:umd": "esbuild src/index.ts --bundle --minify --sourcemap --target=chrome58,firefox57,safari11,edge16 --outfile=lib/index.js",
+		"build:esm": "esbuild src/lib.ts --bundle --format=esm --outfile=lib/index.mjs",
+		"build": "npm run clean && npm run build:umd && npm run build:esm && npm run ts-types",
+		"size": "size-limit",
+		"analyze": "size-limit --why",
+		"prepublishOnly": "npm run build",
+		"test": "npm run build:esm && cross-env NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=20000"
+	},
+	"browser": {
+		"path": "path-browserify"
+	},
+	"peerDependencies": {},
+	"name": "@authorizerdev/authorizer-js",
+	"author": "Lakhan Samani",
+	"size-limit": [
+		{
+			"path": "lib/index.js",
+			"limit": "10 KB"
+		}
+	],
+	"devDependencies": {
+		"@size-limit/preset-small-lib": "^4.5.5",
+		"cross-env": "^7.0.3",
+		"esbuild": "^0.12.17",
+		"husky": "^7.0.1",
+		"jest": "^27.0.6",
+		"node-fetch": "^2.6.1",
+		"prettier": "2.3.2",
+		"size-limit": "^5.0.1",
+		"tslib": "^2.3.0",
+		"typescript": "^4.3.5"
+	},
+	"dependencies": {
+		"rimraf": "^2.7.1"
+	}
 }
