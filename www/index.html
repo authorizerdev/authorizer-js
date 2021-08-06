@@ -17,6 +17,7 @@
     <script>
       const authRef = new Authorizer({
         authorizerURL: 'https://authorizer-demo.herokuapp.com',
+        redirectURL: window.location.toString(),
       });
 
       async function onLoad() {

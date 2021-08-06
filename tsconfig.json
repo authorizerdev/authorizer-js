@@ -1,9 +1,10 @@
 {
 	"compilerOptions": {
 		"declaration": true,
-		"target": "es5",
-		"module": "esnext",
-		"lib": ["dom", "es5", "es2017", "esnext.asynciterable"],
+		"target": "esnext",
+		"allowUmdGlobalAccess": true,
+		"module": "es2015",
+		"lib": ["dom", "es2015", "es2017", "esnext.asynciterable"],
 		"sourceMap": true,
 		"outDir": "./lib",
 		"moduleResolution": "node",
@@ -20,7 +21,7 @@
 		"esModuleInterop": true,
 		"emitDecoratorMetadata": true,
 		"experimentalDecorators": true,
-		// "resolveJsonModule": true,
+		"resolveJsonModule": true,
 		"baseUrl": "."
 	},
 	"exclude": ["node_modules"],

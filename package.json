@@ -2,6 +2,8 @@
   "version": "0.1.0-beta.3",
   "license": "MIT",
   "main": "lib/index.js",
+  "module": "lib/index.mjs",
+  "type": "module",
   "typings": "lib/index.d.ts",
   "files": [
     "lib",
@@ -12,9 +14,11 @@
   },
   "scripts": {
     "clean": "rm -rf lib",
-    "start": "esbuild src/index.ts --watch --target=chrome58,firefox57,safari11,edge16 --outfile=lib/index.js",
-    "ts-types": "tsc --emitDeclarationOnly --outDir lib",
-    "build": "npm run clean && esbuild src/index.ts --minify --sourcemap --target=chrome58,firefox57,safari11,edge16 --outfile=lib/index.js && npm run ts-types",
+    "start": "esbuild src/index.ts --bundle --servedir=www --outdir=www/lib",
+    "ts-types": "tsc --emitDeclarationOnly --outDir=lib",
+    "build:umd": "esbuild src/index.ts --bundle --minify --sourcemap --target=chrome58,firefox57,safari11,edge16 --outfile=lib/index.js",
+    "build:esm": "esbuild src/lib.ts --target=esnext --format=esm --outfile=lib/index.mjs",
+    "build": "npm run clean && npm run build:umd && npm run build:esm && npm run ts-types",
     "size": "size-limit",
     "analyze": "size-limit --why",
     "prepublishOnly": "npm run build"
