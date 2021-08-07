@@ -13,7 +13,8 @@ type User = {
 	image?: string | null;
 };
 
-type TokenType = {
+type AuthToken = {
+	message?: string;
 	accessToken: string;
 	accessTokenExpiresAt: number;
 	user?: User;
@@ -78,6 +79,7 @@ export default class Authorizer {
 
 		const json = await res.json();
 		if (json.errors && json.errors.length) {
+			console.error(json.errors);
 			throw new Error(json.errors[0].message);
 		}
 
@@ -97,7 +99,7 @@ export default class Authorizer {
 	};
 
 	// this is used to verify / get session using cookie by default. If using nodejs pass authorization header
-	getSession = async (headers?: Record<string, string>): Promise<TokenType> => {
+	getSession = async (headers?: Record<string, string>): Promise<AuthToken> => {
 		try {
 			const res = await this.graphqlQuery({
 				query: `query {token { ${userTokenFragment} } }`,
@@ -106,6 +108,40 @@ export default class Authorizer {
 			return res.token;
 		} catch (err) {
 			throw err;
+		}
+	};
+
+	signup = async (data: {
+		email: string;
+		password: string;
+		confirmPassword: string;
+		firstName?: string;
+		lastName?: string;
+	}): Promise<void> => {
+		try {
+			const res = await this.graphqlQuery({
+				query: `
+		mutation signup($data: SignUpInput!) { signup(params: $data) { ${userTokenFragment}}}`,
+				variables: { data },
+			});
+
+			return res.signup;
+		} catch (err) {
+			console.error(err);
+		}
+	};
+
+	verifyEmail = async (data: { token: string }): Promise<void> => {
+		try {
+			const res = await this.graphqlQuery({
+				query: `
+		mutation verifyEmail($data: VerifyEmailInput!) { verifyEmail(params: $data) { ${userTokenFragment}}}`,
+				variables: { data },
+			});
+
+			return res.verifyEmail;
+		} catch (err) {
+			console.error(err);
 		}
 	};
 
@@ -123,7 +159,9 @@ export default class Authorizer {
 		}
 	};
 
-	fingertipLogin = async (): Promise<TokenType | void> => {
+	getProfile = async (headers: {}): Promise<User | void> => {};
+
+	fingertipLogin = async (): Promise<AuthToken | void> => {
 		try {
 			const token = await this.getSession();
 			return token;
