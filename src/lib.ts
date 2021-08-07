@@ -264,7 +264,6 @@ export default class Authorizer {
 					data,
 				},
 			});
-			console.log(`---reset:`, resetPasswordRes);
 			return resetPasswordRes.resetPassword;
 		} catch (error) {
 			throw error;

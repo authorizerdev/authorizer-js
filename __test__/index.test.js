@@ -9,30 +9,16 @@ const authRef = new Authorizer({
 });
 
 const adminSecret = 'admin';
-const resetPassword = `some_random_password`;
-const testEmail = `lakhan.m.samani@gmail.com`;
-const randomEmail = `uo5vbgg93p@yopmail.com`;
-
-describe('login failures', () => {
-	it('should throw password invalid error', async () => {
-		try {
-			await authRef.login({
-				email: testEmail,
-				password: resetPassword,
-			});
-		} catch (e) {
-			expect(e).toMatch('invalid password');
-		}
-	});
-});
+const password = `some_random_password`;
+const email = `uo5vbgg93p@yopmail.com`;
 
 describe('signup success', () => {
-	console.log(`Checking the sign up process for: ${randomEmail}`);
+	console.log(`Checking the sign up process for: ${email}`);
 	it(`should signup with email verification enabled`, async () => {
 		const signupRes = await authRef.signup({
-			email: randomEmail,
-			password: 'test',
-			confirmPassword: 'test',
+			email: email,
+			password: password,
+			confirmPassword: password,
 		});
 		expect(signupRes.message.length).not.toEqual(0);
 	});
@@ -56,34 +42,32 @@ describe('signup success', () => {
 		});
 
 		const requests = verificationRequestsRes.verificationRequests;
-		const item = requests.find((i) => i.email === randomEmail);
+		const item = requests.find((i) => i.email === email);
 		expect(item).not.toBeNull();
 
 		const verifyEmailRes = await authRef.verifyEmail({ token: item.token });
 
 		expect(verifyEmailRes.accessToken.length).not.toEqual(0);
+	});
+});
 
-		await authRef.graphqlQuery({
-			query: `
-				mutation {
-					deleteUser(params: {
-						email: "${randomEmail}"
-					}) {
-						message
-					}
-				}
-			`,
-			headers: {
-				'x-authorizer-admin-secret': adminSecret,
-			},
-		});
+describe('login failures', () => {
+	it('should throw password invalid error', async () => {
+		try {
+			await authRef.login({
+				email: email,
+				password: password + 'test',
+			});
+		} catch (e) {
+			expect(e).toMatch('invalid password');
+		}
 	});
 });
 
 describe(`forgot password success`, () => {
 	it(`should create forgot password request`, async () => {
 		const forgotPasswordRes = await authRef.forgotPassword({
-			email: testEmail,
+			email: email,
 		});
 		expect(forgotPasswordRes.message.length).not.toEqual(0);
 	});
@@ -108,14 +92,14 @@ describe(`forgot password success`, () => {
 
 		const requests = verificationRequestsRes.verificationRequests;
 		const item = requests.find(
-			(i) => i.email === testEmail && i.identifier === 'forgot_password',
+			(i) => i.email === email && i.identifier === 'forgot_password',
 		);
 		expect(item).not.toBeNull();
 
 		const resetPasswordRes = await authRef.resetPassword({
 			token: item.token,
-			password: resetPassword,
-			confirmPassword: resetPassword,
+			password: password,
+			confirmPassword: password,
 		});
 
 		expect(resetPasswordRes.message.length).not.toEqual(0);
@@ -127,8 +111,8 @@ describe('login success', () => {
 	let headers = null;
 	it('should log in successfully', async () => {
 		loginRes = await authRef.login({
-			email: testEmail,
-			password: resetPassword,
+			email: email,
+			password: password,
 		});
 		expect(loginRes.accessToken.length).not.toEqual(0);
 		headers = {
@@ -144,7 +128,7 @@ describe('login success', () => {
 	it('should update profile successfully', async () => {
 		const updateProfileRes = await authRef.updateProfile(
 			{
-				firstName: 'lakhan1',
+				firstName: 'bob',
 			},
 			headers,
 		);
@@ -153,21 +137,27 @@ describe('login success', () => {
 
 	it('should fetch profile successfully', async () => {
 		const profileRes = await authRef.getProfile(headers);
-		expect(profileRes.firstName).toMatch(`lakhan1`);
-		await authRef.updateProfile(
-			{
-				firstName: 'Lakhan',
-				oldPassword: resetPassword,
-				newPassword: 'test',
-				confirmNewPassword: 'test',
-			},
-			headers,
-		);
+		expect(profileRes.firstName).toMatch(`bob`);
 	});
 
 	it('should logout successfully', async () => {
 		const logoutRes = await authRef.logout(headers);
 		// in future if message changes we don't want to take risk of this test failing
 		expect(logoutRes.message.length).not.toEqual(0);
+
+		await authRef.graphqlQuery({
+			query: `
+				mutation {
+					deleteUser(params: {
+						email: "${email}"
+					}) {
+						message
+					}
+				}
+			`,
+			headers: {
+				'x-authorizer-admin-secret': adminSecret,
+			},
+		});
 	});
 });
