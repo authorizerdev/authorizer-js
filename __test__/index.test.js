@@ -82,32 +82,46 @@ describe('signup success', () => {
 
 describe('login success', () => {
 	let loginRes = null;
+	let headers = null;
 	it('should log in successfully', async () => {
 		loginRes = await authRef.login({
 			email: 'lakhan.m.samani@gmail.com',
 			password: 'test',
 		});
 		expect(loginRes.accessToken.length).not.toEqual(0);
+		headers = {
+			Authorization: `Bearer ${loginRes.accessToken}`,
+		};
 	});
 
-	it('should fetch the same session', async () => {
-		const sessionRes = await authRef.getSession({
-			Authorization: `Bearer ${loginRes.accessToken}`,
-		});
+	it('should fetch the session successfully', async () => {
+		const sessionRes = await authRef.getSession(headers);
 		expect(loginRes.accessToken).toMatch(sessionRes.accessToken);
 	});
 
-	it('should fetch profile correctly', async () => {
-		const profileRes = await authRef.getProfile({
-			Authorization: `Bearer ${loginRes.accessToken}`,
-		});
-		expect(profileRes.email).toMatch(`lakhan.m.samani@gmail.com`);
+	it('should update profile successfully', async () => {
+		const updateProfileRes = await authRef.updateProfile(
+			{
+				firstName: 'lakhan1',
+			},
+			headers,
+		);
+		expect(updateProfileRes.message.length).not.toEqual(0);
 	});
 
-	it('should logout correctly', async () => {
-		const logoutRes = await authRef.logout({
-			Authorization: `Bearer ${loginRes.accessToken}`,
-		});
+	it('should fetch profile successfully', async () => {
+		const profileRes = await authRef.getProfile(headers);
+		expect(profileRes.firstName).toMatch(`lakhan1`);
+		await authRef.updateProfile(
+			{
+				firstName: 'Lakhan',
+			},
+			headers,
+		);
+	});
+
+	it('should logout successfully', async () => {
+		const logoutRes = await authRef.logout(headers);
 		// in future if message changes we don't want to take risk of this test failing
 		expect(logoutRes.message.length).not.toEqual(0);
 	});

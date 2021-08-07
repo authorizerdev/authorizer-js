@@ -22,6 +22,50 @@ type AuthToken = {
 	user?: User;
 };
 
+type Response = {
+	message: string;
+};
+
+type Headers = Record<string, string>;
+
+type LoginInput = { email: string; password: string };
+
+type SignupInput = {
+	email: string;
+	password: string;
+	confirmPassword: string;
+	firstName?: string;
+	lastName?: string;
+};
+
+type VerifyEmailInput = { token: string };
+
+type GraphqlQueryInput = {
+	query: string;
+	variables?: Record<string, any>;
+	headers?: Headers;
+};
+
+type MetaData = {
+	version: string;
+	isGoogleLoginEnabled: boolean;
+	isFacebookLoginEnabled: boolean;
+	isTwitterLoginEnabled: boolean;
+	isGithubLoginEnabled: boolean;
+	isEmailVerificationEnabled: boolean;
+	isBasicAuthenticationEnabled: boolean;
+};
+
+type UpdateProfileInput = {
+	oldPassword?: string;
+	newPassword?: string;
+	confirmNewPassword?: string;
+	firstName?: string;
+	lastName?: string;
+	image?: string;
+	email?: string;
+};
+
 enum OAuthProviders {
 	Github = 'github',
 	Google = 'google',
@@ -61,11 +105,7 @@ export default class Authorizer {
 
 	// helper to execute graphql queries
 	// takes in any query or mutation string as input
-	graphqlQuery = async (data: {
-		query: string;
-		variables?: Record<string, any>;
-		headers?: Record<string, string>;
-	}) => {
+	graphqlQuery = async (data: GraphqlQueryInput) => {
 		const res = await fetch(this.config.authorizerURL + '/graphql', {
 			method: 'POST',
 			body: JSON.stringify({
@@ -88,7 +128,7 @@ export default class Authorizer {
 		return json.data;
 	};
 
-	getMetaData = async () => {
+	getMetaData = async (): Promise<MetaData | void> => {
 		try {
 			const res = await this.graphqlQuery({
 				query: `query { meta { version isGoogleLoginEnabled isGithubLoginEnabled isBasicAuthenticationEnabled isEmailVerificationEnabled isFacebookLoginEnabled isTwitterLoginEnabled } }`,
@@ -101,7 +141,7 @@ export default class Authorizer {
 	};
 
 	// this is used to verify / get session using cookie by default. If using nodejs pass authorization header
-	getSession = async (headers?: Record<string, string>): Promise<AuthToken> => {
+	getSession = async (headers?: Headers): Promise<AuthToken> => {
 		try {
 			const res = await this.graphqlQuery({
 				query: `query {token { ${userTokenFragment} } }`,
@@ -113,13 +153,7 @@ export default class Authorizer {
 		}
 	};
 
-	signup = async (data: {
-		email: string;
-		password: string;
-		confirmPassword: string;
-		firstName?: string;
-		lastName?: string;
-	}): Promise<void> => {
+	signup = async (data: SignupInput): Promise<AuthToken | void> => {
 		try {
 			const res = await this.graphqlQuery({
 				query: `
@@ -133,7 +167,7 @@ export default class Authorizer {
 		}
 	};
 
-	verifyEmail = async (data: { token: string }): Promise<void> => {
+	verifyEmail = async (data: VerifyEmailInput): Promise<AuthToken | void> => {
 		try {
 			const res = await this.graphqlQuery({
 				query: `
@@ -147,7 +181,7 @@ export default class Authorizer {
 		}
 	};
 
-	login = async (data: { email: string; password: string }): Promise<void> => {
+	login = async (data: LoginInput): Promise<AuthToken | void> => {
 		try {
 			const res = await this.graphqlQuery({
 				query: `
@@ -161,9 +195,7 @@ export default class Authorizer {
 		}
 	};
 
-	getProfile = async (
-		headers: Record<string, string>,
-	): Promise<User | void> => {
+	getProfile = async (headers?: Headers): Promise<User | void> => {
 		try {
 			const profileRes = await this.graphqlQuery({
 				query: `query {	profile { id email image firstName lastName emailVerifiedAt signupMethod } }`,
@@ -171,6 +203,25 @@ export default class Authorizer {
 			});
 
 			return profileRes.profile;
+		} catch (error) {
+			throw error;
+		}
+	};
+
+	updateProfile = async (
+		data: UpdateProfileInput,
+		headers?: Headers,
+	): Promise<Response | void> => {
+		try {
+			const updateProfileRes = await this.graphqlQuery({
+				query: `mutation updateProfile($data: UpdateProfileInput!) {	updateProfile(params: $data) { message } }`,
+				headers,
+				variables: {
+					data,
+				},
+			});
+
+			return updateProfileRes.updateProfile;
 		} catch (error) {
 			throw error;
 		}
@@ -205,7 +256,7 @@ export default class Authorizer {
 		window.location.href = `${this.config.authorizerURL}/oauth_login/${oauthProvider}`;
 	};
 
-	logout = async (headers?: Record<string, string>): Promise<void> => {
+	logout = async (headers?: Headers): Promise<Response | void> => {
 		try {
 			const res = await this.graphqlQuery({
 				query: ` mutation { logout { message } } `,
