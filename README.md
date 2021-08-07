@@ -1,4 +1,4 @@
 # Authorizer.js
 
-Client Side JavaScript toolkit for Authorizer API.
+Universal JavaScript SDK for Authorizer API.
 
