@@ -3,21 +3,22 @@ import Authorizer from '../lib/index.mjs';
 
 global.fetch = fetch;
 
-// global.fetch = fetch;
-
 const authRef = new Authorizer({
 	authorizerURL: 'http://localhost:8080',
 	redirectURL: 'http://localhost:8080/app',
 });
 
 const adminSecret = 'admin';
+const resetPassword = `some_random_password`;
+const testEmail = `lakhan.m.samani@gmail.com`;
+const randomEmail = `uo5vbgg93p@yopmail.com`;
 
 describe('login failures', () => {
 	it('should throw password invalid error', async () => {
 		try {
 			await authRef.login({
-				email: 'lakhan.m.samani@gmail.com',
-				password: 'test1',
+				email: testEmail,
+				password: resetPassword,
 			});
 		} catch (e) {
 			expect(e).toMatch('invalid password');
@@ -26,7 +27,6 @@ describe('login failures', () => {
 });
 
 describe('signup success', () => {
-	let randomEmail = `uo5vbgg93p@yopmail.com`;
 	console.log(`Checking the sign up process for: ${randomEmail}`);
 	it(`should signup with email verification enabled`, async () => {
 		const signupRes = await authRef.signup({
@@ -80,13 +80,55 @@ describe('signup success', () => {
 	});
 });
 
+describe(`forgot password success`, () => {
+	it(`should create forgot password request`, async () => {
+		const forgotPasswordRes = await authRef.forgotPassword({
+			email: testEmail,
+		});
+		expect(forgotPasswordRes.message.length).not.toEqual(0);
+	});
+
+	it(`should reset password`, async () => {
+		const verificationRequestsRes = await authRef.graphqlQuery({
+			query: `
+				query {
+					verificationRequests {
+						id
+						token
+						email
+						expires
+						identifier
+					}
+				}
+			`,
+			headers: {
+				'x-authorizer-admin-secret': adminSecret,
+			},
+		});
+
+		const requests = verificationRequestsRes.verificationRequests;
+		const item = requests.find(
+			(i) => i.email === testEmail && i.identifier === 'forgot_password',
+		);
+		expect(item).not.toBeNull();
+
+		const resetPasswordRes = await authRef.resetPassword({
+			token: item.token,
+			password: resetPassword,
+			confirmPassword: resetPassword,
+		});
+
+		expect(resetPasswordRes.message.length).not.toEqual(0);
+	});
+});
+
 describe('login success', () => {
 	let loginRes = null;
 	let headers = null;
 	it('should log in successfully', async () => {
 		loginRes = await authRef.login({
-			email: 'lakhan.m.samani@gmail.com',
-			password: 'test',
+			email: testEmail,
+			password: resetPassword,
 		});
 		expect(loginRes.accessToken.length).not.toEqual(0);
 		headers = {
@@ -115,6 +157,9 @@ describe('login success', () => {
 		await authRef.updateProfile(
 			{
 				firstName: 'Lakhan',
+				oldPassword: resetPassword,
+				newPassword: 'test',
+				confirmNewPassword: 'test',
 			},
 			headers,
 		);

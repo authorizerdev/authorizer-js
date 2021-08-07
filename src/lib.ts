@@ -66,6 +66,16 @@ type UpdateProfileInput = {
 	email?: string;
 };
 
+type ForgotPasswordInput = {
+	email: string;
+};
+
+type ResetPasswordInput = {
+	token: string;
+	password: string;
+	confirmPassword: string;
+};
+
 enum OAuthProviders {
 	Github = 'github',
 	Google = 'google',
@@ -222,6 +232,40 @@ export default class Authorizer {
 			});
 
 			return updateProfileRes.updateProfile;
+		} catch (error) {
+			throw error;
+		}
+	};
+
+	forgotPassword = async (
+		data: ForgotPasswordInput,
+	): Promise<Response | void> => {
+		try {
+			const forgotPasswordRes = await this.graphqlQuery({
+				query: `mutation forgotPassword($data: ForgotPasswordInput!) {	forgotPassword(params: $data) { message } }`,
+				variables: {
+					data,
+				},
+			});
+
+			return forgotPasswordRes.forgotPassword;
+		} catch (error) {
+			throw error;
+		}
+	};
+
+	resetPassword = async (
+		data: ResetPasswordInput,
+	): Promise<Response | void> => {
+		try {
+			const resetPasswordRes = await this.graphqlQuery({
+				query: `mutation resetPassword($data: ResetPasswordInput!) {	resetPassword(params: $data) { message } }`,
+				variables: {
+					data,
+				},
+			});
+			console.log(`---reset:`, resetPasswordRes);
+			return resetPasswordRes.resetPassword;
 		} catch (error) {
 			throw error;
 		}

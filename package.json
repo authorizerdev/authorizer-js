@@ -23,7 +23,7 @@
 		"size": "size-limit",
 		"analyze": "size-limit --why",
 		"prepublishOnly": "npm run build",
-		"test": "npm run build:esm && cross-env NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=20000"
+		"test": "npm run build:esm && cross-env NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=20000 --runInBand"
 	},
 	"browser": {
 		"path": "path-browserify"
