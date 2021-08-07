@@ -1,10 +1,10 @@
 {
-	"version": "0.1.0-beta.3",
+	"version": "0.1.0-beta.4",
 	"license": "MIT",
 	"main": "lib/index.js",
 	"module": "lib/index.mjs",
 	"type": "module",
-	"typings": "lib/index.d.ts",
+	"typings": "lib/lib.d.ts",
 	"files": [
 		"lib",
 		"src"
@@ -16,7 +16,7 @@
 		"format": "prettier --write 'src/**/*.(ts|tsx)'",
 		"clean": "rm -rf lib",
 		"start": "esbuild src/index.ts --bundle --servedir=__test__ --outdir=__test__/lib",
-		"ts-types": "tsc --emitDeclarationOnly --outDir=lib",
+		"ts-types": "tsc --emitDeclarationOnly --outDir lib",
 		"build:umd": "esbuild src/index.ts --bundle --minify --sourcemap --target=chrome58,firefox57,safari11,edge16 --outfile=lib/index.js",
 		"build:esm": "esbuild src/lib.ts --bundle --format=esm --outfile=lib/index.mjs",
 		"build": "npm run clean && npm run build:umd && npm run build:esm && npm run ts-types",
