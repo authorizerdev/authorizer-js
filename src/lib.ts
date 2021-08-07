@@ -11,6 +11,8 @@ type User = {
 	firstName?: string | null;
 	lastName?: string | null;
 	image?: string | null;
+	signupMethod?: string | null;
+	emailVerifiedAt?: number | null;
 };
 
 type AuthToken = {
@@ -159,7 +161,20 @@ export default class Authorizer {
 		}
 	};
 
-	getProfile = async (headers: {}): Promise<User | void> => {};
+	getProfile = async (
+		headers: Record<string, string>,
+	): Promise<User | void> => {
+		try {
+			const profileRes = await this.graphqlQuery({
+				query: `query {	profile { id email image firstName lastName emailVerifiedAt signupMethod } }`,
+				headers,
+			});
+
+			return profileRes.profile;
+		} catch (error) {
+			throw error;
+		}
+	};
 
 	fingertipLogin = async (): Promise<AuthToken | void> => {
 		try {

@@ -97,6 +97,13 @@ describe('login success', () => {
 		expect(loginRes.accessToken).toMatch(sessionRes.accessToken);
 	});
 
+	it('should fetch profile correctly', async () => {
+		const profileRes = await authRef.getProfile({
+			Authorization: `Bearer ${loginRes.accessToken}`,
+		});
+		expect(profileRes.email).toMatch(`lakhan.m.samani@gmail.com`);
+	});
+
 	it('should logout correctly', async () => {
 		const logoutRes = await authRef.logout({
 			Authorization: `Bearer ${loginRes.accessToken}`,
