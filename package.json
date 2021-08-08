@@ -1,5 +1,5 @@
 {
-	"version": "0.1.0-beta.6",
+	"version": "0.1.0-beta.7",
 	"license": "MIT",
 	"typings": "lib/lib.d.ts",
 	"main": "lib/cjs/index.js",
