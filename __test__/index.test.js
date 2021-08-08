@@ -1,8 +1,4 @@
-const fetch = require('node-fetch');
 const Authorizer = require('../lib/cjs');
-
-console.log({ Authorizer });
-global.fetch = fetch;
 
 const authRef = new Authorizer({
 	authorizerURL: 'http://localhost:8080',

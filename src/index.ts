@@ -1,4 +1,5 @@
 // Note: write gql query in single line to reduce bundle size
+import nodeFetch from 'node-fetch';
 
 type ConfigType = {
 	authorizerURL: string;
@@ -116,7 +117,10 @@ export default class Authorizer {
 	// helper to execute graphql queries
 	// takes in any query or mutation string as input
 	graphqlQuery = async (data: GraphqlQueryInput) => {
-		const res = await fetch(this.config.authorizerURL + '/graphql', {
+		// set fetch based on window object. Isomorphic fetch doesn't support credentail: true
+		// hence cookie based auth might not work so it is imp to use window.fetch in that case
+		const f = hasWindow() ? window.fetch : nodeFetch;
+		const res = await f(this.config.authorizerURL + '/graphql', {
 			method: 'POST',
 			body: JSON.stringify({
 				query: data.query,
@@ -130,6 +134,7 @@ export default class Authorizer {
 		});
 
 		const json = await res.json();
+
 		if (json.errors && json.errors.length) {
 			console.error(json.errors);
 			throw new Error(json.errors[0].message);
