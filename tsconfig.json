@@ -3,10 +3,10 @@
 		"declaration": true,
 		"target": "esnext",
 		"allowUmdGlobalAccess": true,
-		"module": "es2015",
+		"module": "esnext",
 		"lib": ["dom", "es2015", "es2017", "esnext.asynciterable"],
 		"sourceMap": true,
-		"outDir": "./lib",
+		"outDir": "lib",
 		"moduleResolution": "node",
 		"removeComments": true,
 		"noImplicitAny": true,
@@ -25,5 +25,5 @@
 		"baseUrl": "."
 	},
 	"exclude": ["node_modules"],
-	"include": ["./src/**/*.tsx", "./src/**/*.ts"]
+	"include": ["./src/**/*.ts"]
 }

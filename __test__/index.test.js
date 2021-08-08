@@ -1,6 +1,7 @@
-import fetch from 'node-fetch';
-import Authorizer from '../lib/index.mjs';
+const fetch = require('node-fetch');
+const Authorizer = require('../lib/cjs');
 
+console.log({ Authorizer });
 global.fetch = fetch;
 
 const authRef = new Authorizer({

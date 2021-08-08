@@ -1,10 +1,9 @@
 {
 	"version": "0.1.0-beta.4",
 	"license": "MIT",
-	"main": "lib/index.js",
-	"module": "lib/index.mjs",
-	"type": "module",
 	"typings": "lib/lib.d.ts",
+	"main": "dist/cjs/index.js",
+	"module": "dist/esm/index.js",
 	"files": [
 		"lib",
 		"src"
@@ -13,17 +12,13 @@
 		"node": ">=10"
 	},
 	"scripts": {
-		"format": "prettier --write 'src/**/*.(ts|tsx)'",
 		"clean": "rm -rf lib",
-		"start": "esbuild src/index.ts --bundle --servedir=__test__ --outdir=__test__/lib",
+		"start": "rollup -w --config rollup.test.config.js",
 		"ts-types": "tsc --emitDeclarationOnly --outDir lib",
-		"build:umd": "esbuild src/index.ts --bundle --minify --sourcemap --target=chrome58,firefox57,safari11,edge16 --outfile=lib/index.js",
-		"build:esm": "esbuild src/lib.ts --bundle --format=esm --outfile=lib/index.mjs",
-		"build": "npm run clean && npm run build:umd && npm run build:esm && npm run ts-types",
-		"size": "size-limit",
-		"analyze": "size-limit --why",
-		"prepublishOnly": "npm run build",
-		"test": "npm run build:esm && cross-env NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=20000 --runInBand"
+		"build": "npm run clean && rollup --config rollup.config.js --environment INCLUDE_DEPS,BUILD:production",
+		"test": "npm run build && jest --testTimeout=20000 --runInBand",
+		"format": "prettier --write 'src/**/*.(ts)'",
+		"prepublishOnly": "npm run build"
 	},
 	"browser": {
 		"path": "path-browserify"
@@ -31,25 +26,18 @@
 	"peerDependencies": {},
 	"name": "@authorizerdev/authorizer-js",
 	"author": "Lakhan Samani",
-	"size-limit": [
-		{
-			"path": "lib/index.js",
-			"limit": "10 KB"
-		}
-	],
 	"devDependencies": {
-		"@size-limit/preset-small-lib": "^4.5.5",
-		"cross-env": "^7.0.3",
-		"esbuild": "^0.12.17",
+		"@rollup/plugin-typescript": "^8.2.5",
 		"husky": "^7.0.1",
 		"jest": "^27.0.6",
 		"node-fetch": "^2.6.1",
 		"prettier": "2.3.2",
-		"size-limit": "^5.0.1",
+		"rimraf": "^2.7.1",
+		"rollup": "^2.56.0",
+		"rollup-plugin-filesize": "^9.1.1",
+		"rollup-plugin-serve": "^1.1.0",
+		"rollup-plugin-terser": "^7.0.2",
 		"tslib": "^2.3.0",
 		"typescript": "^4.3.5"
-	},
-	"dependencies": {
-		"rimraf": "^2.7.1"
 	}
 }
