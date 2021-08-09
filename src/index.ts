@@ -87,7 +87,7 @@ const hasWindow = (): boolean => typeof window !== 'undefined';
 // re-usable gql response fragment
 const userTokenFragment = `message accessToken accessTokenExpiresAt user { id email firstName lastName image }`;
 
-export default class Authorizer {
+class Authorizer {
 	// class variable
 	config: ConfigType;
 
@@ -316,3 +316,5 @@ export default class Authorizer {
 		}
 	};
 }
+
+export default Authorizer;
