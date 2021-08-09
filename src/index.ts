@@ -1,12 +1,12 @@
 // Note: write gql query in single line to reduce bundle size
 import nodeFetch from 'node-fetch';
 
-type ConfigType = {
+export type ConfigType = {
 	authorizerURL: string;
 	redirectURL?: string;
 };
 
-type User = {
+export type User = {
 	id: string;
 	email: string;
 	firstName?: string | null;
@@ -16,22 +16,22 @@ type User = {
 	emailVerifiedAt?: number | null;
 };
 
-type AuthToken = {
+export type AuthToken = {
 	message?: string;
 	accessToken: string;
 	accessTokenExpiresAt: number;
 	user?: User;
 };
 
-type Response = {
+export type Response = {
 	message: string;
 };
 
-type Headers = Record<string, string>;
+export type Headers = Record<string, string>;
 
-type LoginInput = { email: string; password: string };
+export type LoginInput = { email: string; password: string };
 
-type SignupInput = {
+export type SignupInput = {
 	email: string;
 	password: string;
 	confirmPassword: string;
@@ -39,15 +39,15 @@ type SignupInput = {
 	lastName?: string;
 };
 
-type VerifyEmailInput = { token: string };
+export type VerifyEmailInput = { token: string };
 
-type GraphqlQueryInput = {
+export type GraphqlQueryInput = {
 	query: string;
 	variables?: Record<string, any>;
 	headers?: Headers;
 };
 
-type MetaData = {
+export type MetaData = {
 	version: string;
 	isGoogleLoginEnabled: boolean;
 	isFacebookLoginEnabled: boolean;
@@ -57,7 +57,7 @@ type MetaData = {
 	isBasicAuthenticationEnabled: boolean;
 };
 
-type UpdateProfileInput = {
+export type UpdateProfileInput = {
 	oldPassword?: string;
 	newPassword?: string;
 	confirmNewPassword?: string;
@@ -67,17 +67,17 @@ type UpdateProfileInput = {
 	email?: string;
 };
 
-type ForgotPasswordInput = {
+export type ForgotPasswordInput = {
 	email: string;
 };
 
-type ResetPasswordInput = {
+export type ResetPasswordInput = {
 	token: string;
 	password: string;
 	confirmPassword: string;
 };
 
-enum OAuthProviders {
+export enum OAuthProviders {
 	Github = 'github',
 	Google = 'google',
 }
@@ -87,7 +87,7 @@ const hasWindow = (): boolean => typeof window !== 'undefined';
 // re-usable gql response fragment
 const userTokenFragment = `message accessToken accessTokenExpiresAt user { id email firstName lastName image }`;
 
-class Authorizer {
+export class Authorizer {
 	// class variable
 	config: ConfigType;
 
@@ -316,5 +316,3 @@ class Authorizer {
 		}
 	};
 }
-
-export default Authorizer;

@@ -1,4 +1,4 @@
-const Authorizer = require('../lib/cjs');
+const { Authorizer } = require('../lib/cjs');
 
 const authRef = new Authorizer({
 	authorizerURL: 'http://localhost:8080',

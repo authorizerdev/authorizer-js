@@ -26,7 +26,7 @@ export default [
 			{
 				dir: 'lib/esm',
 				format: 'esm',
-				exports: 'default',
+				exports: 'named',
 				sourcemap: true,
 			},
 		],
@@ -39,7 +39,7 @@ export default [
 			{
 				dir: 'lib/cjs',
 				format: 'cjs',
-				exports: 'default',
+				exports: 'named',
 				sourcemap: true,
 			},
 		],
