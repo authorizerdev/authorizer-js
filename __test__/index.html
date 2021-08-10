@@ -65,7 +65,7 @@
 			const logoutSection = document.getElementById('logout-section');
 			const logoutBtn = document.getElementById('logout');
 
-			const authorizerRef = new Authorizer({
+			const authorizerRef = new Authorizer.Authorizer({
 				authorizerURL: 'http://localhost:8080',
 				redirectURL: window.location.origin,
 			});
@@ -77,7 +77,7 @@
 
 			async function onLoad() {
 				const res = await authorizerRef.fingertipLogin();
-				if (res.user) {
+				if (res && res.user) {
 					logoutSection.classList.toggle('hide');
 					userSection.innerHTML = `Welcome, ${res.user.email}`;
 				}
