@@ -56,7 +56,7 @@ describe('login failures', () => {
 				password: password + 'test',
 			});
 		} catch (e) {
-			expect(e).toMatch('invalid password');
+			expect(e.message).toMatch('invalid password');
 		}
 	});
 });

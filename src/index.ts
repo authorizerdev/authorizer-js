@@ -206,7 +206,7 @@ export class Authorizer {
 
 			return res.login;
 		} catch (err) {
-			console.error(err);
+			throw err;
 		}
 	};
 
