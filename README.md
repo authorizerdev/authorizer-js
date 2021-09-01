@@ -35,7 +35,7 @@ const authRef = new Authorizer({
 
 ```html
 <script type="text/javascript">
-	const authorizerRef = new Authorizer.Authorizer({
+	const authorizerRef = new authorizerdev.Authorizer({
 		authorizerURL: `AUTHORIZER_URL`,
 		redirectURL: window.location.origin,
 	});
