@@ -52,11 +52,11 @@ const authRef = new Authorizer({
 		if (res && res.user) {
 			// you can use user information here, eg:
 			/**
-      const userSection = document.getElementById('user');
-      const logoutSection = document.getElementById('logout-section');
-      logoutSection.classList.toggle('hide');
-      userSection.innerHTML = `Welcome, ${res.user.email}`;
-      */
+			const userSection = document.getElementById('user');
+			const logoutSection = document.getElementById('logout-section');
+			logoutSection.classList.toggle('hide');
+			userSection.innerHTML = `Welcome, ${res.user.email}`;
+			*/
 		}
 	}
 	onLoad();
