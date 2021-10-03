@@ -76,7 +76,7 @@
 			});
 
 			async function onLoad() {
-				const res = await authorizerRef.fingertipLogin();
+				const res = await authorizerRef.browserLogin();
 				if (res && res.user) {
 					logoutSection.classList.toggle('hide');
 					userSection.innerHTML = `Welcome, ${res.user.email}`;

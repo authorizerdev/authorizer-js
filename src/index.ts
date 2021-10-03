@@ -277,13 +277,13 @@ export class Authorizer {
 		}
 	};
 
-	fingertipLogin = async (): Promise<AuthToken | void> => {
+	browserLogin = async (): Promise<AuthToken | void> => {
 		try {
 			const token = await this.getSession();
 			return token;
 		} catch (err) {
 			if (!hasWindow()) {
-				throw new Error(`fingertipLogin is only supported for browsers`);
+				throw new Error(`browserLogin is only supported for browsers`);
 			}
 			window.location.href = `${this.config.authorizerURL}/app?state=${btoa(
 				JSON.stringify(this.config),
