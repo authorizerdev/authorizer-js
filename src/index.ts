@@ -14,6 +14,7 @@ export type User = {
 	image?: string | null;
 	signupMethod?: string | null;
 	emailVerifiedAt?: number | null;
+	roles?: [string];
 };
 
 export type AuthToken = {
@@ -29,7 +30,7 @@ export type Response = {
 
 export type Headers = Record<string, string>;
 
-export type LoginInput = { email: string; password: string };
+export type LoginInput = { email: string; password: string; role: [string] };
 
 export type SignupInput = {
 	email: string;
@@ -37,6 +38,7 @@ export type SignupInput = {
 	confirmPassword: string;
 	firstName?: string;
 	lastName?: string;
+	roles?: [string];
 };
 
 export type VerifyEmailInput = { token: string };

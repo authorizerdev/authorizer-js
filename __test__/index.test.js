@@ -59,6 +59,18 @@ describe('login failures', () => {
 			expect(e.message).toMatch('invalid password');
 		}
 	});
+
+	it('should throw password invalid role', async () => {
+		try {
+			await authRef.login({
+				email: email,
+				password: password,
+				role: 'admin',
+			});
+		} catch (e) {
+			expect(e.message).toMatch('invalid role');
+		}
+	});
 });
 
 describe(`forgot password success`, () => {
