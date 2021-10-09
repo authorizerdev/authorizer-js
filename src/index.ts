@@ -294,7 +294,7 @@ export class Authorizer {
 		}
 	};
 
-	oauthLogin = async (oauthProvider: string): Promise<void> => {
+	oauthLogin = async (oauthProvider: string, role?: string): Promise<void> => {
 		// @ts-ignore
 		if (!Object.values(OAuthProviders).includes(oauthProvider)) {
 			throw new Error(
@@ -306,7 +306,11 @@ export class Authorizer {
 		if (!hasWindow()) {
 			throw new Error(`oauthLogin is only supported for browsers`);
 		}
-		window.location.href = `${this.config.authorizerURL}/oauth_login/${oauthProvider}`;
+		window.location.href = `${
+			this.config.authorizerURL
+		}/oauth_login/${oauthProvider}?redirectURL=${
+			this.config.redirectURL || window.location.origin
+		}${role ? `&role=${role}` : ``}`;
 	};
 
 	logout = async (headers?: Headers): Promise<Response | void> => {
