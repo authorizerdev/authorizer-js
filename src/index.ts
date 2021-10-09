@@ -158,11 +158,14 @@ export class Authorizer {
 	};
 
 	// this is used to verify / get session using cookie by default. If using nodejs pass authorization header
-	getSession = async (headers?: Headers): Promise<AuthToken> => {
+	getSession = async (headers?: Headers, role?: string): Promise<AuthToken> => {
 		try {
 			const res = await this.graphqlQuery({
-				query: `query {token { ${userTokenFragment} } }`,
+				query: `query getSession($role: String){token(role: $role) { ${userTokenFragment} } }`,
 				headers,
+				variables: {
+					role,
+				},
 			});
 			return res.token;
 		} catch (err) {

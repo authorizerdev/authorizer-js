@@ -134,6 +134,20 @@ describe('login success', () => {
 		expect(loginRes.accessToken).toMatch(sessionRes.accessToken);
 	});
 
+	it('should validate role with session', async () => {
+		const sessionRes = await authRef.getSession(headers, 'user');
+		console.log(JSON.stringify(sessionRes));
+		expect(loginRes.accessToken).toMatch(sessionRes.accessToken);
+	});
+
+	it('should throw error for invalid role for given token', async () => {
+		try {
+			const sessionRes = await authRef.getSession(headers, 'admin');
+		} catch (e) {
+			expect(e.message).toMatch('unauthorized');
+		}
+	});
+
 	it('should update profile successfully', async () => {
 		const updateProfileRes = await authRef.updateProfile(
 			{
