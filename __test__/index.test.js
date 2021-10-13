@@ -65,7 +65,7 @@ describe('login failures', () => {
 			await authRef.login({
 				email: email,
 				password: password,
-				role: 'admin',
+				roles: ['admin'],
 			});
 		} catch (e) {
 			expect(e.message).toMatch('invalid role');

@@ -30,7 +30,7 @@ export type Response = {
 
 export type Headers = Record<string, string>;
 
-export type LoginInput = { email: string; password: string; role: [string] };
+export type LoginInput = { email: string; password: string; roles?: [string] };
 
 export type SignupInput = {
 	email: string;
@@ -161,7 +161,7 @@ export class Authorizer {
 	getSession = async (headers?: Headers, role?: string): Promise<AuthToken> => {
 		try {
 			const res = await this.graphqlQuery({
-				query: `query getSession($role: String){token(role: $role) { ${userTokenFragment} } }`,
+				query: `query getSession($roles: [String!]){token(roles: $roles) { ${userTokenFragment} } }`,
 				headers,
 				variables: {
 					role,
