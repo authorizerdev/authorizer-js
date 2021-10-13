@@ -158,13 +158,16 @@ export class Authorizer {
 	};
 
 	// this is used to verify / get session using cookie by default. If using nodejs pass authorization header
-	getSession = async (headers?: Headers, role?: string): Promise<AuthToken> => {
+	getSession = async (
+		headers?: Headers,
+		roles?: [string],
+	): Promise<AuthToken> => {
 		try {
 			const res = await this.graphqlQuery({
 				query: `query getSession($roles: [String!]){token(roles: $roles) { ${userTokenFragment} } }`,
 				headers,
 				variables: {
-					role,
+					roles,
 				},
 			});
 			return res.token;
@@ -294,7 +297,10 @@ export class Authorizer {
 		}
 	};
 
-	oauthLogin = async (oauthProvider: string, role?: string): Promise<void> => {
+	oauthLogin = async (
+		oauthProvider: string,
+		roles?: [string],
+	): Promise<void> => {
 		// @ts-ignore
 		if (!Object.values(OAuthProviders).includes(oauthProvider)) {
 			throw new Error(
@@ -310,7 +316,7 @@ export class Authorizer {
 			this.config.authorizerURL
 		}/oauth_login/${oauthProvider}?redirectURL=${
 			this.config.redirectURL || window.location.origin
-		}${role ? `&role=${role}` : ``}`;
+		}${roles && roles.length ? `&roles=${roles.join(',')}` : ``}`;
 	};
 
 	logout = async (headers?: Headers): Promise<Response | void> => {
