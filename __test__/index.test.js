@@ -10,7 +10,6 @@ const password = `some_random_password`;
 const email = `uo5vbgg93p@yopmail.com`;
 
 describe('signup success', () => {
-	console.log(`Checking the sign up process for: ${email}`);
 	it(`should signup with email verification enabled`, async () => {
 		const signupRes = await authRef.signup({
 			email: email,
@@ -136,7 +135,7 @@ describe('login success', () => {
 
 	it('should validate role with session', async () => {
 		const sessionRes = await authRef.getSession(headers, ['user']);
-		console.log(JSON.stringify(sessionRes));
+
 		expect(loginRes.accessToken).toMatch(sessionRes.accessToken);
 	});
 
@@ -161,6 +160,71 @@ describe('login success', () => {
 	it('should fetch profile successfully', async () => {
 		const profileRes = await authRef.getProfile(headers);
 		expect(profileRes.firstName).toMatch(`bob`);
+	});
+
+	it('should logout successfully', async () => {
+		const logoutRes = await authRef.logout(headers);
+		// in future if message changes we don't want to take risk of this test failing
+		expect(logoutRes.message.length).not.toEqual(0);
+
+		await authRef.graphqlQuery({
+			query: `
+				mutation {
+					deleteUser(params: {
+						email: "${email}"
+					}) {
+						message
+					}
+				}
+			`,
+			headers: {
+				'x-authorizer-admin-secret': adminSecret,
+			},
+		});
+	});
+});
+
+describe('magic login success', () => {
+	let headers = null;
+	it(`should login with magic link`, async () => {
+		const magicLoginRes = await authRef.magicLogin({
+			email: email,
+		});
+
+		expect(magicLoginRes.message.length).not.toEqual(0);
+	});
+
+	it(`should verify email`, async () => {
+		const verificationRequestsRes = await authRef.graphqlQuery({
+			query: `
+				query {
+					verificationRequests {
+						id
+						token
+						email
+						expires
+						identifier
+					}
+				}
+			`,
+			headers: {
+				'x-authorizer-admin-secret': adminSecret,
+			},
+		});
+
+		const requests = verificationRequestsRes.verificationRequests;
+
+		const item = requests.find((i) => i.email === email);
+
+		expect(item).not.toBeNull();
+
+		const verifyEmailRes = await authRef.verifyEmail({ token: item.token });
+
+		expect(verifyEmailRes.user.signupMethod).toContain('magic_link');
+
+		headers = {
+			Authorization: `Bearer ${verifyEmailRes.accessToken}`,
+		};
 	});
 
 	it('should logout successfully', async () => {

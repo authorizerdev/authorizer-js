@@ -14,7 +14,7 @@ export type User = {
 	image?: string | null;
 	signupMethod?: string | null;
 	emailVerifiedAt?: number | null;
-	roles?: [string];
+	roles?: string[];
 };
 
 export type AuthToken = {
@@ -30,7 +30,7 @@ export type Response = {
 
 export type Headers = Record<string, string>;
 
-export type LoginInput = { email: string; password: string; roles?: [string] };
+export type LoginInput = { email: string; password: string; roles?: string[] };
 
 export type SignupInput = {
 	email: string;
@@ -38,7 +38,12 @@ export type SignupInput = {
 	confirmPassword: string;
 	firstName?: string;
 	lastName?: string;
-	roles?: [string];
+	roles?: string[];
+};
+
+export type MagicLoginInput = {
+	email: string;
+	roles?: string[];
 };
 
 export type VerifyEmailInput = { token: string };
@@ -57,6 +62,7 @@ export type MetaData = {
 	isGithubLoginEnabled: boolean;
 	isEmailVerificationEnabled: boolean;
 	isBasicAuthenticationEnabled: boolean;
+	isMagicLoginEnabled: boolean;
 };
 
 export type UpdateProfileInput = {
@@ -87,7 +93,7 @@ export enum OAuthProviders {
 const hasWindow = (): boolean => typeof window !== 'undefined';
 
 // re-usable gql response fragment
-const userTokenFragment = `message accessToken accessTokenExpiresAt user { id email firstName lastName image }`;
+const userTokenFragment = `message accessToken accessTokenExpiresAt user { id email firstName lastName image signupMethod emailVerifiedAt roles createdAt updatedAt }`;
 
 export class Authorizer {
 	// class variable
@@ -148,7 +154,7 @@ export class Authorizer {
 	getMetaData = async (): Promise<MetaData | void> => {
 		try {
 			const res = await this.graphqlQuery({
-				query: `query { meta { version isGoogleLoginEnabled isGithubLoginEnabled isBasicAuthenticationEnabled isEmailVerificationEnabled isFacebookLoginEnabled isTwitterLoginEnabled } }`,
+				query: `query { meta { version isGoogleLoginEnabled isGithubLoginEnabled isBasicAuthenticationEnabled isEmailVerificationEnabled isFacebookLoginEnabled isTwitterLoginEnabled isMagicLoginEnabled } }`,
 			});
 
 			return res.meta;
@@ -160,7 +166,7 @@ export class Authorizer {
 	// this is used to verify / get session using cookie by default. If using nodejs pass authorization header
 	getSession = async (
 		headers?: Headers,
-		roles?: [string],
+		roles?: string[],
 	): Promise<AuthToken> => {
 		try {
 			const res = await this.graphqlQuery({
@@ -176,6 +182,20 @@ export class Authorizer {
 		}
 	};
 
+	magicLogin = async (data: MagicLoginInput): Promise<Response> => {
+		try {
+			const res = await this.graphqlQuery({
+				query: `
+		mutation magicLogin($data: MagicLoginInput!) { magicLogin(params: $data) { message }}`,
+				variables: { data },
+			});
+
+			return res.magicLogin;
+		} catch (err) {
+			throw err;
+		}
+	};
+
 	signup = async (data: SignupInput): Promise<AuthToken | void> => {
 		try {
 			const res = await this.graphqlQuery({
@@ -186,7 +206,7 @@ export class Authorizer {
 
 			return res.signup;
 		} catch (err) {
-			console.error(err);
+			throw err;
 		}
 	};
 
@@ -200,7 +220,7 @@ export class Authorizer {
 
 			return res.verifyEmail;
 		} catch (err) {
-			console.error(err);
+			throw err;
 		}
 	};
 
@@ -299,7 +319,7 @@ export class Authorizer {
 
 	oauthLogin = async (
 		oauthProvider: string,
-		roles?: [string],
+		roles?: string[],
 	): Promise<void> => {
 		// @ts-ignore
 		if (!Object.values(OAuthProviders).includes(oauthProvider)) {
