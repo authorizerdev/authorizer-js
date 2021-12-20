@@ -88,6 +88,7 @@ export type ResetPasswordInput = {
 export enum OAuthProviders {
 	Github = 'github',
 	Google = 'google',
+	Facebook = 'facebook',
 }
 
 const hasWindow = (): boolean => typeof window !== 'undefined';
