@@ -14,7 +14,7 @@ describe('signup success', () => {
 		const signupRes = await authRef.signup({
 			email: email,
 			password: password,
-			confirmPassword: password,
+			confirm_password: password,
 		});
 		expect(signupRes.message.length).not.toEqual(0);
 	});
@@ -23,7 +23,7 @@ describe('signup success', () => {
 		const verificationRequestsRes = await authRef.graphqlQuery({
 			query: `
 				query {
-					verificationRequests {
+					_verification_requests {
 						id
 						token
 						email
@@ -37,13 +37,13 @@ describe('signup success', () => {
 			},
 		});
 
-		const requests = verificationRequestsRes.verificationRequests;
+		const requests = verificationRequestsRes._verification_requests;
 		const item = requests.find((i) => i.email === email);
 		expect(item).not.toBeNull();
 
 		const verifyEmailRes = await authRef.verifyEmail({ token: item.token });
 
-		expect(verifyEmailRes.accessToken.length).not.toEqual(0);
+		expect(verifyEmailRes.access_token.length).not.toEqual(0);
 	});
 });
 
@@ -84,7 +84,7 @@ describe(`forgot password success`, () => {
 		const verificationRequestsRes = await authRef.graphqlQuery({
 			query: `
 				query {
-					verificationRequests {
+					_verification_requests {
 						id
 						token
 						email
@@ -98,7 +98,7 @@ describe(`forgot password success`, () => {
 			},
 		});
 
-		const requests = verificationRequestsRes.verificationRequests;
+		const requests = verificationRequestsRes._verification_requests;
 		const item = requests.find(
 			(i) => i.email === email && i.identifier === 'forgot_password',
 		);
@@ -107,7 +107,7 @@ describe(`forgot password success`, () => {
 		const resetPasswordRes = await authRef.resetPassword({
 			token: item.token,
 			password: password,
-			confirmPassword: password,
+			confirm_password: password,
 		});
 
 		expect(resetPasswordRes.message.length).not.toEqual(0);
@@ -122,21 +122,21 @@ describe('login success', () => {
 			email: email,
 			password: password,
 		});
-		expect(loginRes.accessToken.length).not.toEqual(0);
+		expect(loginRes.access_token.length).not.toEqual(0);
 		headers = {
-			Authorization: `Bearer ${loginRes.accessToken}`,
+			Authorization: `Bearer ${loginRes.access_token}`,
 		};
 	});
 
 	it('should fetch the session successfully', async () => {
 		const sessionRes = await authRef.getSession(headers);
-		expect(loginRes.accessToken).toMatch(sessionRes.accessToken);
+		expect(loginRes.access_token).toMatch(sessionRes.access_token);
 	});
 
 	it('should validate role with session', async () => {
 		const sessionRes = await authRef.getSession(headers, ['user']);
 
-		expect(loginRes.accessToken).toMatch(sessionRes.accessToken);
+		expect(loginRes.access_token).toMatch(sessionRes.access_token);
 	});
 
 	it('should throw error for invalid role for given token', async () => {
@@ -150,7 +150,7 @@ describe('login success', () => {
 	it('should update profile successfully', async () => {
 		const updateProfileRes = await authRef.updateProfile(
 			{
-				firstName: 'bob',
+				given_name: 'bob',
 			},
 			headers,
 		);
@@ -159,7 +159,7 @@ describe('login success', () => {
 
 	it('should fetch profile successfully', async () => {
 		const profileRes = await authRef.getProfile(headers);
-		expect(profileRes.firstName).toMatch(`bob`);
+		expect(profileRes.given_name).toMatch(`bob`);
 	});
 
 	it('should logout successfully', async () => {
@@ -170,7 +170,7 @@ describe('login success', () => {
 		await authRef.graphqlQuery({
 			query: `
 				mutation {
-					deleteUser(params: {
+					_delete_user(params: {
 						email: "${email}"
 					}) {
 						message
@@ -187,18 +187,18 @@ describe('login success', () => {
 describe('magic login success', () => {
 	let headers = null;
 	it(`should login with magic link`, async () => {
-		const magicLoginRes = await authRef.magicLogin({
+		const magicLinkLoginRes = await authRef.magicLinkLogin({
 			email: email,
 		});
 
-		expect(magicLoginRes.message.length).not.toEqual(0);
+		expect(magicLinkLoginRes.message.length).not.toEqual(0);
 	});
 
 	it(`should verify email`, async () => {
 		const verificationRequestsRes = await authRef.graphqlQuery({
 			query: `
 				query {
-					verificationRequests {
+					_verification_requests {
 						id
 						token
 						email
@@ -212,18 +212,19 @@ describe('magic login success', () => {
 			},
 		});
 
-		const requests = verificationRequestsRes.verificationRequests;
+		const requests = verificationRequestsRes._verification_requests;
 
 		const item = requests.find((i) => i.email === email);
 
 		expect(item).not.toBeNull();
 
-		const verifyEmailRes = await authRef.verifyEmail({ token: item.token });
-
-		expect(verifyEmailRes.user.signupMethod).toContain('magic_link');
+		const verifyEmailRes = await authRef.verifyEmail({
+			token: item.token,
+		});
+		expect(verifyEmailRes.user.signup_methods).toContain('magic_link_login');
 
 		headers = {
-			Authorization: `Bearer ${verifyEmailRes.accessToken}`,
+			Authorization: `Bearer ${verifyEmailRes.access_token}`,
 		};
 	});
 
@@ -235,7 +236,7 @@ describe('magic login success', () => {
 		await authRef.graphqlQuery({
 			query: `
 				mutation {
-					deleteUser(params: {
+					_delete_user(params: {
 						email: "${email}"
 					}) {
 						message

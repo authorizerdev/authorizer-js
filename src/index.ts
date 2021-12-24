@@ -3,24 +3,32 @@ import nodeFetch from 'node-fetch';
 
 export type ConfigType = {
 	authorizerURL: string;
-	redirectURL?: string;
+	redirectURL: string;
 };
 
 export type User = {
 	id: string;
 	email: string;
-	firstName?: string | null;
-	lastName?: string | null;
-	image?: string | null;
-	signupMethod?: string | null;
-	emailVerifiedAt?: number | null;
+	preferred_username: string;
+	email_verified: boolean;
+	signup_methods: string;
+	given_name?: string | null;
+	family_name?: string | null;
+	middle_name?: string | null;
+	picture?: string | null;
+	gender?: string | null;
+	birthdate?: string | null;
+	phone_number?: string | null;
+	phone_number_verified?: boolean | null;
 	roles?: string[];
+	created_at: number;
+	updated_at: number;
 };
 
 export type AuthToken = {
 	message?: string;
-	accessToken: string;
-	accessTokenExpiresAt: number;
+	access_token: string;
+	expires_at: number;
 	user?: User;
 };
 
@@ -35,13 +43,18 @@ export type LoginInput = { email: string; password: string; roles?: string[] };
 export type SignupInput = {
 	email: string;
 	password: string;
-	confirmPassword: string;
-	firstName?: string;
-	lastName?: string;
+	confirm_password: string;
+	given_name?: string;
+	family_name?: string;
+	middle_name?: string;
+	picture?: string;
+	gender?: string;
+	birthdate?: string;
+	phone_number?: string;
 	roles?: string[];
 };
 
-export type MagicLoginInput = {
+export type MagicLinkLoginInput = {
 	email: string;
 	roles?: string[];
 };
@@ -56,23 +69,27 @@ export type GraphqlQueryInput = {
 
 export type MetaData = {
 	version: string;
-	isGoogleLoginEnabled: boolean;
-	isFacebookLoginEnabled: boolean;
-	isTwitterLoginEnabled: boolean;
-	isGithubLoginEnabled: boolean;
-	isEmailVerificationEnabled: boolean;
-	isBasicAuthenticationEnabled: boolean;
-	isMagicLoginEnabled: boolean;
+	is_google_login_enabled: boolean;
+	is_facebook_login_enabled: boolean;
+	is_github_login_enabled: boolean;
+	is_email_verification_enabled: boolean;
+	is_basic_authentication_enabled: boolean;
+	is_magic_link_login_enabled: boolean;
 };
 
 export type UpdateProfileInput = {
-	oldPassword?: string;
-	newPassword?: string;
-	confirmNewPassword?: string;
-	firstName?: string;
-	lastName?: string;
-	image?: string;
+	old_password?: string;
+	new_password?: string;
+	confirm_new_password?: string;
 	email?: string;
+	given_name?: string;
+	family_name?: string;
+	middle_name?: string;
+	nickname?: string;
+	gender?: string;
+	birthdate?: string;
+	phone_number?: string;
+	picture?: string;
 };
 
 export type ForgotPasswordInput = {
@@ -82,7 +99,7 @@ export type ForgotPasswordInput = {
 export type ResetPasswordInput = {
 	token: string;
 	password: string;
-	confirmPassword: string;
+	confirm_password: string;
 };
 
 export enum OAuthProviders {
@@ -94,7 +111,20 @@ export enum OAuthProviders {
 const hasWindow = (): boolean => typeof window !== 'undefined';
 
 // re-usable gql response fragment
-const userTokenFragment = `message accessToken accessTokenExpiresAt user { id email firstName lastName image signupMethod emailVerifiedAt roles createdAt updatedAt }`;
+const userFragment = `id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at `;
+const authTokenFragment = `message access_token expires_at user { ${userFragment} }`;
+
+const trimURL = (url: string): string => {
+	let trimmedData = url.trim();
+	const lastChar = trimmedData[trimmedData.length - 1];
+	if (lastChar === '/') {
+		trimmedData = trimmedData.slice(0, -1);
+	} else {
+		trimmedData = trimmedData;
+	}
+
+	return trimmedData;
+};
 
 export class Authorizer {
 	// class variable
@@ -106,20 +136,16 @@ export class Authorizer {
 			throw new Error(`Configuration is required`);
 		}
 		this.config = config;
-		if (!config.authorizerURL.trim()) {
+		if (!config.authorizerURL && !config.authorizerURL.trim()) {
 			throw new Error(`Invalid authorizerURL`);
 		}
 		if (config.authorizerURL) {
-			const trimmedData = config.authorizerURL.trim();
-			const lastChar = trimmedData[trimmedData.length - 1];
-			if (lastChar === '/') {
-				this.config.authorizerURL = trimmedData.slice(0, -1);
-			} else {
-				this.config.authorizerURL = trimmedData;
-			}
+			this.config.authorizerURL = trimURL(config.authorizerURL);
 		}
-		if (!config.redirectURL) {
+		if (!config.redirectURL && !config.redirectURL.trim()) {
 			throw new Error(`Invalid redirectURL`);
+		} else {
+			this.config.redirectURL = trimURL(config.redirectURL);
 		}
 	}
 
@@ -155,7 +181,7 @@ export class Authorizer {
 	getMetaData = async (): Promise<MetaData | void> => {
 		try {
 			const res = await this.graphqlQuery({
-				query: `query { meta { version isGoogleLoginEnabled isGithubLoginEnabled isBasicAuthenticationEnabled isEmailVerificationEnabled isFacebookLoginEnabled isTwitterLoginEnabled isMagicLoginEnabled } }`,
+				query: `query { meta { version is_google_login_enabled is_facebook_login_enabled is_github_login_enabled is_email_verification_enabled is_basic_authentication_enabled is_magic_link_login_enabled } }`,
 			});
 
 			return res.meta;
@@ -171,27 +197,28 @@ export class Authorizer {
 	): Promise<AuthToken> => {
 		try {
 			const res = await this.graphqlQuery({
-				query: `query getSession($roles: [String!]){token(roles: $roles) { ${userTokenFragment} } }`,
+				query: `query getSession($roles: [String!]){session(roles: $roles) { ${authTokenFragment} } }`,
 				headers,
 				variables: {
 					roles,
 				},
 			});
-			return res.token;
+			return res.session;
 		} catch (err) {
 			throw err;
 		}
 	};
 
-	magicLogin = async (data: MagicLoginInput): Promise<Response> => {
+	magicLinkLogin = async (data: MagicLinkLoginInput): Promise<Response> => {
 		try {
 			const res = await this.graphqlQuery({
 				query: `
-		mutation magicLogin($data: MagicLoginInput!) { magicLogin(params: $data) { message }}`,
+					mutation magicLinkLogin($data: MagicLinkLoginInput!) { magic_link_login(params: $data) { message }}
+				`,
 				variables: { data },
 			});
 
-			return res.magicLogin;
+			return res.magic_link_login;
 		} catch (err) {
 			throw err;
 		}
@@ -201,7 +228,8 @@ export class Authorizer {
 		try {
 			const res = await this.graphqlQuery({
 				query: `
-		mutation signup($data: SignUpInput!) { signup(params: $data) { ${userTokenFragment}}}`,
+					mutation signup($data: SignUpInput!) { signup(params: $data) { ${authTokenFragment}}}
+				`,
 				variables: { data },
 			});
 
@@ -215,11 +243,12 @@ export class Authorizer {
 		try {
 			const res = await this.graphqlQuery({
 				query: `
-		mutation verifyEmail($data: VerifyEmailInput!) { verifyEmail(params: $data) { ${userTokenFragment}}}`,
+					mutation verifyEmail($data: VerifyEmailInput!) { verify_email(params: $data) { ${authTokenFragment}}}
+				`,
 				variables: { data },
 			});
 
-			return res.verifyEmail;
+			return res.verify_email;
 		} catch (err) {
 			throw err;
 		}
@@ -229,7 +258,8 @@ export class Authorizer {
 		try {
 			const res = await this.graphqlQuery({
 				query: `
-		mutation login($data: LoginInput!) { login(params: $data) { ${userTokenFragment}}}`,
+					mutation login($data: LoginInput!) { login(params: $data) { ${authTokenFragment}}}
+				`,
 				variables: { data },
 			});
 
@@ -242,7 +272,7 @@ export class Authorizer {
 	getProfile = async (headers?: Headers): Promise<User | void> => {
 		try {
 			const profileRes = await this.graphqlQuery({
-				query: `query {	profile { id email image firstName lastName emailVerifiedAt signupMethod } }`,
+				query: `query {	profile { ${userFragment} } }`,
 				headers,
 			});
 
@@ -258,14 +288,14 @@ export class Authorizer {
 	): Promise<Response | void> => {
 		try {
 			const updateProfileRes = await this.graphqlQuery({
-				query: `mutation updateProfile($data: UpdateProfileInput!) {	updateProfile(params: $data) { message } }`,
+				query: `mutation updateProfile($data: UpdateProfileInput!) {	update_profile(params: $data) { message } }`,
 				headers,
 				variables: {
 					data,
 				},
 			});
 
-			return updateProfileRes.updateProfile;
+			return updateProfileRes.update_profile;
 		} catch (error) {
 			throw error;
 		}
@@ -276,13 +306,13 @@ export class Authorizer {
 	): Promise<Response | void> => {
 		try {
 			const forgotPasswordRes = await this.graphqlQuery({
-				query: `mutation forgotPassword($data: ForgotPasswordInput!) {	forgotPassword(params: $data) { message } }`,
+				query: `mutation forgotPassword($data: ForgotPasswordInput!) {	forgot_password(params: $data) { message } }`,
 				variables: {
 					data,
 				},
 			});
 
-			return forgotPasswordRes.forgotPassword;
+			return forgotPasswordRes.forgot_password;
 		} catch (error) {
 			throw error;
 		}
@@ -293,12 +323,12 @@ export class Authorizer {
 	): Promise<Response | void> => {
 		try {
 			const resetPasswordRes = await this.graphqlQuery({
-				query: `mutation resetPassword($data: ResetPasswordInput!) {	resetPassword(params: $data) { message } }`,
+				query: `mutation resetPassword($data: ResetPasswordInput!) {	reset_password(params: $data) { message } }`,
 				variables: {
 					data,
 				},
 			});
-			return resetPasswordRes.resetPassword;
+			return resetPasswordRes.reset_password;
 		} catch (error) {
 			throw error;
 		}
@@ -348,6 +378,7 @@ export class Authorizer {
 			});
 			return res.logout;
 		} catch (err) {
+			console.log(`logout err:`, err);
 			console.error(err);
 		}
 	};
