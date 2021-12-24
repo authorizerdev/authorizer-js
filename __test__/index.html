@@ -59,14 +59,14 @@
 			cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id
 			est laborum.
 		</p>
-		<script src="lib/authorizer.js"></script>
+		<script src="lib/authorizer.min.js"></script>
 		<script type="text/javascript">
 			const userSection = document.getElementById('user');
 			const logoutSection = document.getElementById('logout-section');
 			const logoutBtn = document.getElementById('logout');
 
-			const authorizerRef = new Authorizer.Authorizer({
-				authorizerURL: 'http://localhost:8080',
+			const authorizerRef = new authorizerdev.Authorizer({
+				authorizerURL: 'https://669a8d3ecc8b.up.railway.app',
 				redirectURL: window.location.origin,
 			});
 
@@ -76,10 +76,16 @@
 			});
 
 			async function onLoad() {
-				const res = await authorizerRef.browserLogin();
-				if (res && res.user) {
-					logoutSection.classList.toggle('hide');
-					userSection.innerHTML = `Welcome, ${res.user.email}`;
+				console.log(authorizerRef);
+				try {
+					const res = await authorizerRef.getSession();
+					console.log(res);
+					if (res && res.user) {
+						logoutSection.classList.toggle('hide');
+						userSection.innerHTML = `Welcome, ${res.user.email}`;
+					}
+				} catch (err) {
+					console.error(err);
 				}
 			}
 			onLoad();

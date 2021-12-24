@@ -342,9 +342,11 @@ export class Authorizer {
 			if (!hasWindow()) {
 				throw new Error(`browserLogin is only supported for browsers`);
 			}
-			window.location.href = `${this.config.authorizerURL}/app?state=${btoa(
-				JSON.stringify(this.config),
-			)}`;
+			window.location.replace(
+				`${this.config.authorizerURL}/app?state=${btoa(
+					JSON.stringify(this.config),
+				)}`,
+			);
 		}
 	};
 
@@ -363,11 +365,11 @@ export class Authorizer {
 		if (!hasWindow()) {
 			throw new Error(`oauthLogin is only supported for browsers`);
 		}
-		window.location.href = `${
-			this.config.authorizerURL
-		}/oauth_login/${oauthProvider}?redirectURL=${
-			this.config.redirectURL || window.location.origin
-		}${roles && roles.length ? `&roles=${roles.join(',')}` : ``}`;
+		window.location.replace(
+			`${this.config.authorizerURL}/oauth_login/${oauthProvider}?redirectURL=${
+				this.config.redirectURL || window.location.origin
+			}${roles && roles.length ? `&roles=${roles.join(',')}` : ``}`,
+		);
 	};
 
 	logout = async (headers?: Headers): Promise<Response | void> => {
