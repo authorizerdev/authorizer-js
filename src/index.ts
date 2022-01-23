@@ -102,6 +102,20 @@ export type ResetPasswordInput = {
 	confirm_password: string;
 };
 
+export type SessionQueryInput = {
+	roles?: string[];
+};
+
+export type IsValidJWTQueryInput = {
+	jwt: string;
+	roles?: string[];
+};
+
+export type ValidJWTResponse = {
+	valid: string;
+	message: string;
+};
+
 export enum OAuthProviders {
 	Github = 'github',
 	Google = 'google',
@@ -193,17 +207,35 @@ export class Authorizer {
 	// this is used to verify / get session using cookie by default. If using nodejs pass authorization header
 	getSession = async (
 		headers?: Headers,
-		roles?: string[],
+		params?: SessionQueryInput,
 	): Promise<AuthToken> => {
 		try {
 			const res = await this.graphqlQuery({
-				query: `query getSession($roles: [String!]){session(roles: $roles) { ${authTokenFragment} } }`,
+				query: `query getSession($params: SessionQueryInput){session(params: $params) { ${authTokenFragment} } }`,
 				headers,
 				variables: {
-					roles,
+					params,
 				},
 			});
 			return res.session;
+		} catch (err) {
+			throw err;
+		}
+	};
+
+	isValidJWT = async (data: {
+		jwt: string;
+		roles?: string[];
+	}): Promise<ValidJWTResponse> => {
+		try {
+			const res = await this.graphqlQuery({
+				query: `query isValidJWT($params: IsValidJWTQueryInput){ is_valid_jwt(params: $params) { message valid } }`,
+				variables: {
+					params: data,
+				},
+			});
+
+			return res.is_valid_jwt;
 		} catch (err) {
 			throw err;
 		}
