@@ -1,151 +1,29 @@
 // Note: write gql query in single line to reduce bundle size
 import nodeFetch from 'node-fetch';
-
-export type ConfigType = {
-	authorizerURL: string;
-	redirectURL: string;
-};
-
-export type User = {
-	id: string;
-	email: string;
-	preferred_username: string;
-	email_verified: boolean;
-	signup_methods: string;
-	given_name?: string | null;
-	family_name?: string | null;
-	middle_name?: string | null;
-	picture?: string | null;
-	gender?: string | null;
-	birthdate?: string | null;
-	phone_number?: string | null;
-	phone_number_verified?: boolean | null;
-	roles?: string[];
-	created_at: number;
-	updated_at: number;
-};
-
-export type AuthToken = {
-	message?: string;
-	access_token: string;
-	expires_at: number;
-	user?: User;
-};
-
-export type Response = {
-	message: string;
-};
-
-export type Headers = Record<string, string>;
-
-export type LoginInput = { email: string; password: string; roles?: string[] };
-
-export type SignupInput = {
-	email: string;
-	password: string;
-	confirm_password: string;
-	given_name?: string;
-	family_name?: string;
-	middle_name?: string;
-	picture?: string;
-	gender?: string;
-	birthdate?: string;
-	phone_number?: string;
-	roles?: string[];
-};
-
-export type MagicLinkLoginInput = {
-	email: string;
-	roles?: string[];
-};
-
-export type VerifyEmailInput = { token: string };
-
-export type GraphqlQueryInput = {
-	query: string;
-	variables?: Record<string, any>;
-	headers?: Headers;
-};
-
-export type MetaData = {
-	version: string;
-	is_google_login_enabled: boolean;
-	is_facebook_login_enabled: boolean;
-	is_github_login_enabled: boolean;
-	is_email_verification_enabled: boolean;
-	is_basic_authentication_enabled: boolean;
-	is_magic_link_login_enabled: boolean;
-};
-
-export type UpdateProfileInput = {
-	old_password?: string;
-	new_password?: string;
-	confirm_new_password?: string;
-	email?: string;
-	given_name?: string;
-	family_name?: string;
-	middle_name?: string;
-	nickname?: string;
-	gender?: string;
-	birthdate?: string;
-	phone_number?: string;
-	picture?: string;
-};
-
-export type ForgotPasswordInput = {
-	email: string;
-};
-
-export type ResetPasswordInput = {
-	token: string;
-	password: string;
-	confirm_password: string;
-};
-
-export type SessionQueryInput = {
-	roles?: string[];
-};
-
-export type IsValidJWTQueryInput = {
-	jwt: string;
-	roles?: string[];
-};
-
-export type ValidJWTResponse = {
-	valid: string;
-	message: string;
-};
-
-export enum OAuthProviders {
-	Github = 'github',
-	Google = 'google',
-	Facebook = 'facebook',
-}
-
-const hasWindow = (): boolean => typeof window !== 'undefined';
+import { DEFAULT_AUTHORIZE_TIMEOUT_IN_SECONDS } from './constants';
+import * as Types from './types';
+import {
+	trimURL,
+	hasWindow,
+	encode,
+	createRandomString,
+	sha256,
+	bufferToBase64UrlEncoded,
+	createQueryParams,
+	executeIframe,
+} from './utils';
 
 // re-usable gql response fragment
 const userFragment = `id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at `;
-const authTokenFragment = `message access_token expires_at user { ${userFragment} }`;
-
-const trimURL = (url: string): string => {
-	let trimmedData = url.trim();
-	const lastChar = trimmedData[trimmedData.length - 1];
-	if (lastChar === '/') {
-		trimmedData = trimmedData.slice(0, -1);
-	} else {
-		trimmedData = trimmedData;
-	}
-
-	return trimmedData;
-};
+const authTokenFragment = `message access_token expires_in refresh_token id_token user { ${userFragment} }`;
 
 export class Authorizer {
 	// class variable
-	config: ConfigType;
+	config: Types.ConfigType;
+	codeVerifier: string;
 
 	// constructor
-	constructor(config: ConfigType) {
+	constructor(config: Types.ConfigType) {
 		if (!config) {
 			throw new Error(`Configuration is required`);
 		}
@@ -161,11 +39,106 @@ export class Authorizer {
 		} else {
 			this.config.redirectURL = trimURL(config.redirectURL);
 		}
+
+		if (!config.clientID && !config.clientID.trim()) {
+			throw new Error(`Invalid clientID`);
+		} else {
+			this.config.clientID = config.clientID.trim();
+		}
 	}
+
+	getToken = async (data: { code?: string }) => {
+		if (!this.codeVerifier) {
+			throw new Error(`invalid code verifier`);
+		}
+
+		const requestData = {
+			client_id: this.config.clientID,
+			code: data.code,
+			code_verifier: this.codeVerifier,
+		};
+
+		try {
+			const res = await fetch(`${this.config.authorizerURL}/oauth/token`, {
+				method: 'POST',
+				body: JSON.stringify(requestData),
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				credentials: 'include',
+			});
+
+			const json = await res.json();
+			if (res.status >= 400) {
+				throw new Error(json);
+			}
+			return json;
+		} catch (err) {
+			throw err;
+		}
+	};
+
+	authorize = async (data: Types.AuthorizeInput) => {
+		if (!hasWindow) {
+			throw new Error(`this feature is only supported in browser`);
+		}
+
+		const scopes = ['openid', 'profile', 'email'];
+		if (data.use_refresh_token) {
+			scopes.push('offline_access');
+		}
+
+		const requestData: Record<string, string> = {
+			redirect_uri: this.config.redirectURL,
+			state: encode(createRandomString()),
+			nonce: encode(createRandomString()),
+			response_type: data.response_type,
+			scope: scopes.join(' '),
+			client_id: this.config.clientID,
+		};
+
+		if (data.response_type === `code`) {
+			this.codeVerifier = createRandomString();
+			const sha = await sha256(this.codeVerifier);
+			const codeChallenge = bufferToBase64UrlEncoded(sha);
+			requestData.code_challenge = codeChallenge;
+		}
+
+		const authorizeURL = `${
+			this.config.authorizerURL
+		}/authorize?${createQueryParams(requestData)}`;
+
+		try {
+			const iframeRes = await executeIframe(
+				authorizeURL,
+				this.config.authorizerURL,
+				DEFAULT_AUTHORIZE_TIMEOUT_IN_SECONDS,
+			);
+
+			if (data.response_type === `code`) {
+				// get token and return it
+				const token = await this.getToken({ code: iframeRes.code });
+				return token;
+			}
+
+			// this includes access_token, id_token & refresh_token(optionally)
+			return iframeRes;
+		} catch (err) {
+			if (err.error) {
+				window.location.replace(
+					`${this.config.authorizerURL}/app?state=${encode(
+						JSON.stringify(this.config),
+					)}`,
+				);
+			}
+
+			throw err;
+		}
+	};
 
 	// helper to execute graphql queries
 	// takes in any query or mutation string as input
-	graphqlQuery = async (data: GraphqlQueryInput) => {
+	graphqlQuery = async (data: Types.GraphqlQueryInput) => {
 		// set fetch based on window object. Isomorphic fetch doesn't support credentail: true
 		// hence cookie based auth might not work so it is imp to use window.fetch in that case
 		const f = hasWindow() ? window.fetch : nodeFetch;
@@ -192,7 +165,7 @@ export class Authorizer {
 		return json.data;
 	};
 
-	getMetaData = async (): Promise<MetaData | void> => {
+	getMetaData = async (): Promise<Types.MetaData | void> => {
 		try {
 			const res = await this.graphqlQuery({
 				query: `query { meta { version is_google_login_enabled is_facebook_login_enabled is_github_login_enabled is_email_verification_enabled is_basic_authentication_enabled is_magic_link_login_enabled } }`,
@@ -206,9 +179,9 @@ export class Authorizer {
 
 	// this is used to verify / get session using cookie by default. If using nodejs pass authorization header
 	getSession = async (
-		headers?: Headers,
-		params?: SessionQueryInput,
-	): Promise<AuthToken> => {
+		headers?: Types.Headers,
+		params?: Types.SessionQueryInput,
+	): Promise<Types.AuthToken> => {
 		try {
 			const res = await this.graphqlQuery({
 				query: `query getSession($params: SessionQueryInput){session(params: $params) { ${authTokenFragment} } }`,
@@ -223,25 +196,9 @@ export class Authorizer {
 		}
 	};
 
-	isValidJWT = async (data: {
-		jwt: string;
-		roles?: string[];
-	}): Promise<ValidJWTResponse> => {
-		try {
-			const res = await this.graphqlQuery({
-				query: `query isValidJWT($params: IsValidJWTQueryInput){ is_valid_jwt(params: $params) { message valid } }`,
-				variables: {
-					params: data,
-				},
-			});
-
-			return res.is_valid_jwt;
-		} catch (err) {
-			throw err;
-		}
-	};
-
-	magicLinkLogin = async (data: MagicLinkLoginInput): Promise<Response> => {
+	magicLinkLogin = async (
+		data: Types.MagicLinkLoginInput,
+	): Promise<Response> => {
 		try {
 			const res = await this.graphqlQuery({
 				query: `
@@ -256,7 +213,7 @@ export class Authorizer {
 		}
 	};
 
-	signup = async (data: SignupInput): Promise<AuthToken | void> => {
+	signup = async (data: Types.SignupInput): Promise<Types.AuthToken | void> => {
 		try {
 			const res = await this.graphqlQuery({
 				query: `
@@ -271,7 +228,9 @@ export class Authorizer {
 		}
 	};
 
-	verifyEmail = async (data: VerifyEmailInput): Promise<AuthToken | void> => {
+	verifyEmail = async (
+		data: Types.VerifyEmailInput,
+	): Promise<Types.AuthToken | void> => {
 		try {
 			const res = await this.graphqlQuery({
 				query: `
@@ -286,7 +245,7 @@ export class Authorizer {
 		}
 	};
 
-	login = async (data: LoginInput): Promise<AuthToken | void> => {
+	login = async (data: Types.LoginInput): Promise<Types.AuthToken | void> => {
 		try {
 			const res = await this.graphqlQuery({
 				query: `
@@ -301,7 +260,7 @@ export class Authorizer {
 		}
 	};
 
-	getProfile = async (headers?: Headers): Promise<User | void> => {
+	getProfile = async (headers?: Types.Headers): Promise<Types.User | void> => {
 		try {
 			const profileRes = await this.graphqlQuery({
 				query: `query {	profile { ${userFragment} } }`,
@@ -315,9 +274,9 @@ export class Authorizer {
 	};
 
 	updateProfile = async (
-		data: UpdateProfileInput,
-		headers?: Headers,
-	): Promise<Response | void> => {
+		data: Types.UpdateProfileInput,
+		headers?: Types.Headers,
+	): Promise<Types.Response | void> => {
 		try {
 			const updateProfileRes = await this.graphqlQuery({
 				query: `mutation updateProfile($data: UpdateProfileInput!) {	update_profile(params: $data) { message } }`,
@@ -334,8 +293,8 @@ export class Authorizer {
 	};
 
 	forgotPassword = async (
-		data: ForgotPasswordInput,
-	): Promise<Response | void> => {
+		data: Types.ForgotPasswordInput,
+	): Promise<Types.Response | void> => {
 		try {
 			const forgotPasswordRes = await this.graphqlQuery({
 				query: `mutation forgotPassword($data: ForgotPasswordInput!) {	forgot_password(params: $data) { message } }`,
@@ -351,8 +310,8 @@ export class Authorizer {
 	};
 
 	resetPassword = async (
-		data: ResetPasswordInput,
-	): Promise<Response | void> => {
+		data: Types.ResetPasswordInput,
+	): Promise<Types.Response | void> => {
 		try {
 			const resetPasswordRes = await this.graphqlQuery({
 				query: `mutation resetPassword($data: ResetPasswordInput!) {	reset_password(params: $data) { message } }`,
@@ -366,7 +325,7 @@ export class Authorizer {
 		}
 	};
 
-	browserLogin = async (): Promise<AuthToken | void> => {
+	browserLogin = async (): Promise<Types.AuthToken | void> => {
 		try {
 			const token = await this.getSession();
 			return token;
@@ -375,7 +334,7 @@ export class Authorizer {
 				throw new Error(`browserLogin is only supported for browsers`);
 			}
 			window.location.replace(
-				`${this.config.authorizerURL}/app?state=${btoa(
+				`${this.config.authorizerURL}/app?state=${encode(
 					JSON.stringify(this.config),
 				)}`,
 			);
@@ -404,7 +363,7 @@ export class Authorizer {
 		);
 	};
 
-	logout = async (headers?: Headers): Promise<Response | void> => {
+	logout = async (headers?: Types.Headers): Promise<Types.Response | void> => {
 		try {
 			const res = await this.graphqlQuery({
 				query: ` mutation { logout { message } } `,
@@ -412,7 +371,6 @@ export class Authorizer {
 			});
 			return res.logout;
 		} catch (err) {
-			console.log(`logout err:`, err);
 			console.error(err);
 		}
 	};

@@ -139,26 +139,6 @@ describe('login success', () => {
 	// 	expect(loginRes.access_token).toMatch(sessionRes.access_token);
 	// });
 
-	it('should have valid jwt', async () => {
-		const jwt = loginRes.access_token;
-		const res = await authRef.isValidJWT({
-			jwt: jwt,
-		});
-		expect(res.valid).toEqual(true);
-	});
-
-	it('should throw error for invalid role for given token', async () => {
-		try {
-			const jwt = loginRes.access_token;
-			const res = await authRef.isValidJWT({
-				jwt: jwt,
-				roles: ['admin'],
-			});
-		} catch (e) {
-			expect(e.message).toMatch('unauthorized');
-		}
-	});
-
 	it('should update profile successfully', async () => {
 		const updateProfileRes = await authRef.updateProfile(
 			{

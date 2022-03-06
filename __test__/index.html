@@ -66,8 +66,9 @@
 			const logoutBtn = document.getElementById('logout');
 
 			const authorizerRef = new authorizerdev.Authorizer({
-				authorizerURL: 'https://669a8d3ecc8b.up.railway.app',
+				authorizerURL: 'http://localhost:8080',
 				redirectURL: window.location.origin,
+				clientID: '1a09c605-5700-475e-a866-9adbb21ea7ec',
 			});
 
 			logoutBtn.addEventListener('click', async function () {
@@ -76,14 +77,17 @@
 			});
 
 			async function onLoad() {
-				console.log(authorizerRef);
 				try {
-					const res = await authorizerRef.getSession();
-					console.log(res);
-					if (res && res.user) {
-						logoutSection.classList.toggle('hide');
-						userSection.innerHTML = `Welcome, ${res.user.email}`;
-					}
+					// const res = await authorizerRef.getSession();
+					// console.log(res);
+					// if (res && res.user) {
+					// 	logoutSection.classList.toggle('hide');
+					// 	userSection.innerHTML = `Welcome, ${res.user.email}`;
+					// }
+					await authorizerRef.authorize({
+						redirect_uri: 'http://localhost:8000',
+						response_type: 'code',
+					});
 				} catch (err) {
 					console.error(err);
 				}
