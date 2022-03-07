@@ -78,16 +78,20 @@
 
 			async function onLoad() {
 				try {
-					// const res = await authorizerRef.getSession();
-					// console.log(res);
-					// if (res && res.user) {
-					// 	logoutSection.classList.toggle('hide');
-					// 	userSection.innerHTML = `Welcome, ${res.user.email}`;
-					// }
-					await authorizerRef.authorize({
+					const res = await authorizerRef.authorize({
 						redirect_uri: 'http://localhost:8000',
 						response_type: 'code',
 					});
+					if (res && res.access_token) {
+						// get user profile using the access token
+						const user = await authorizerRef.getProfile({
+							Authorization: `Bearer ${res.access_token}`,
+						});
+						console.log({ user });
+
+						logoutSection.classList.toggle('hide');
+						userSection.innerHTML = `Welcome, ${user.email}`;
+					}
 				} catch (err) {
 					console.error(err);
 				}

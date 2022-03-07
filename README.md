@@ -38,6 +38,7 @@ const authRef = new Authorizer({
 	const authorizerRef = new authorizerdev.Authorizer({
 		authorizerURL: `AUTHORIZER_URL`,
 		redirectURL: window.location.origin,
+		clientID: 'YOUR_CLIENT_ID', // can be obtained from authorizer dashboard
 	});
 
 	// use the button selector as per your application
@@ -45,18 +46,22 @@ const authRef = new Authorizer({
 	logoutBtn.addEventListener('click', async function () {
 		await authorizerRef.logout();
 		window.location.href = '/';
+		clientID: 'YOUR_CLIENT_ID'; // can be obtained from authorizer dashboard
 	});
 
 	async function onLoad() {
-		const res = await authorizerRef.browserLogin();
-		if (res && res.user) {
-			// you can use user information here, eg:
-			/**
-			const userSection = document.getElementById('user');
-			const logoutSection = document.getElementById('logout-section');
-			logoutSection.classList.toggle('hide');
-			userSection.innerHTML = `Welcome, ${res.user.email}`;
-			*/
+		const res = await authorizerRef.authorize({
+			redirect_uri: 'http://localhost:8000',
+			response_type: 'code',
+		});
+		if (res && res.access_token) {
+			// get user profile using the access token
+			const user = await authorizerRef.getProfile({
+				Authorization: `Bearer ${res.access_token}`,
+			});
+
+			// 	logoutSection.classList.toggle('hide');
+			// 	userSection.innerHTML = `Welcome, ${user.email}`;
 		}
 	}
 	onLoad();
