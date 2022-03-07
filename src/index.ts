@@ -87,6 +87,7 @@ export class Authorizer {
 
 		const requestData: Record<string, string> = {
 			redirect_uri: this.config.redirectURL,
+			response_mode: data.response_mode || 'web_message',
 			state: encode(createRandomString()),
 			nonce: encode(createRandomString()),
 			response_type: data.response_type,

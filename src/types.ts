@@ -131,6 +131,7 @@ export enum ResponseTypes {
 export type AuthorizeInput = {
 	response_type: ResponseTypes;
 	use_refresh_token?: boolean;
+	response_mode?: string;
 };
 
 export type AuthorizeResponse = {
