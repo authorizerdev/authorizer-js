@@ -51,8 +51,8 @@ const authRef = new Authorizer({
 
 	async function onLoad() {
 		const res = await authorizerRef.authorize({
-			redirect_uri: 'http://localhost:8000',
 			response_type: 'code',
+			use_refresh_token: false,
 		});
 		if (res && res.access_token) {
 			// get user profile using the access token
