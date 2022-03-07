@@ -17,6 +17,7 @@ import {
 const userFragment = `id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at `;
 const authTokenFragment = `message access_token expires_in refresh_token id_token user { ${userFragment} }`;
 
+export * from './types';
 export class Authorizer {
 	// class variable
 	config: Types.ConfigType;
@@ -40,11 +41,7 @@ export class Authorizer {
 			this.config.redirectURL = trimURL(config.redirectURL);
 		}
 
-		if (!config.clientID && !config.clientID.trim()) {
-			throw new Error(`Invalid clientID`);
-		} else {
-			this.config.clientID = config.clientID.trim();
-		}
+		this.config.clientID = config.clientID.trim();
 	}
 
 	getToken = async (data: { code?: string }) => {
@@ -97,7 +94,7 @@ export class Authorizer {
 			client_id: this.config.clientID,
 		};
 
-		if (data.response_type === `code`) {
+		if (data.response_type === Types.ResponseTypes.Code) {
 			this.codeVerifier = createRandomString();
 			const sha = await sha256(this.codeVerifier);
 			const codeChallenge = bufferToBase64UrlEncoded(sha);
@@ -115,7 +112,7 @@ export class Authorizer {
 				DEFAULT_AUTHORIZE_TIMEOUT_IN_SECONDS,
 			);
 
-			if (data.response_type === `code`) {
+			if (data.response_type === Types.ResponseTypes.Code) {
 				// get token and return it
 				const token = await this.getToken({ code: iframeRes.code });
 				return token;

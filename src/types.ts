@@ -26,7 +26,9 @@ export type User = {
 export type AuthToken = {
 	message?: string;
 	access_token: string;
-	expires_at: number;
+	expires_in: number;
+	id_token: string;
+	refresh_token?: string;
 	user?: User;
 };
 
