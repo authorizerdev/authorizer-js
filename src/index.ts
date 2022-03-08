@@ -198,6 +198,14 @@ export class Authorizer {
 		data: Types.MagicLinkLoginInput,
 	): Promise<Response> => {
 		try {
+			if (!data.state) {
+				data.state = encode(createRandomString());
+			}
+
+			if (!data.redirect_uri) {
+				data.redirect_uri = this.config.redirectURL;
+			}
+
 			const res = await this.graphqlQuery({
 				query: `
 					mutation magicLinkLogin($data: MagicLinkLoginInput!) { magic_link_login(params: $data) { message }}
@@ -293,6 +301,14 @@ export class Authorizer {
 	forgotPassword = async (
 		data: Types.ForgotPasswordInput,
 	): Promise<Types.Response | void> => {
+		if (!data.state) {
+			data.state = encode(createRandomString());
+		}
+
+		if (!data.redirect_uri) {
+			data.redirect_uri = this.config.redirectURL;
+		}
+
 		try {
 			const forgotPasswordRes = await this.graphqlQuery({
 				query: `mutation forgotPassword($data: ForgotPasswordInput!) {	forgot_password(params: $data) { message } }`,

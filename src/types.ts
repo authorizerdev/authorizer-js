@@ -57,6 +57,9 @@ export type SignupInput = {
 export type MagicLinkLoginInput = {
 	email: string;
 	roles?: string[];
+	scopes?: string[];
+	state?: string;
+	redirect_uri?: string;
 };
 
 export type VerifyEmailInput = { token: string };
@@ -95,6 +98,8 @@ export type UpdateProfileInput = {
 
 export type ForgotPasswordInput = {
 	email: string;
+	state?: string;
+	redirect_uri?: string;
 };
 
 export type ResetPasswordInput = {
