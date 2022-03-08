@@ -44,15 +44,28 @@ export class Authorizer {
 		this.config.clientID = config.clientID.trim();
 	}
 
-	getToken = async (data: { code?: string }) => {
-		if (!this.codeVerifier) {
-			throw new Error(`invalid code verifier`);
+	getToken = async (data: {
+		code?: string;
+		grant_type?: string;
+		refresh_token?: string;
+	}) => {
+		if (!data.grant_type) {
+			data.grant_type = 'authorization_code';
+		}
+
+		if (data.grant_type === 'refresh_token' && !data.refresh_token) {
+			throw new Error(`Invalid refresh_token`);
+		}
+		if (data.grant_type === 'authorization_code' && !this.codeVerifier) {
+			throw new Error(`Invalid code verifier`);
 		}
 
 		const requestData = {
 			client_id: this.config.clientID,
-			code: data.code,
-			code_verifier: this.codeVerifier,
+			code: data.code || '',
+			code_verifier: this.codeVerifier || '',
+			grant_type: data.grant_type || '',
+			refresh_token: data.refresh_token || '',
 		};
 
 		try {
