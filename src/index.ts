@@ -44,6 +44,25 @@ export class Authorizer {
 		this.config.clientID = config.clientID.trim();
 	}
 
+	revokeToken = async (data: { refresh_token: string }) => {
+		if (!data.refresh_token && !data.refresh_token.trim()) {
+			throw new Error(`Invalid refresh_token`);
+		}
+
+		const res = await fetch(this.config.authorizerURL + '/oauth/revoke', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				refresh_token: data.refresh_token,
+				client_id: this.config.clientID,
+			}),
+		});
+
+		return await res.json();
+	};
+
 	getToken = async (data: {
 		code?: string;
 		grant_type?: string;
