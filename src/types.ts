@@ -38,7 +38,12 @@ export type Response = {
 
 export type Headers = Record<string, string>;
 
-export type LoginInput = { email: string; password: string; roles?: string[] };
+export type LoginInput = {
+	email: string;
+	password: string;
+	roles?: string[];
+	scope?: string[];
+};
 
 export type SignupInput = {
 	email: string;
@@ -52,6 +57,7 @@ export type SignupInput = {
 	birthdate?: string;
 	phone_number?: string;
 	roles?: string[];
+	scope?: string[];
 };
 
 export type MagicLinkLoginInput = {
