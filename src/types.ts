@@ -58,6 +58,7 @@ export type SignupInput = {
 	phone_number?: string;
 	roles?: string[];
 	scope?: string[];
+	redirect_uri?: string;
 };
 
 export type MagicLinkLoginInput = {
