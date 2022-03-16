@@ -158,7 +158,7 @@ export class Authorizer {
 				window.location.replace(
 					`${this.config.authorizerURL}/app?state=${encode(
 						JSON.stringify(this.config),
-					)}`,
+					)}&redirect_uri=${this.config.redirectURL}`,
 				);
 			}
 
@@ -382,7 +382,7 @@ export class Authorizer {
 			window.location.replace(
 				`${this.config.authorizerURL}/app?state=${encode(
 					JSON.stringify(this.config),
-				)}`,
+				)}&redirect_uri=${this.config.redirectURL}`,
 			);
 		}
 	};
@@ -404,7 +404,7 @@ export class Authorizer {
 		}
 		window.location.replace(
 			`${this.config.authorizerURL}/oauth_login/${oauthProvider}?redirectURL=${
-				this.config.redirectURL || window.location.origin
+				this.config.redirectURL
 			}${roles && roles.length ? `&roles=${roles.join(',')}` : ``}`,
 		);
 	};
