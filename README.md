@@ -46,7 +46,6 @@ const authRef = new Authorizer({
 	logoutBtn.addEventListener('click', async function () {
 		await authorizerRef.logout();
 		window.location.href = '/';
-		clientID: 'YOUR_CLIENT_ID'; // can be obtained from authorizer dashboard
 	});
 
 	async function onLoad() {
