@@ -86,6 +86,7 @@ export type MetaData = {
 	is_email_verification_enabled: boolean;
 	is_basic_authentication_enabled: boolean;
 	is_magic_link_login_enabled: boolean;
+	is_sign_up_enabled: boolean;
 };
 
 export type UpdateProfileInput = {
