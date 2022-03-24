@@ -3,10 +3,11 @@ const { Authorizer } = require('../lib/cjs');
 const authRef = new Authorizer({
 	authorizerURL: 'http://localhost:8080',
 	redirectURL: 'http://localhost:8080/app',
+	clientID: 'eebf7546-93a1-4924-8e02-34b781131b7e',
 });
 
 const adminSecret = 'admin';
-const password = `some_random_password`;
+const password = `Test@123#`;
 const email = `uo5vbgg93p@yopmail.com`;
 
 describe('signup success', () => {
@@ -24,11 +25,13 @@ describe('signup success', () => {
 			query: `
 				query {
 					_verification_requests {
-						id
-						token
-						email
-						expires
-						identifier
+						verification_requests {
+							id
+							token
+							email
+							expires
+							identifier
+						}
 					}
 				}
 			`,
@@ -37,7 +40,8 @@ describe('signup success', () => {
 			},
 		});
 
-		const requests = verificationRequestsRes._verification_requests;
+		const requests =
+			verificationRequestsRes._verification_requests.verification_requests;
 		const item = requests.find((i) => i.email === email);
 		expect(item).not.toBeNull();
 
@@ -85,11 +89,13 @@ describe(`forgot password success`, () => {
 			query: `
 				query {
 					_verification_requests {
-						id
-						token
-						email
-						expires
-						identifier
+						verification_requests {
+							id
+							token
+							email
+							expires
+							identifier
+						}
 					}
 				}
 			`,
@@ -98,19 +104,21 @@ describe(`forgot password success`, () => {
 			},
 		});
 
-		const requests = verificationRequestsRes._verification_requests;
+		const requests =
+			verificationRequestsRes._verification_requests.verification_requests;
 		const item = requests.find(
 			(i) => i.email === email && i.identifier === 'forgot_password',
 		);
 		expect(item).not.toBeNull();
+		if (item) {
+			const resetPasswordRes = await authRef.resetPassword({
+				token: item.token,
+				password: password,
+				confirm_password: password,
+			});
 
-		const resetPasswordRes = await authRef.resetPassword({
-			token: item.token,
-			password: password,
-			confirm_password: password,
-		});
-
-		expect(resetPasswordRes.message.length).not.toEqual(0);
+			expect(resetPasswordRes.message.length).not.toEqual(0);
+		}
 	});
 });
 
@@ -126,6 +134,15 @@ describe('login success', () => {
 		headers = {
 			Authorization: `Bearer ${loginRes.access_token}`,
 		};
+	});
+
+	it('should validate jwt token', async () => {
+		console.log('loginRes.access_token', loginRes.access_token);
+		const validateRes = await authRef.validateJWTToken({
+			token_type: 'access_token',
+			token: loginRes.access_token,
+		});
+		expect(validateRes.is_valid).toEqual(true);
 	});
 
 	// it('should fetch the session successfully', async () => {
@@ -191,11 +208,13 @@ describe('magic login success', () => {
 			query: `
 				query {
 					_verification_requests {
-						id
-						token
-						email
-						expires
-						identifier
+						verification_requests {
+							id
+							token
+							email
+							expires
+							identifier
+						}
 					}
 				}
 			`,
@@ -204,7 +223,8 @@ describe('magic login success', () => {
 			},
 		});
 
-		const requests = verificationRequestsRes._verification_requests;
+		const requests =
+			verificationRequestsRes._verification_requests.verification_requests;
 
 		const item = requests.find((i) => i.email === email);
 

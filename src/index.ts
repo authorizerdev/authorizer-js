@@ -63,11 +63,9 @@ export class Authorizer {
 		return await res.json();
 	};
 
-	getToken = async (data: {
-		code?: string;
-		grant_type?: string;
-		refresh_token?: string;
-	}) => {
+	getToken = async (
+		data: Types.GetTokenInput,
+	): Promise<Types.GetTokenResponse> => {
 		if (!data.grant_type) {
 			data.grant_type = 'authorization_code';
 		}
@@ -418,6 +416,24 @@ export class Authorizer {
 			return res.logout;
 		} catch (err) {
 			console.error(err);
+		}
+	};
+
+	validateJWTToken = async (
+		params?: Types.ValidateJWTTokenInput,
+	): Promise<Types.ValidateJWTTokenResponse> => {
+		try {
+			console.log('params:', params);
+			const res = await this.graphqlQuery({
+				query: `query validateJWTToken($params: ValidateJWTTokenInput!){validate_jwt_token(params: $params) { is_valid } }`,
+				variables: {
+					params,
+				},
+			});
+
+			return res.validate_jwt_token;
+		} catch (error) {
+			throw error;
 		}
 	};
 }

@@ -153,3 +153,30 @@ export type AuthorizeResponse = {
 	error?: string;
 	error_description?: string;
 };
+
+export type RevokeTokenInput = {
+	refresh_token: string;
+};
+
+export type GetTokenInput = {
+	code?: string;
+	grant_type?: string;
+	refresh_token?: string;
+};
+
+export type GetTokenResponse = {
+	access_token: string;
+	expires_in: number;
+	id_token: string;
+	refresh_token?: string;
+};
+
+export type ValidateJWTTokenInput = {
+	token_type: 'access_token' | 'id_token' | 'refresh_token';
+	token: string;
+	roles?: string[];
+};
+
+export type ValidateJWTTokenResponse = {
+	is_valid: boolean;
+};

@@ -20,28 +20,33 @@ export const trimURL = (url: string): string => {
 
 export const getCrypto = () => {
 	//ie 11.x uses msCrypto
-	return (window.crypto || (window as any).msCrypto) as Crypto;
+	return hasWindow()
+		? ((window.crypto || (window as any).msCrypto) as Crypto)
+		: null;
 };
 
 export const getCryptoSubtle = () => {
 	const crypto = getCrypto();
 	//safari 10.x uses webkitSubtle
-	return crypto.subtle || (crypto as any).webkitSubtle;
+	return (crypto && crypto.subtle) || (crypto as any).webkitSubtle;
 };
 
 export const createRandomString = () => {
 	const charset =
 		'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_~.';
 	let random = '';
-	const randomValues = Array.from(
-		getCrypto().getRandomValues(new Uint8Array(43)),
-	);
-	randomValues.forEach((v) => (random += charset[v % charset.length]));
+	const crypto = getCrypto();
+	if (crypto) {
+		const randomValues = Array.from(crypto.getRandomValues(new Uint8Array(43)));
+		randomValues.forEach((v) => (random += charset[v % charset.length]));
+	}
 	return random;
 };
 
-export const encode = (value: string) => btoa(value);
-export const decode = (value: string) => atob(value);
+export const encode = (value: string) =>
+	hasWindow() ? btoa(value) : Buffer.from(value).toString('base64');
+export const decode = (value: string) =>
+	hasWindow() ? atob(value) : Buffer.from(value, 'base64').toString('ascii');
 
 export const createQueryParams = (params: any) => {
 	return Object.keys(params)
