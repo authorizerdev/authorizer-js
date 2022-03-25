@@ -17,6 +17,8 @@ import {
 const userFragment = `id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at `;
 const authTokenFragment = `message access_token expires_in refresh_token id_token user { ${userFragment} }`;
 
+const getFetcher = () => (hasWindow() ? window.fetch : nodeFetch);
+
 export * from './types';
 export class Authorizer {
 	// class variable
@@ -40,7 +42,6 @@ export class Authorizer {
 		} else {
 			this.config.redirectURL = trimURL(config.redirectURL);
 		}
-
 		this.config.clientID = config.clientID.trim();
 	}
 
@@ -49,7 +50,8 @@ export class Authorizer {
 			throw new Error(`Invalid refresh_token`);
 		}
 
-		const res = await fetch(this.config.authorizerURL + '/oauth/revoke', {
+		const fetcher = getFetcher();
+		const res = await fetcher(this.config.authorizerURL + '/oauth/revoke', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -86,7 +88,8 @@ export class Authorizer {
 		};
 
 		try {
-			const res = await fetch(`${this.config.authorizerURL}/oauth/token`, {
+			const fetcher = getFetcher();
+			const res = await fetcher(`${this.config.authorizerURL}/oauth/token`, {
 				method: 'POST',
 				body: JSON.stringify(requestData),
 				headers: {
@@ -106,7 +109,7 @@ export class Authorizer {
 	};
 
 	authorize = async (data: Types.AuthorizeInput) => {
-		if (!hasWindow) {
+		if (!hasWindow()) {
 			throw new Error(`this feature is only supported in browser`);
 		}
 
@@ -169,8 +172,8 @@ export class Authorizer {
 	graphqlQuery = async (data: Types.GraphqlQueryInput) => {
 		// set fetch based on window object. Isomorphic fetch doesn't support credentail: true
 		// hence cookie based auth might not work so it is imp to use window.fetch in that case
-		const f = hasWindow() ? window.fetch : nodeFetch;
-		const res = await f(this.config.authorizerURL + '/graphql', {
+		const fetcher = getFetcher();
+		const res = await fetcher(this.config.authorizerURL + '/graphql', {
 			method: 'POST',
 			body: JSON.stringify({
 				query: data.query,

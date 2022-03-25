@@ -129,20 +129,31 @@ describe('login success', () => {
 		loginRes = await authRef.login({
 			email: email,
 			password: password,
+			scope: ['openid', 'profile', 'email', 'offline_access'],
 		});
 		expect(loginRes.access_token.length).not.toEqual(0);
+		expect(loginRes.refresh_token.length).not.toEqual(0);
+		expect(loginRes.expires_in).not.toEqual(0);
+		expect(loginRes.id_token.length).not.toEqual(0);
 		headers = {
 			Authorization: `Bearer ${loginRes.access_token}`,
 		};
 	});
 
 	it('should validate jwt token', async () => {
-		console.log('loginRes.access_token', loginRes.access_token);
 		const validateRes = await authRef.validateJWTToken({
 			token_type: 'access_token',
 			token: loginRes.access_token,
 		});
 		expect(validateRes.is_valid).toEqual(true);
+	});
+
+	it(`should validate get token`, async () => {
+		const tokenRes = await authRef.getToken({
+			grant_type: `refresh_token`,
+			refresh_token: loginRes.refresh_token,
+		});
+		expect(tokenRes.access_token.length).not.toEqual(0);
 	});
 
 	// it('should fetch the session successfully', async () => {
