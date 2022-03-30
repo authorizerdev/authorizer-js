@@ -42,6 +42,12 @@ export class Authorizer {
 		} else {
 			this.config.redirectURL = trimURL(config.redirectURL);
 		}
+
+		this.config.extraHeaders = {
+			...(config.extraHeaders || {}),
+			'x-authorizer-url': this.config.authorizerURL,
+			'Content-Type': 'application/json',
+		};
 		this.config.clientID = config.clientID.trim();
 	}
 
@@ -54,7 +60,7 @@ export class Authorizer {
 		const res = await fetcher(this.config.authorizerURL + '/oauth/revoke', {
 			method: 'POST',
 			headers: {
-				'Content-Type': 'application/json',
+				...this.config.extraHeaders,
 			},
 			body: JSON.stringify({
 				refresh_token: data.refresh_token,
@@ -93,7 +99,7 @@ export class Authorizer {
 				method: 'POST',
 				body: JSON.stringify(requestData),
 				headers: {
-					'Content-Type': 'application/json',
+					...this.config.extraHeaders,
 				},
 				credentials: 'include',
 			});
@@ -180,7 +186,7 @@ export class Authorizer {
 				variables: data.variables || {},
 			}),
 			headers: {
-				'Content-Type': 'application/json',
+				...this.config.extraHeaders,
 				...(data.headers || {}),
 			},
 			credentials: 'include',

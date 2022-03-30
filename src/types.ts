@@ -2,6 +2,7 @@ export type ConfigType = {
 	authorizerURL: string;
 	redirectURL: string;
 	clientID: string;
+	extraHeaders?: Record<string, string>;
 };
 
 export type User = {
