@@ -235,7 +235,7 @@ export class Authorizer {
 
 	magicLinkLogin = async (
 		data: Types.MagicLinkLoginInput,
-	): Promise<Response> => {
+	): Promise<Types.Response> => {
 		try {
 			if (!data.state) {
 				data.state = encode(createRandomString());
