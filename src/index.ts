@@ -432,7 +432,6 @@ export class Authorizer {
 		params?: Types.ValidateJWTTokenInput,
 	): Promise<Types.ValidateJWTTokenResponse> => {
 		try {
-			console.log('params:', params);
 			const res = await this.graphqlQuery({
 				query: `query validateJWTToken($params: ValidateJWTTokenInput!){validate_jwt_token(params: $params) { is_valid } }`,
 				variables: {
