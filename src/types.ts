@@ -137,7 +137,7 @@ export type ValidJWTResponse = {
 };
 
 export enum OAuthProviders {
-	Apple = 'appe',
+	Apple = 'apple',
 	Github = 'github',
 	Google = 'google',
 	Facebook = 'facebook',

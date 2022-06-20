@@ -397,7 +397,13 @@ export class Authorizer {
 	oauthLogin = async (
 		oauthProvider: string,
 		roles?: string[],
+		redirect_uri?: string,
+		state?: string,
 	): Promise<void> => {
+		let urlState = state;
+		if (!urlState) {
+			urlState = encode(createRandomString());
+		}
 		// @ts-ignore
 		if (!Object.values(OAuthProviders).includes(oauthProvider)) {
 			throw new Error(
@@ -410,9 +416,11 @@ export class Authorizer {
 			throw new Error(`oauthLogin is only supported for browsers`);
 		}
 		window.location.replace(
-			`${this.config.authorizerURL}/oauth_login/${oauthProvider}?redirectURL=${
-				this.config.redirectURL
-			}${roles && roles.length ? `&roles=${roles.join(',')}` : ``}`,
+			`${this.config.authorizerURL}/oauth_login/${oauthProvider}?redirect_uri=${
+				redirect_uri || this.config.redirectURL
+			}&state=${urlState}${
+				roles && roles.length ? `&roles=${roles.join(',')}` : ``
+			}`,
 		);
 	};
 
