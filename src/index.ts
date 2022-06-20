@@ -398,8 +398,7 @@ export class Authorizer {
 		oauthProvider: string,
 		roles?: string[],
 	): Promise<void> => {
-		// @ts-ignore
-		if (!Object.values(OAuthProviders).includes(oauthProvider)) {
+		if (!Object.keys(Types.OAuthProviders).includes(oauthProvider)) {
 			throw new Error(
 				`only following oauth providers are supported: ${Object.values(
 					oauthProvider,
