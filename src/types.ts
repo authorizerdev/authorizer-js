@@ -14,6 +14,7 @@ export type User = {
 	given_name?: string | null;
 	family_name?: string | null;
 	middle_name?: string | null;
+	nickname?: string | null;
 	picture?: string | null;
 	gender?: string | null;
 	birthdate?: string | null;
@@ -53,6 +54,7 @@ export type SignupInput = {
 	given_name?: string;
 	family_name?: string;
 	middle_name?: string;
+	nickname?: string;
 	picture?: string;
 	gender?: string;
 	birthdate?: string;
