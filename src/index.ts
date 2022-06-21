@@ -405,7 +405,7 @@ export class Authorizer {
 			urlState = encode(createRandomString());
 		}
 		// @ts-ignore
-		if (!Object.values(OAuthProviders).includes(oauthProvider)) {
+		if (!Object.values(Types.OAuthProviders).includes(oauthProvider)) {
 			throw new Error(
 				`only following oauth providers are supported: ${Object.values(
 					oauthProvider,
