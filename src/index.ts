@@ -15,7 +15,7 @@ import {
 
 // re-usable gql response fragment
 const userFragment = `id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at is_multi_factor_auth_enabled `;
-const authTokenFragment = `message access_token expires_in refresh_token id_token user { ${userFragment} }`;
+const authTokenFragment = `message access_token expires_in refresh_token id_token should_show_otp_screen user { ${userFragment} }`;
 
 const getFetcher = () => (hasWindow() ? window.fetch : nodeFetch);
 
@@ -450,6 +450,23 @@ export class Authorizer {
 			return res.validate_jwt_token;
 		} catch (error) {
 			throw error;
+		}
+	};
+
+	verifyOtp = async (
+		data: Types.VerifyOtpInput,
+	): Promise<Types.AuthToken | void> => {
+		try {
+			const res = await this.graphqlQuery({
+				query: `
+					mutation verifyOtp($data: VerifyOTPRequest!) { verify_otp(params: $data) { ${authTokenFragment}}}
+				`,
+				variables: { data },
+			});
+
+			return res.verify_otp;
+		} catch (err) {
+			throw err;
 		}
 	};
 }

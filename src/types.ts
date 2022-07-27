@@ -23,6 +23,7 @@ export type User = {
 	roles?: string[];
 	created_at: number;
 	updated_at: number;
+	is_multi_factor_auth_enabled?: boolean;
 };
 
 export type AuthToken = {
@@ -32,6 +33,7 @@ export type AuthToken = {
 	id_token: string;
 	refresh_token?: string;
 	user?: User;
+	should_show_otp_screen?: boolean;
 };
 
 export type Response = {
@@ -62,6 +64,7 @@ export type SignupInput = {
 	roles?: string[];
 	scope?: string[];
 	redirect_uri?: string;
+	is_multi_factor_auth_enabled?: boolean;
 };
 
 export type MagicLinkLoginInput = {
@@ -73,6 +76,8 @@ export type MagicLinkLoginInput = {
 };
 
 export type VerifyEmailInput = { token: string };
+
+export type VerifyOtpInput = { email: string; otp: string };
 
 export type GraphqlQueryInput = {
 	query: string;
@@ -108,6 +113,7 @@ export type UpdateProfileInput = {
 	birthdate?: string;
 	phone_number?: string;
 	picture?: string;
+	is_multi_factor_auth_enabled?: boolean;
 };
 
 export type ForgotPasswordInput = {
