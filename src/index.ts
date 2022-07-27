@@ -14,7 +14,7 @@ import {
 } from './utils';
 
 // re-usable gql response fragment
-const userFragment = `id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at `;
+const userFragment = `id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at is_multi_factor_auth_enabled `;
 const authTokenFragment = `message access_token expires_in refresh_token id_token user { ${userFragment} }`;
 
 const getFetcher = () => (hasWindow() ? window.fetch : nodeFetch);
