@@ -79,6 +79,8 @@ export type VerifyEmailInput = { token: string };
 
 export type VerifyOtpInput = { email: string; otp: string };
 
+export type ResendOtpInput = { email: string; };
+
 export type GraphqlQueryInput = {
 	query: string;
 	variables?: Record<string, any>;

@@ -469,4 +469,21 @@ export class Authorizer {
 			throw err;
 		}
 	};
+	
+	resendOtp = async (
+		data: Types.ResendOtpInput,
+	): Promise<Types.Response | void> => {
+		try {
+			const res = await this.graphqlQuery({
+				query: `
+					mutation resendOtp($data: ResendOTPRequest!) { resend_otp(params: $data) { message }}
+				`,
+				variables: { data },
+			});
+
+			return res.resend_otp;
+		} catch (err) {
+			throw err;
+		}
+	};
 }
