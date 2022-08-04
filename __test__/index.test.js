@@ -3,7 +3,7 @@ const { Authorizer } = require('../lib/cjs');
 const authRef = new Authorizer({
 	authorizerURL: 'http://localhost:8080',
 	redirectURL: 'http://localhost:8080/app',
-	clientID: 'eebf7546-93a1-4924-8e02-34b781131b7e',
+	clientID: '19ccbbe2-7750-4aac-9d71-e2c75fbf660a',
 });
 
 const adminSecret = 'admin';
@@ -124,7 +124,6 @@ describe(`forgot password success`, () => {
 
 describe('login success', () => {
 	let loginRes = null;
-	let headers = null;
 	it('should log in successfully', async () => {
 		loginRes = await authRef.login({
 			email: email,
@@ -135,9 +134,6 @@ describe('login success', () => {
 		expect(loginRes.refresh_token.length).not.toEqual(0);
 		expect(loginRes.expires_in).not.toEqual(0);
 		expect(loginRes.id_token.length).not.toEqual(0);
-		headers = {
-			Authorization: `Bearer ${loginRes.access_token}`,
-		};
 	});
 
 	it('should validate jwt token', async () => {
@@ -148,6 +144,25 @@ describe('login success', () => {
 		expect(validateRes.is_valid).toEqual(true);
 	});
 
+	it('should update profile successfully', async () => {
+		const updateProfileRes = await authRef.updateProfile(
+			{
+				given_name: 'bob',
+			},
+			{
+				Authorization: `Bearer ${loginRes.access_token}`,
+			},
+		);
+		expect(updateProfileRes.message.length).not.toEqual(0);
+	});
+
+	it('should fetch profile successfully', async () => {
+		const profileRes = await authRef.getProfile({
+			Authorization: `Bearer ${loginRes.access_token}`,
+		});
+		expect(profileRes.given_name).toMatch(`bob`);
+	});
+
 	it(`should validate get token`, async () => {
 		const tokenRes = await authRef.getToken({
 			grant_type: `refresh_token`,
@@ -156,37 +171,7 @@ describe('login success', () => {
 		expect(tokenRes.access_token.length).not.toEqual(0);
 	});
 
-	// it('should fetch the session successfully', async () => {
-	// 	const sessionRes = await authRef.getSession(headers);
-	// 	expect(loginRes.access_token).toMatch(sessionRes.access_token);
-	// });
-
-	// it('should validate role with session', async () => {
-	// 	const sessionRes = await authRef.getSession(headers, ['user']);
-
-	// 	expect(loginRes.access_token).toMatch(sessionRes.access_token);
-	// });
-
-	it('should update profile successfully', async () => {
-		const updateProfileRes = await authRef.updateProfile(
-			{
-				given_name: 'bob',
-			},
-			headers,
-		);
-		expect(updateProfileRes.message.length).not.toEqual(0);
-	});
-
-	it('should fetch profile successfully', async () => {
-		const profileRes = await authRef.getProfile(headers);
-		expect(profileRes.given_name).toMatch(`bob`);
-	});
-
-	it('should logout successfully', async () => {
-		// const logoutRes = await authRef.logout(headers);
-		// in future if message changes we don't want to take risk of this test failing
-		// expect(logoutRes.message.length).not.toEqual(0);
-
+	it('should clear data', async () => {
 		await authRef.graphqlQuery({
 			query: `
 				mutation {
@@ -205,7 +190,6 @@ describe('login success', () => {
 });
 
 describe('magic login success', () => {
-	let headers = null;
 	it(`should login with magic link`, async () => {
 		const magicLinkLoginRes = await authRef.magicLinkLogin({
 			email: email,
@@ -245,17 +229,9 @@ describe('magic login success', () => {
 			token: item.token,
 		});
 		expect(verifyEmailRes.user.signup_methods).toContain('magic_link_login');
-
-		headers = {
-			Authorization: `Bearer ${verifyEmailRes.access_token}`,
-		};
 	});
 
-	it('should logout successfully', async () => {
-		// const logoutRes = await authRef.logout(headers);
-		// in future if message changes we don't want to take risk of this test failing
-		// expect(logoutRes.message.length).not.toEqual(0);
-
+	it('should clear data', async () => {
 		await authRef.graphqlQuery({
 			query: `
 				mutation {
