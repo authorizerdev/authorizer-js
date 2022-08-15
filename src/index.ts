@@ -14,8 +14,8 @@ import {
 } from './utils';
 
 // re-usable gql response fragment
-const userFragment = `id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at `;
-const authTokenFragment = `message access_token expires_in refresh_token id_token user { ${userFragment} }`;
+const userFragment = `id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at is_multi_factor_auth_enabled `;
+const authTokenFragment = `message access_token expires_in refresh_token id_token should_show_otp_screen user { ${userFragment} }`;
 
 export * from './types';
 export class Authorizer {
@@ -445,6 +445,40 @@ export class Authorizer {
 			return res.validate_jwt_token;
 		} catch (error) {
 			throw error;
+		}
+	};
+
+	verifyOtp = async (
+		data: Types.VerifyOtpInput,
+	): Promise<Types.AuthToken | void> => {
+		try {
+			const res = await this.graphqlQuery({
+				query: `
+					mutation verifyOtp($data: VerifyOTPRequest!) { verify_otp(params: $data) { ${authTokenFragment}}}
+				`,
+				variables: { data },
+			});
+
+			return res.verify_otp;
+		} catch (err) {
+			throw err;
+		}
+	};
+	
+	resendOtp = async (
+		data: Types.ResendOtpInput,
+	): Promise<Types.Response | void> => {
+		try {
+			const res = await this.graphqlQuery({
+				query: `
+					mutation resendOtp($data: ResendOTPRequest!) { resend_otp(params: $data) { message }}
+				`,
+				variables: { data },
+			});
+
+			return res.resend_otp;
+		} catch (err) {
+			throw err;
 		}
 	};
 }
