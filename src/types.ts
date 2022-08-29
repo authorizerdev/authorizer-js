@@ -79,7 +79,7 @@ export type VerifyEmailInput = { token: string };
 
 export type VerifyOtpInput = { email: string; otp: string };
 
-export type ResendOtpInput = { email: string; };
+export type ResendOtpInput = { email: string };
 
 export type GraphqlQueryInput = {
 	query: string;
@@ -95,6 +95,7 @@ export type MetaData = {
 	is_github_login_enabled: boolean;
 	is_linkedin_login_enabled: boolean;
 	is_apple_login_enabled: boolean;
+	is_twitter_login_enabled: boolean;
 	is_email_verification_enabled: boolean;
 	is_basic_authentication_enabled: boolean;
 	is_magic_link_login_enabled: boolean;
