@@ -52,69 +52,6 @@ export class Authorizer {
 		this.config.clientID = config.clientID.trim();
 	}
 
-	revokeToken = async (data: { refresh_token: string }) => {
-		if (!data.refresh_token && !data.refresh_token.trim()) {
-			throw new Error(`Invalid refresh_token`);
-		}
-
-		const fetcher = getFetcher();
-		const res = await fetcher(this.config.authorizerURL + '/oauth/revoke', {
-			method: 'POST',
-			headers: {
-				...this.config.extraHeaders,
-			},
-			body: JSON.stringify({
-				refresh_token: data.refresh_token,
-				client_id: this.config.clientID,
-			}),
-		});
-
-		return await res.json();
-	};
-
-	getToken = async (
-		data: Types.GetTokenInput,
-	): Promise<Types.GetTokenResponse> => {
-		if (!data.grant_type) {
-			data.grant_type = 'authorization_code';
-		}
-
-		if (data.grant_type === 'refresh_token' && !data.refresh_token) {
-			throw new Error(`Invalid refresh_token`);
-		}
-		if (data.grant_type === 'authorization_code' && !this.codeVerifier) {
-			throw new Error(`Invalid code verifier`);
-		}
-
-		const requestData = {
-			client_id: this.config.clientID,
-			code: data.code || '',
-			code_verifier: this.codeVerifier || '',
-			grant_type: data.grant_type || '',
-			refresh_token: data.refresh_token || '',
-		};
-
-		try {
-			const fetcher = getFetcher();
-			const res = await fetcher(`${this.config.authorizerURL}/oauth/token`, {
-				method: 'POST',
-				body: JSON.stringify(requestData),
-				headers: {
-					...this.config.extraHeaders,
-				},
-				credentials: 'include',
-			});
-
-			const json = await res.json();
-			if (res.status >= 400) {
-				throw new Error(json);
-			}
-			return json;
-		} catch (err) {
-			throw err;
-		}
-	};
-
 	authorize = async (data: Types.AuthorizeInput) => {
 		if (!hasWindow()) {
 			throw new Error(`this feature is only supported in browser`);
@@ -174,165 +111,19 @@ export class Authorizer {
 		}
 	};
 
-	// helper to execute graphql queries
-	// takes in any query or mutation string as input
-	graphqlQuery = async (data: Types.GraphqlQueryInput) => {
-		const fetcher = getFetcher();
-		const res = await fetcher(this.config.authorizerURL + '/graphql', {
-			method: 'POST',
-			body: JSON.stringify({
-				query: data.query,
-				variables: data.variables || {},
-			}),
-			headers: {
-				...this.config.extraHeaders,
-				...(data.headers || {}),
-			},
-			credentials: 'include',
-		});
-
-		const json = await res.json();
-
-		if (json.errors && json.errors.length) {
-			console.error(json.errors);
-			throw new Error(json.errors[0].message);
-		}
-
-		return json.data;
-	};
-
-	getMetaData = async (): Promise<Types.MetaData | void> => {
+	browserLogin = async (): Promise<Types.AuthToken | void> => {
 		try {
-			const res = await this.graphqlQuery({
-				query: `query { meta { version is_google_login_enabled is_facebook_login_enabled is_github_login_enabled is_linkedin_login_enabled is_apple_login_enabled is_twitter_login_enabled is_email_verification_enabled is_basic_authentication_enabled is_magic_link_login_enabled is_sign_up_enabled is_strong_password_enabled } }`,
-			});
-
-			return res.meta;
+			const token = await this.getSession();
+			return token;
 		} catch (err) {
-			throw err;
-		}
-	};
-
-	// this is used to verify / get session using cookie by default. If using nodejs pass authorization header
-	getSession = async (
-		headers?: Types.Headers,
-		params?: Types.SessionQueryInput,
-	): Promise<Types.AuthToken> => {
-		try {
-			const res = await this.graphqlQuery({
-				query: `query getSession($params: SessionQueryInput){session(params: $params) { ${authTokenFragment} } }`,
-				headers,
-				variables: {
-					params,
-				},
-			});
-			return res.session;
-		} catch (err) {
-			throw err;
-		}
-	};
-
-	magicLinkLogin = async (
-		data: Types.MagicLinkLoginInput,
-	): Promise<Types.Response> => {
-		try {
-			if (!data.state) {
-				data.state = encode(createRandomString());
+			if (!hasWindow()) {
+				throw new Error(`browserLogin is only supported for browsers`);
 			}
-
-			if (!data.redirect_uri) {
-				data.redirect_uri = this.config.redirectURL;
-			}
-
-			const res = await this.graphqlQuery({
-				query: `
-					mutation magicLinkLogin($data: MagicLinkLoginInput!) { magic_link_login(params: $data) { message }}
-				`,
-				variables: { data },
-			});
-
-			return res.magic_link_login;
-		} catch (err) {
-			throw err;
-		}
-	};
-
-	signup = async (data: Types.SignupInput): Promise<Types.AuthToken | void> => {
-		try {
-			const res = await this.graphqlQuery({
-				query: `
-					mutation signup($data: SignUpInput!) { signup(params: $data) { ${authTokenFragment}}}
-				`,
-				variables: { data },
-			});
-
-			return res.signup;
-		} catch (err) {
-			throw err;
-		}
-	};
-
-	verifyEmail = async (
-		data: Types.VerifyEmailInput,
-	): Promise<Types.AuthToken | void> => {
-		try {
-			const res = await this.graphqlQuery({
-				query: `
-					mutation verifyEmail($data: VerifyEmailInput!) { verify_email(params: $data) { ${authTokenFragment}}}
-				`,
-				variables: { data },
-			});
-
-			return res.verify_email;
-		} catch (err) {
-			throw err;
-		}
-	};
-
-	login = async (data: Types.LoginInput): Promise<Types.AuthToken | void> => {
-		try {
-			const res = await this.graphqlQuery({
-				query: `
-					mutation login($data: LoginInput!) { login(params: $data) { ${authTokenFragment}}}
-				`,
-				variables: { data },
-			});
-
-			return res.login;
-		} catch (err) {
-			throw err;
-		}
-	};
-
-	getProfile = async (headers?: Types.Headers): Promise<Types.User | void> => {
-		try {
-			const profileRes = await this.graphqlQuery({
-				query: `query {	profile { ${userFragment} } }`,
-				headers,
-			});
-
-			return profileRes.profile;
-		} catch (error) {
-			throw error;
-		}
-	};
-
-	updateProfile = async (
-		data: Types.UpdateProfileInput,
-		headers?: Types.Headers,
-	): Promise<Types.Response | void> => {
-		try {
-			const updateProfileRes = await this.graphqlQuery({
-				query: `mutation updateProfile($data: UpdateProfileInput!) {	update_profile(params: $data) { message } }`,
-				headers,
-				variables: {
-					data,
-				},
-			});
-
-			return updateProfileRes.update_profile;
-		} catch (error) {
-			throw error;
+			window.location.replace(
+				`${this.config.authorizerURL}/app?state=${encode(
+					JSON.stringify(this.config),
+				)}&redirect_uri=${this.config.redirectURL}`,
+			);
 		}
 	};
 
@@ -361,35 +152,169 @@ export class Authorizer {
 		}
 	};
 
-	resetPassword = async (
-		data: Types.ResetPasswordInput,
-	): Promise<Types.Response | void> => {
+	getMetaData = async (): Promise<Types.MetaData | void> => {
 		try {
-			const resetPasswordRes = await this.graphqlQuery({
-				query: `mutation resetPassword($data: ResetPasswordInput!) {	reset_password(params: $data) { message } }`,
-				variables: {
-					data,
-				},
+			const res = await this.graphqlQuery({
+				query: `query { meta { version is_google_login_enabled is_facebook_login_enabled is_github_login_enabled is_linkedin_login_enabled is_apple_login_enabled is_twitter_login_enabled is_email_verification_enabled is_basic_authentication_enabled is_magic_link_login_enabled is_sign_up_enabled is_strong_password_enabled } }`,
 			});
-			return resetPasswordRes.reset_password;
+
+			return res.meta;
+		} catch (err) {
+			throw err;
+		}
+	};
+
+	getProfile = async (headers?: Types.Headers): Promise<Types.User | void> => {
+		try {
+			const profileRes = await this.graphqlQuery({
+				query: `query {	profile { ${userFragment} } }`,
+				headers,
+			});
+
+			return profileRes.profile;
 		} catch (error) {
 			throw error;
 		}
 	};
 
-	browserLogin = async (): Promise<Types.AuthToken | void> => {
+	// this is used to verify / get session using cookie by default. If using nodejs pass authorization header
+	getSession = async (
+		headers?: Types.Headers,
+		params?: Types.SessionQueryInput,
+	): Promise<Types.AuthToken> => {
 		try {
-			const token = await this.getSession();
-			return token;
+			const res = await this.graphqlQuery({
+				query: `query getSession($params: SessionQueryInput){session(params: $params) { ${authTokenFragment} } }`,
+				headers,
+				variables: {
+					params,
+				},
+			});
+			return res.session;
 		} catch (err) {
-			if (!hasWindow()) {
-				throw new Error(`browserLogin is only supported for browsers`);
+			throw err;
+		}
+	};
+
+	getToken = async (
+		data: Types.GetTokenInput,
+	): Promise<Types.GetTokenResponse> => {
+		if (!data.grant_type) {
+			data.grant_type = 'authorization_code';
+		}
+
+		if (data.grant_type === 'refresh_token' && !data.refresh_token) {
+			throw new Error(`Invalid refresh_token`);
+		}
+		if (data.grant_type === 'authorization_code' && !this.codeVerifier) {
+			throw new Error(`Invalid code verifier`);
+		}
+
+		const requestData = {
+			client_id: this.config.clientID,
+			code: data.code || '',
+			code_verifier: this.codeVerifier || '',
+			grant_type: data.grant_type || '',
+			refresh_token: data.refresh_token || '',
+		};
+
+		try {
+			const fetcher = getFetcher();
+			const res = await fetcher(`${this.config.authorizerURL}/oauth/token`, {
+				method: 'POST',
+				body: JSON.stringify(requestData),
+				headers: {
+					...this.config.extraHeaders,
+				},
+				credentials: 'include',
+			});
+
+			const json = await res.json();
+			if (res.status >= 400) {
+				throw new Error(json);
 			}
-			window.location.replace(
-				`${this.config.authorizerURL}/app?state=${encode(
-					JSON.stringify(this.config),
-				)}&redirect_uri=${this.config.redirectURL}`,
-			);
+			return json;
+		} catch (err) {
+			throw err;
+		}
+	};
+
+	// helper to execute graphql queries
+	// takes in any query or mutation string as input
+	graphqlQuery = async (data: Types.GraphqlQueryInput) => {
+		const fetcher = getFetcher();
+		const res = await fetcher(this.config.authorizerURL + '/graphql', {
+			method: 'POST',
+			body: JSON.stringify({
+				query: data.query,
+				variables: data.variables || {},
+			}),
+			headers: {
+				...this.config.extraHeaders,
+				...(data.headers || {}),
+			},
+			credentials: 'include',
+		});
+
+		const json = await res.json();
+
+		if (json.errors && json.errors.length) {
+			console.error(json.errors);
+			throw new Error(json.errors[0].message);
+		}
+
+		return json.data;
+	};
+
+	login = async (data: Types.LoginInput): Promise<Types.AuthToken | void> => {
+		try {
+			const res = await this.graphqlQuery({
+				query: `
+					mutation login($data: LoginInput!) { login(params: $data) { ${authTokenFragment}}}
+				`,
+				variables: { data },
+			});
+
+			return res.login;
+		} catch (err) {
+			throw err;
+		}
+	};
+
+	logout = async (headers?: Types.Headers): Promise<Types.Response | void> => {
+		try {
+			const res = await this.graphqlQuery({
+				query: ` mutation { logout { message } } `,
+				headers,
+			});
+			return res.logout;
+		} catch (err) {
+			console.error(err);
+		}
+	};
+
+	magicLinkLogin = async (
+		data: Types.MagicLinkLoginInput,
+	): Promise<Types.Response> => {
+		try {
+			if (!data.state) {
+				data.state = encode(createRandomString());
+			}
+
+			if (!data.redirect_uri) {
+				data.redirect_uri = this.config.redirectURL;
+			}
+
+			const res = await this.graphqlQuery({
+				query: `
+					mutation magicLinkLogin($data: MagicLinkLoginInput!) { magic_link_login(params: $data) { message }}
+				`,
+				variables: { data },
+			});
+
+			return res.magic_link_login;
+		} catch (err) {
+			throw err;
 		}
 	};
 
@@ -423,15 +348,90 @@ export class Authorizer {
 		);
 	};
 
-	logout = async (headers?: Types.Headers): Promise<Types.Response | void> => {
+	resendOtp = async (
+		data: Types.ResendOtpInput,
+	): Promise<Types.Response | void> => {
 		try {
 			const res = await this.graphqlQuery({
-				query: ` mutation { logout { message } } `,
-				headers,
+				query: `
+					mutation resendOtp($data: ResendOTPRequest!) { resend_otp(params: $data) { message }}
+				`,
+				variables: { data },
 			});
-			return res.logout;
+
+			return res.resend_otp;
 		} catch (err) {
-			console.error(err);
+			throw err;
+		}
+	};
+
+	resetPassword = async (
+		data: Types.ResetPasswordInput,
+	): Promise<Types.Response | void> => {
+		try {
+			const resetPasswordRes = await this.graphqlQuery({
+				query: `mutation resetPassword($data: ResetPasswordInput!) {	reset_password(params: $data) { message } }`,
+				variables: {
+					data,
+				},
+			});
+			return resetPasswordRes.reset_password;
+		} catch (error) {
+			throw error;
+		}
+	};
+
+	revokeToken = async (data: { refresh_token: string }) => {
+		if (!data.refresh_token && !data.refresh_token.trim()) {
+			throw new Error(`Invalid refresh_token`);
+		}
+
+		const fetcher = getFetcher();
+		const res = await fetcher(this.config.authorizerURL + '/oauth/revoke', {
+			method: 'POST',
+			headers: {
+				...this.config.extraHeaders,
+			},
+			body: JSON.stringify({
+				refresh_token: data.refresh_token,
+				client_id: this.config.clientID,
+			}),
+		});
+
+		return await res.json();
+	};
+
+	signup = async (data: Types.SignupInput): Promise<Types.AuthToken | void> => {
+		try {
+			const res = await this.graphqlQuery({
+				query: `
+					mutation signup($data: SignUpInput!) { signup(params: $data) { ${authTokenFragment}}}
+				`,
+				variables: { data },
+			});
+
+			return res.signup;
+		} catch (err) {
+			throw err;
+		}
+	};
+
+	updateProfile = async (
+		data: Types.UpdateProfileInput,
+		headers?: Types.Headers,
+	): Promise<Types.Response | void> => {
+		try {
+			const updateProfileRes = await this.graphqlQuery({
+				query: `mutation updateProfile($data: UpdateProfileInput!) {	update_profile(params: $data) { message } }`,
+				headers,
+				variables: {
+					data,
+				},
+			});
+
+			return updateProfileRes.update_profile;
+		} catch (error) {
+			throw error;
 		}
 	};
 
@@ -452,6 +452,23 @@ export class Authorizer {
 		}
 	};
 
+	verifyEmail = async (
+		data: Types.VerifyEmailInput,
+	): Promise<Types.AuthToken | void> => {
+		try {
+			const res = await this.graphqlQuery({
+				query: `
+					mutation verifyEmail($data: VerifyEmailInput!) { verify_email(params: $data) { ${authTokenFragment}}}
+				`,
+				variables: { data },
+			});
+
+			return res.verify_email;
+		} catch (err) {
+			throw err;
+		}
+	};
+
 	verifyOtp = async (
 		data: Types.VerifyOtpInput,
 	): Promise<Types.AuthToken | void> => {
@@ -464,23 +481,6 @@ export class Authorizer {
 			});
 
 			return res.verify_otp;
-		} catch (err) {
-			throw err;
-		}
-	};
-
-	resendOtp = async (
-		data: Types.ResendOtpInput,
-	): Promise<Types.Response | void> => {
-		try {
-			const res = await this.graphqlQuery({
-				query: `
-					mutation resendOtp($data: ResendOTPRequest!) { resend_otp(params: $data) { message }}
-				`,
-				variables: { data },
-			});
-
-			return res.resend_otp;
 		} catch (err) {
 			throw err;
 		}
