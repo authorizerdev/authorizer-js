@@ -102,13 +102,13 @@ async function main() {
 ```sh
 npm i --save @authorizerdev/authorizer-js
 OR
-yarn add @authorizerdev/authoirzer-js
+yarn add @authorizerdev/authorizer-js
 ```
 
 - Step 2: Import and initialize the authorizer instance
 
 ```js
-import { Authorizer } from '@authorizerdev/authoirzer-js';
+import { Authorizer } from '@authorizerdev/authorizer-js';
 
 const authRef = new Authorizer({
 	authorizerURL: 'https://app.heroku.com',
