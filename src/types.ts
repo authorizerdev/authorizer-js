@@ -47,6 +47,7 @@ export type LoginInput = {
 	password: string;
 	roles?: string[];
 	scope?: string[];
+	state?: string;
 };
 
 export type SignupInput = {
@@ -65,6 +66,7 @@ export type SignupInput = {
 	scope?: string[];
 	redirect_uri?: string;
 	is_multi_factor_auth_enabled?: boolean;
+	state?: string;
 };
 
 export type MagicLinkLoginInput = {
@@ -75,9 +77,9 @@ export type MagicLinkLoginInput = {
 	redirect_uri?: string;
 };
 
-export type VerifyEmailInput = { token: string };
+export type VerifyEmailInput = { token: string; state?: string };
 
-export type VerifyOtpInput = { email: string; otp: string };
+export type VerifyOtpInput = { email: string; otp: string; state?: string };
 
 export type ResendOtpInput = { email: string };
 
