@@ -59,7 +59,7 @@
 			cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id
 			est laborum.
 		</p>
-		<script src="lib/authorizer.min.js"></script>
+		<script src="lib/authorizer.js"></script>
 		<script type="text/javascript">
 			const userSection = document.getElementById('user');
 			const logoutSection = document.getElementById('logout-section');
@@ -68,7 +68,7 @@
 			const authorizerRef = new authorizerdev.Authorizer({
 				authorizerURL: 'http://localhost:8080',
 				redirectURL: window.location.origin,
-				clientID: '19ccbbe2-7750-4aac-9d71-e2c75fbf660a',
+				clientID: '77ec056b-33fc-48da-89f5-f686f6a71f40',
 			});
 
 			logoutBtn.addEventListener('click', async function () {
@@ -79,7 +79,7 @@
 			async function onLoad() {
 				try {
 					const res = await authorizerRef.authorize({
-						response_type: 'code',
+						response_type: 'token',
 						use_refresh_token: false,
 					});
 					if (res && res.access_token) {

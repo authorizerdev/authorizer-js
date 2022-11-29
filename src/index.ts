@@ -83,6 +83,11 @@ export class Authorizer {
 			this.config.authorizerURL
 		}/authorize?${createQueryParams(requestData)}`;
 
+		if (requestData.response_mode !== 'web_message') {
+			window.location.replace(authorizeURL);
+			return;
+		}
+
 		try {
 			const iframeRes = await executeIframe(
 				authorizeURL,

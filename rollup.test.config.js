@@ -16,7 +16,7 @@ export default {
 	output: {
 		file: `__test__/lib/authorizer.js`,
 		format: 'umd',
-		name: 'Authorizer', // this is the name of the global object
+		name: 'authorizerdev', // this is the name of the global object
 		esModule: false,
 		sourcemap: true,
 	},
