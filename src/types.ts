@@ -198,4 +198,5 @@ export type ValidateJWTTokenInput = {
 
 export type ValidateJWTTokenResponse = {
 	is_valid: boolean;
+	claims: Record<string, any>;
 };
