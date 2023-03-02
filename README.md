@@ -129,3 +129,9 @@ async function main() {
 ### Prerequisites
 - [Pnpm](https://pnpm.io/installation)
 - [NodeJS](https://nodejs.org/en/download/)
+
+### Setup
+- Clone the repository
+- Install dependencies using `pnpm install`
+- Run `pnpm build` to build the library
+- Run `pnpm test` to run the tests
