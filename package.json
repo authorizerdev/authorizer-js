@@ -11,6 +11,7 @@
 	"engines": {
 		"node": ">=10"
 	},
+	"packageManager": "pnpm@7.28.0",
 	"repository": "https://github.com/authorizerdev/authorizer-js",
 	"scripts": {
 		"clean": "rm -rf lib",
