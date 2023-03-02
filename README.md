@@ -122,3 +122,10 @@ async function main() {
 	});
 }
 ```
+
+
+## Local Development Setup
+
+### Prerequisites
+- [Pnpm](https://pnpm.io/installation)
+- [NodeJS](https://nodejs.org/en/download/)
