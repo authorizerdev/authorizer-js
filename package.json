@@ -19,9 +19,11 @@
 		"ts-types": "tsc --emitDeclarationOnly --outDir lib",
 		"build": "npm run clean && rollup --config rollup.config.js --environment INCLUDE_DEPS,BUILD:production",
 		"test": "npm run build && jest --testTimeout=20000 --runInBand",
+		"format": "prettier --write 'src/**/*.(ts)'",
+		"prepublishOnly": "npm run build",
+		"release": "pnpm build && bumpp --commit --push --tag && pnpm publish",
 		"lint": "eslint --ext .ts,.tsx,.js,.jsx .",
-		"lint:fix": "eslint --ext .ts,.tsx,.js,.jsx . --fix",
-		"prepublishOnly": "npm run build"
+		"lint:fix": "eslint --ext .ts,.tsx,.js,.jsx . --fix"
 	},
 	"browser": {
 		"path": "path-browserify"
@@ -33,6 +35,7 @@
 		"@rollup/plugin-node-resolve": "^13.0.4",
 		"@rollup/plugin-typescript": "^8.2.5",
 		"@types/node-fetch": "^2.5.12",
+		"bumpp": "^9.0.0",
 		"eslint": "^8.35.0",
 		"husky": "^7.0.1",
 		"jest": "^27.0.6",
