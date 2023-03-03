@@ -1,5 +1,5 @@
 {
-	"version": "1.1.4",
+	"version": "1.1.5",
 	"license": "MIT",
 	"typings": "lib/cjs/index.d.ts",
 	"main": "lib/cjs/index.js",
@@ -21,7 +21,9 @@
 		"test": "npm run build && jest --testTimeout=20000 --runInBand",
 		"format": "prettier --write 'src/**/*.(ts)'",
 		"prepublishOnly": "npm run build",
-		"release": "pnpm build && bumpp --commit --push --tag && pnpm publish"
+		"release": "pnpm build && bumpp --commit --push --tag && pnpm publish",
+		"lint": "eslint --ext .ts,.tsx,.js,.jsx .",
+		"lint:fix": "eslint --ext .ts,.tsx,.js,.jsx . --fix"
 	},
 	"browser": {
 		"path": "path-browserify"
@@ -29,13 +31,14 @@
 	"name": "@authorizerdev/authorizer-js",
 	"author": "Lakhan Samani",
 	"devDependencies": {
+		"@antfu/eslint-config": "^0.35.3",
 		"@rollup/plugin-node-resolve": "^13.0.4",
 		"@rollup/plugin-typescript": "^8.2.5",
 		"@types/node-fetch": "^2.5.12",
 		"bumpp": "^9.0.0",
+		"eslint": "^8.35.0",
 		"husky": "^7.0.1",
 		"jest": "^27.0.6",
-		"prettier": "2.3.2",
 		"rimraf": "^2.7.1",
 		"rollup": "^2.56.0",
 		"rollup-plugin-filesize": "^9.1.1",
