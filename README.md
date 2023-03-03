@@ -135,3 +135,7 @@ async function main() {
 - Install dependencies using `pnpm install`
 - Run `pnpm build` to build the library
 - Run `pnpm test` to run the tests
+
+
+### Release
+- Run `pnpm release` to release a new version of the library
