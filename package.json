@@ -4,6 +4,7 @@
 	"typings": "dist/index.d.ts",
 	"main": "dist/index.js",
 	"module": "dist/index.mjs",
+	"unpkg": "dist/index.global.js",
 	"files": [
 		"dist"
 	],
