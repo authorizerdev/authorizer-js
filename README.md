@@ -18,17 +18,17 @@ All the above versions require `Authorizer` instance to be instantiated and used
 
 ```js
 const authRef = new Authorizer({
-	authorizerURL: 'https://app.herokuapp.com',
-	redirectURL: window.location.origin,
-});
+  authorizerURL: 'https://app.herokuapp.com',
+  redirectURL: window.location.origin,
+})
 ```
 
-## UMD
+## IIFE
 
 - Step 1: Load Javascript using CDN
 
 ```html
-<script src="https://unpkg.com/@authorizerdev/authorizer-js/lib/authorizer.min.js"></script>
+<script src="https://unpkg.com/@authorizerdev/authorizer-js/dist/index.global.js"></script>
 ```
 
 - Step 2: Use the library to instantiate `Authorizer` instance and access [various methods](/authorizer-js/functions)
@@ -80,18 +80,18 @@ yarn add @authorizerdev/authoirzer-js
 - Step 2: Import and initialize the authorizer instance
 
 ```js
-const { Authorizer } = require('@authorizerdev/authoirzer-js');
+const { Authorizer } = require('@authorizerdev/authoirzer-js')
 
 const authRef = new Authorizer({
-	authorizerURL: 'https://app.heroku.com',
-	redirectURL: 'http://app.heroku.com/app',
-});
+  authorizerURL: 'https://app.heroku.com',
+  redirectURL: 'http://app.heroku.com/app',
+})
 
 async function main() {
-	await authRef.login({
-		email: 'foo@bar.com',
-		password: 'test',
-	});
+  await authRef.login({
+    email: 'foo@bar.com',
+    password: 'test',
+  })
 }
 ```
 
@@ -108,18 +108,18 @@ yarn add @authorizerdev/authorizer-js
 - Step 2: Import and initialize the authorizer instance
 
 ```js
-import { Authorizer } from '@authorizerdev/authorizer-js';
+import { Authorizer } from '@authorizerdev/authorizer-js'
 
 const authRef = new Authorizer({
-	authorizerURL: 'https://app.heroku.com',
-	redirectURL: 'http://app.heroku.com/app',
-});
+  authorizerURL: 'https://app.heroku.com',
+  redirectURL: 'http://app.heroku.com/app',
+})
 
 async function main() {
-	await authRef.login({
-		email: 'foo@bar.com',
-		password: 'test',
-	});
+  await authRef.login({
+    email: 'foo@bar.com',
+    password: 'test',
+  })
 }
 ```
 
