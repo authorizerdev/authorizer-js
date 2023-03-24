@@ -1,7 +1,7 @@
 {
 	"version": "1.2.0",
 	"license": "MIT",
-	"typings": "lib/cjs/index.d.ts",
+	"types": "lib/cjs/index.d.ts",
 	"main": "lib/cjs/index.js",
 	"module": "lib/esm/index.js",
 	"files": [
