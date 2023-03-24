@@ -10,7 +10,6 @@ export default <Options>{
   outDir: 'dist',
   target: 'node16',
   format: ['esm', 'cjs', 'iife'],
-  sourcemap: true,
   clean: true,
   dts: true,
   minify: true,
