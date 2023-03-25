@@ -28,7 +28,7 @@ const authRef = new Authorizer({
 - Step 1: Load Javascript using CDN
 
 ```html
-<script src="https://unpkg.com/@authorizerdev/authorizer-js/dist/index.global.js"></script>
+<script src="https://unpkg.com/@authorizerdev/authorizer-js/dist/authorizer.min.js"></script>
 ```
 
 - Step 2: Use the library to instantiate `Authorizer` instance and access [various methods](/authorizer-js/functions)
