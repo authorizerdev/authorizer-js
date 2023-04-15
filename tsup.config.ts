@@ -17,16 +17,16 @@ export default defineConfig(() => [
     entry: { bundle: 'src/index.ts' },
     outDir: 'lib',
     format: ['iife'],
-    globalName: '__AUTHORIZER_JS__',
+    globalName: 'authorizerdev',
     clean: false,
     minify: true,
     platform: 'browser',
     dts: false,
     name: 'authorizer',
-    // esbuild `globalName` option generates `var __AUTHORIZER_JS__ = (() => {})()`
+    // esbuild `globalName` option generates `var authorizerdev = (() => {})()`
     // and var is not guaranteed to assign to the global `window` object so we make sure to assign it
     footer: {
-      js: 'window.__TAURI__ = __AUTHORIZER_JS__',
+      js: 'window.__TAURI__ = authorizerdev',
     },
     outExtension({ format, options }) {
       return {
