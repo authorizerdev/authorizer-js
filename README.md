@@ -18,9 +18,9 @@ All the above versions require `Authorizer` instance to be instantiated and used
 
 ```js
 const authRef = new Authorizer({
-  authorizerURL: 'https://app.herokuapp.com',
+  authorizerURL: "https://app.herokuapp.com",
   redirectURL: window.location.origin,
-})
+});
 ```
 
 ## IIFE
@@ -28,42 +28,42 @@ const authRef = new Authorizer({
 - Step 1: Load Javascript using CDN
 
 ```html
-<script src="https://unpkg.com/@authorizerdev/authorizer-js/dist/authorizer.min.js"></script>
+<script src="https://unpkg.com/@authorizerdev/authorizer-js/lib/authorizer.min.js"></script>
 ```
 
 - Step 2: Use the library to instantiate `Authorizer` instance and access [various methods](/authorizer-js/functions)
 
 ```html
 <script type="text/javascript">
-	const authorizerRef = new authorizerdev.Authorizer({
-		authorizerURL: `AUTHORIZER_URL`,
-		redirectURL: window.location.origin,
-		clientID: 'YOUR_CLIENT_ID', // can be obtained from authorizer dashboard
-	});
+  const authorizerRef = new authorizerdev.Authorizer({
+    authorizerURL: `AUTHORIZER_URL`,
+    redirectURL: window.location.origin,
+    clientID: "YOUR_CLIENT_ID", // can be obtained from authorizer dashboard
+  });
 
-	// use the button selector as per your application
-	const logoutBtn = document.getElementById('logout');
-	logoutBtn.addEventListener('click', async function () {
-		await authorizerRef.logout();
-		window.location.href = '/';
-	});
+  // use the button selector as per your application
+  const logoutBtn = document.getElementById("logout");
+  logoutBtn.addEventListener("click", async function () {
+    await authorizerRef.logout();
+    window.location.href = "/";
+  });
 
-	async function onLoad() {
-		const res = await authorizerRef.authorize({
-			response_type: 'code',
-			use_refresh_token: false,
-		});
-		if (res && res.access_token) {
-			// get user profile using the access token
-			const user = await authorizerRef.getProfile({
-				Authorization: `Bearer ${res.access_token}`,
-			});
+  async function onLoad() {
+    const res = await authorizerRef.authorize({
+      response_type: "code",
+      use_refresh_token: false,
+    });
+    if (res && res.access_token) {
+      // get user profile using the access token
+      const user = await authorizerRef.getProfile({
+        Authorization: `Bearer ${res.access_token}`,
+      });
 
-			// 	logoutSection.classList.toggle('hide');
-			// 	userSection.innerHTML = `Welcome, ${user.email}`;
-		}
-	}
-	onLoad();
+      // 	logoutSection.classList.toggle('hide');
+      // 	userSection.innerHTML = `Welcome, ${user.email}`;
+    }
+  }
+  onLoad();
 </script>
 ```
 
@@ -80,18 +80,18 @@ yarn add @authorizerdev/authoirzer-js
 - Step 2: Import and initialize the authorizer instance
 
 ```js
-const { Authorizer } = require('@authorizerdev/authoirzer-js')
+const { Authorizer } = require("@authorizerdev/authoirzer-js");
 
 const authRef = new Authorizer({
-  authorizerURL: 'https://app.heroku.com',
-  redirectURL: 'http://app.heroku.com/app',
-})
+  authorizerURL: "https://app.heroku.com",
+  redirectURL: "http://app.heroku.com/app",
+});
 
 async function main() {
   await authRef.login({
-    email: 'foo@bar.com',
-    password: 'test',
-  })
+    email: "foo@bar.com",
+    password: "test",
+  });
 }
 ```
 
@@ -108,34 +108,35 @@ yarn add @authorizerdev/authorizer-js
 - Step 2: Import and initialize the authorizer instance
 
 ```js
-import { Authorizer } from '@authorizerdev/authorizer-js'
+import { Authorizer } from "@authorizerdev/authorizer-js";
 
 const authRef = new Authorizer({
-  authorizerURL: 'https://app.heroku.com',
-  redirectURL: 'http://app.heroku.com/app',
-})
+  authorizerURL: "https://app.heroku.com",
+  redirectURL: "http://app.heroku.com/app",
+});
 
 async function main() {
   await authRef.login({
-    email: 'foo@bar.com',
-    password: 'test',
-  })
+    email: "foo@bar.com",
+    password: "test",
+  });
 }
 ```
-
 
 ## Local Development Setup
 
 ### Prerequisites
+
 - [Pnpm](https://pnpm.io/installation)
 - [NodeJS](https://nodejs.org/en/download/)
 
 ### Setup
+
 - Clone the repository
 - Install dependencies using `pnpm install`
 - Run `pnpm build` to build the library
 - Run `pnpm test` to run the tests
 
-
 ### Release
+
 - Run `pnpm release` to release a new version of the library
