@@ -1,18 +1,18 @@
 {
-	"version": "1.2.1",
+	"version": "1.2.2-beta.0",
 	"license": "MIT",
-	"types": "dist/index.d.ts",
-	"main": "dist/index.js",
-	"module": "dist/index.mjs",
-	"unpkg": "dist/authorizer.min.js",
+	"types": "lib/index.d.ts",
+	"main": "lib/index.js",
+	"module": "lib/index.mjs",
+	"unpkg": "lib/authorizer.min.js",
 	"files": [
-		"dist"
+		"lib"
 	],
 	"exports": {
 		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.mjs",
-			"require": "./dist/index.js"
+			"types": "./lib/index.d.ts",
+			"import": "./lib/index.mjs",
+			"require": "./lib/index.js"
 		}
 	},
 	"engines": {
