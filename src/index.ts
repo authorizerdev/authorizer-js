@@ -346,12 +346,13 @@ export class Authorizer {
     if (!hasWindow())
       throw new Error('oauthLogin is only supported for browsers')
 
+    if (roles && roles.length)
+      urlState += `&roles=${roles.join(',')}`
+
     window.location.replace(
       `${this.config.authorizerURL}/oauth_login/${oauthProvider}?redirect_uri=${
         redirect_uri || this.config.redirectURL
-      }&state=${urlState}${
-        (roles && roles.length) ? `&roles=${roles.join(',')}` : ''
-      }`,
+      }&state=${urlState}`,
     )
   }
 

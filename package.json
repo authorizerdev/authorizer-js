@@ -1,66 +1,67 @@
 {
-	"version": "1.2.4",
-	"license": "MIT",
-	"types": "lib/index.d.ts",
-	"main": "lib/index.js",
-	"module": "lib/index.mjs",
-	"unpkg": "lib/authorizer.min.js",
-	"files": [
-		"lib"
-	],
-	"exports": {
-		".": {
-			"types": "./lib/index.d.ts",
-			"import": "./lib/index.mjs",
-			"require": "./lib/index.js"
-		}
-	},
-	"engines": {
-		"node": ">=16"
-	},
-	"packageManager": "pnpm@7.28.0",
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/authorizerdev/authorizer-js.git"
-	},
-	"bugs": {
-		"url": "https://github.com/authorizerdev/authorizer-js/issues"
-	},
-	"funding": "https://github.com/sponsors/authorizerdev",
-	"scripts": {
-		"start": "rollup -w --config rollup.test.config.js",
-		"ts-types": "tsc --emitDeclarationOnly --outDir lib",
-		"build": "tsup",
-		"test": "npm run build && jest --testTimeout=20000 --runInBand",
-		"prepublishOnly": "npm run build",
-		"release": "pnpm build && bumpp --commit --push --tag && pnpm publish",
-		"lint": "eslint --ignore-pattern 'tsup.config.ts' --ext .ts,.tsx,.js,.jsx .",
-		"lint:fix": "eslint --ignore-pattern 'tsup.config.ts' --ext .ts,.tsx,.js,.jsx . --fix"
-	},
-	"browser": {
-		"path": "path-browserify"
-	},
-	"name": "@authorizerdev/authorizer-js",
-	"author": "Lakhan Samani",
-	"devDependencies": {
-		"@antfu/eslint-config": "^0.35.3",
-		"@rollup/plugin-node-resolve": "^13.0.4",
-		"@rollup/plugin-typescript": "^8.2.5",
-		"@swc/core": "^1.3.37",
-		"bumpp": "^9.0.0",
-		"eslint": "^8.35.0",
-		"husky": "^7.0.1",
-		"jest": "^27.0.6",
-		"rimraf": "^2.7.1",
-		"rollup": "^2.56.0",
-		"rollup-plugin-filesize": "^9.1.1",
-		"rollup-plugin-serve": "^1.1.0",
-		"rollup-plugin-terser": "^7.0.2",
-		"tslib": "^2.3.0",
-		"tsup": "^6.6.3",
-		"typescript": "^4.3.5"
-	},
-	"dependencies": {
-		"cross-fetch": "^3.1.5"
-	}
+  "name": "@authorizerdev/authorizer-js",
+  "version": "1.2.4",
+  "packageManager": "pnpm@7.28.0",
+  "author": "Lakhan Samani",
+  "license": "MIT",
+  "funding": "https://github.com/sponsors/authorizerdev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/authorizerdev/authorizer-js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/authorizerdev/authorizer-js/issues"
+  },
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "require": "./lib/index.js",
+      "import": "./lib/index.mjs"
+    }
+  },
+  "main": "lib/index.js",
+  "module": "lib/index.mjs",
+  "unpkg": "lib/authorizer.min.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "lib"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
+  "scripts": {
+    "start": "rollup -w --config rollup.test.config.js",
+    "ts-types": "tsc --emitDeclarationOnly --outDir lib",
+    "build": "tsup",
+    "test": "npm run build && jest --testTimeout=20000 --runInBand",
+    "prepublishOnly": "npm run build",
+    "release": "pnpm build && bumpp --commit --push --tag && pnpm publish",
+    "lint": "eslint --ignore-pattern 'tsup.config.ts' --ext .ts,.tsx,.js,.jsx,.json .",
+    "lint:fix": "eslint --ignore-pattern 'tsup.config.ts' --ext .ts,.tsx,.js,.jsx,.json . --fix"
+  },
+  "browser": {
+    "path": "path-browserify"
+  },
+  "dependencies": {
+    "cross-fetch": "^3.1.5"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^0.35.3",
+    "@rollup/plugin-node-resolve": "^13.0.4",
+    "@rollup/plugin-typescript": "^8.2.5",
+    "@swc/core": "^1.3.37",
+    "@types/node": "^20.4.4",
+    "bumpp": "^9.0.0",
+    "eslint": "^8.35.0",
+    "husky": "^7.0.1",
+    "jest": "^27.0.6",
+    "rimraf": "^2.7.1",
+    "rollup": "^2.56.0",
+    "rollup-plugin-filesize": "^9.1.1",
+    "rollup-plugin-serve": "^1.1.0",
+    "rollup-plugin-terser": "^7.0.2",
+    "tslib": "^2.3.0",
+    "tsup": "^6.6.3",
+    "typescript": "^4.3.5"
+  }
 }

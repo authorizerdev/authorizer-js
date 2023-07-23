@@ -33,7 +33,8 @@ export interface AuthToken {
   id_token: string
   refresh_token?: string
   user?: User
-  should_show_otp_screen?: boolean
+  should_show_email_otp_screen?: boolean
+  should_show_mobile_otp_screen?: boolean
 }
 
 export interface Response {
@@ -83,13 +84,15 @@ export interface VerifyEmailInput {
 }
 
 export interface VerifyOtpInput {
-  email: string
+  email?: string
+  phone_number?: string
   otp: string
   state?: string
 }
 
 export interface ResendOtpInput {
-  email: string
+  email?: string
+  phone_number?: string
 }
 
 export interface GraphqlQueryInput {
