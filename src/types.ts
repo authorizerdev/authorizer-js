@@ -221,4 +221,5 @@ export interface ValidateSessionInput {
 
 export interface ValidateSessionResponse {
   is_valid: boolean
+  user: User
 }
