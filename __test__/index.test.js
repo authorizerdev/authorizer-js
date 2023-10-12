@@ -1,4 +1,4 @@
-const { Authorizer } = require('../lib/cjs')
+const { Authorizer } = require('../lib')
 
 const authRef = new Authorizer({
   authorizerURL: 'http://localhost:8080',
@@ -40,9 +40,9 @@ describe('signup success', () => {
       },
     })
 
-    const requests
-			= verificationRequestsRes._verification_requests.verification_requests
-    const item = requests.find(i => i.email === email)
+    const requests =
+      verificationRequestsRes._verification_requests.verification_requests
+    const item = requests.find((i) => i.email === email)
     expect(item).not.toBeNull()
 
     const verifyEmailRes = await authRef.verifyEmail({ token: item.token })
@@ -58,9 +58,8 @@ describe('login failures', () => {
         email,
         password: `${password}test`,
       })
-    }
-    catch (e) {
-      expect(e.message).toMatch('invalid password')
+    } catch (e) {
+      expect(e.message).toContain('bad user credentials')
     }
   })
 
@@ -71,8 +70,7 @@ describe('login failures', () => {
         password,
         roles: ['admin'],
       })
-    }
-    catch (e) {
+    } catch (e) {
       expect(e.message).toMatch('invalid role')
     }
   })
@@ -106,10 +104,10 @@ describe('forgot password success', () => {
       },
     })
 
-    const requests
-			= verificationRequestsRes._verification_requests.verification_requests
+    const requests =
+      verificationRequestsRes._verification_requests.verification_requests
     const item = requests.find(
-      i => i.email === email && i.identifier === 'forgot_password',
+      (i) => i.email === email && i.identifier === 'forgot_password'
     )
     expect(item).not.toBeNull()
     if (item) {
@@ -118,7 +116,6 @@ describe('forgot password success', () => {
         password,
         confirm_password: password,
       })
-
       expect(resetPasswordRes.message.length).not.toEqual(0)
     }
   })
@@ -153,7 +150,7 @@ describe('login success', () => {
       },
       {
         Authorization: `Bearer ${loginRes.access_token}`,
-      },
+      }
     )
     expect(updateProfileRes.message.length).not.toEqual(0)
   })
@@ -171,6 +168,22 @@ describe('login success', () => {
       refresh_token: loginRes.refresh_token,
     })
     expect(tokenRes.access_token.length).not.toEqual(0)
+  })
+
+  it('should deactivate account', async () => {
+    console.log(`loginRes.access_token`, loginRes.access_token)
+    const deactivateRes = await authRef.deactivateAccount({
+      Authorization: `Bearer ${loginRes.access_token}`,
+    })
+    expect(deactivateRes.message.length).not.toEqual(0)
+  })
+
+  it('should throw error while accessing profile after deactivation', async () => {
+    await expect(
+      authRef.getProfile({
+        Authorization: `Bearer ${loginRes.access_token}`,
+      })
+    ).rejects.toThrow('Error: unauthorized')
   })
 
   it('should clear data', async () => {
@@ -220,10 +233,10 @@ describe('magic login success', () => {
       },
     })
 
-    const requests
-			= verificationRequestsRes._verification_requests.verification_requests
+    const requests =
+      verificationRequestsRes._verification_requests.verification_requests
 
-    const item = requests.find(i => i.email === email)
+    const item = requests.find((i) => i.email === email)
 
     expect(item).not.toBeNull()
 

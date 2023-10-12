@@ -448,6 +448,21 @@ export class Authorizer {
     }
   }
 
+  deactivateAccount = async (
+    headers?: Types.Headers,
+  ): Promise<Types.Response | void> => {
+    try {
+      const res = await this.graphqlQuery({
+        query: 'mutation deactivateAccount {	deactivate_account { message } }',
+        headers,
+      })
+      return res.deactivate_account
+    }
+    catch (error) {
+      throw new Error(error)
+    }
+  }
+
   validateJWTToken = async (
     params?: Types.ValidateJWTTokenInput,
   ): Promise<Types.ValidateJWTTokenResponse> => {
