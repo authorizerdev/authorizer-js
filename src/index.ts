@@ -453,7 +453,7 @@ export class Authorizer {
   ): Promise<Types.Response | void> => {
     try {
       const res = await this.graphqlQuery({
-        query: 'mutation deactivateAccount {	deactivate_account { message } }',
+        query: 'mutation deactivateAccount { deactivate_account { message } }',
         headers,
       })
       return res.deactivate_account
