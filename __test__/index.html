@@ -1,102 +1,102 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>My Blog</title>
-		<style>
-			body {
-				font-family: Verdana, Geneva, Tahoma, sans-serif;
-				padding: 50px;
-			}
-			.nav {
-				display: flex;
-				justify-content: space-between;
-			}
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Blog</title>
+    <style>
+      body {
+        font-family: Verdana, Geneva, Tahoma, sans-serif;
+        padding: 50px;
+      }
+      .nav {
+        display: flex;
+        justify-content: space-between;
+      }
 
-			.show {
-				display: block;
-			}
+      .show {
+        display: block;
+      }
 
-			.hide {
-				display: none;
-			}
+      .hide {
+        display: none;
+      }
 
-			.logout-link {
-				color: dodgerblue;
-				cursor: pointer;
-			}
-		</style>
-	</head>
-	<body>
-		<nav class="nav">
-			<div id="user"></div>
-			<div class="hide" id="logout-section">
-				<span id="logout" class="logout-link">logout</span>
-			</div>
-		</nav>
-		<br />
-		<h1>Hello World 👋</h1>
-		<p>
-			Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
-			tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
-			veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
-			commodo consequat. Duis aute irure dolor in reprehenderit in voluptate
-			velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat
-			cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id
-			est laborum.
-		</p>
-		<br />
-		<hr />
-		<h1>Foo Bar!</h1>
-		<p>
-			Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
-			tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
-			veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
-			commodo consequat. Duis aute irure dolor in reprehenderit in voluptate
-			velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat
-			cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id
-			est laborum.
-		</p>
-		<script src="lib/authorizer.js"></script>
-		<script type="text/javascript">
-			const userSection = document.getElementById('user');
-			const logoutSection = document.getElementById('logout-section');
-			const logoutBtn = document.getElementById('logout');
+      .logout-link {
+        color: dodgerblue;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="nav">
+      <div id="user"></div>
+      <div class="hide" id="logout-section">
+        <span id="logout" class="logout-link">logout</span>
+      </div>
+    </nav>
+    <br />
+    <h1>Hello World 👋</h1>
+    <p>
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+      tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+      veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+      commodo consequat. Duis aute irure dolor in reprehenderit in voluptate
+      velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat
+      cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id
+      est laborum.
+    </p>
+    <br />
+    <hr />
+    <h1>Foo Bar!</h1>
+    <p>
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+      tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+      veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+      commodo consequat. Duis aute irure dolor in reprehenderit in voluptate
+      velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat
+      cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id
+      est laborum.
+    </p>
+    <script src="lib/authorizer.js"></script>
+    <script type="text/javascript">
+      const userSection = document.getElementById('user')
+      const logoutSection = document.getElementById('logout-section')
+      const logoutBtn = document.getElementById('logout')
 
-			const authorizerRef = new authorizerdev.Authorizer({
-				authorizerURL: 'http://localhost:8080',
-				redirectURL: window.location.origin,
-				clientID: '77ec056b-33fc-48da-89f5-f686f6a71f40',
-			});
+      const authorizerRef = new authorizerdev.Authorizer({
+        authorizerURL: 'http://localhost:8080',
+        redirectURL: window.location.origin,
+        clientID: '77ec056b-33fc-48da-89f5-f686f6a71f40',
+      })
 
-			logoutBtn.addEventListener('click', async function () {
-				await authorizerRef.logout();
-				window.location.href = '/';
-			});
+      logoutBtn.addEventListener('click', async function () {
+        await authorizerRef.logout()
+        window.location.href = '/'
+      })
 
-			async function onLoad() {
-				try {
-					const res = await authorizerRef.authorize({
-						response_type: 'token',
-						use_refresh_token: false,
-					});
-					if (res && res.access_token) {
-						// get user profile using the access token
-						const user = await authorizerRef.getProfile({
-							Authorization: `Bearer ${res.access_token}`,
-						});
-						console.log({ user });
+      async function onLoad() {
+        try {
+          const res = await authorizerRef.authorize({
+            response_type: 'token',
+            use_refresh_token: false,
+          })
+          if (res && res.access_token) {
+            // get user profile using the access token
+            const user = await authorizerRef.getProfile({
+              Authorization: `Bearer ${res.access_token}`,
+            })
+            console.log({ user })
 
-						logoutSection.classList.toggle('hide');
-						userSection.innerHTML = `Welcome, ${user.email}`;
-					}
-				} catch (err) {
-					console.error(err);
-				}
-			}
-			onLoad();
-		</script>
-	</body>
+            logoutSection.classList.toggle('hide')
+            userSection.innerHTML = `Welcome, ${user.email}`
+          }
+        } catch (err) {
+          console.error(err)
+        }
+      }
+      onLoad()
+    </script>
+  </body>
 </html>
