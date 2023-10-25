@@ -24,6 +24,7 @@ export interface User {
   created_at: number
   updated_at: number
   is_multi_factor_auth_enabled?: boolean
+  app_data?: string
 }
 
 export interface AuthToken {
