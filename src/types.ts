@@ -24,7 +24,7 @@ export interface User {
   created_at: number
   updated_at: number
   is_multi_factor_auth_enabled?: boolean
-  app_data?: string
+  app_data?: Record<string, any>
 }
 
 export interface AuthToken {
@@ -45,7 +45,8 @@ export interface Response {
 export type Headers = Record<string, string>
 
 export interface LoginInput {
-  email: string
+  email?: string
+  phone_number?: string
   password: string
   roles?: string[]
   scope?: string[]
@@ -53,7 +54,7 @@ export interface LoginInput {
 }
 
 export interface SignupInput {
-  email: string
+  email?: string
   password: string
   confirm_password: string
   given_name?: string
@@ -69,6 +70,7 @@ export interface SignupInput {
   redirect_uri?: string
   is_multi_factor_auth_enabled?: boolean
   state?: string
+  app_data?: Record<string, any>
 }
 
 export interface MagicLinkLoginInput {
@@ -133,6 +135,7 @@ export interface UpdateProfileInput {
   phone_number?: string
   picture?: string
   is_multi_factor_auth_enabled?: boolean
+  app_data?: Record<string, any>
 }
 
 export interface ForgotPasswordInput {
