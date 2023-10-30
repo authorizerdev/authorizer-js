@@ -1,3 +1,4 @@
+// @ts-nocheck
 const { Authorizer } = require('../lib')
 
 const authRef = new Authorizer({

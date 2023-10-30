@@ -421,9 +421,18 @@ export class Authorizer {
         variables: { data },
       })
 
-      return { ok: true, response: res.signup, error: undefined }
-    } catch (err) {
-      return { ok: false, response: undefined, error: err }
+      return {
+        ok: true,
+        response: res.signup,
+        error: undefined,
+      }
+    }
+    catch (err) {
+      return {
+        ok: false,
+        response: undefined,
+        error: err,
+      }
     }
   }
 
