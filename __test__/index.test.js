@@ -17,7 +17,8 @@ describe('signup success', () => {
       password,
       confirm_password: password,
     })
-    expect(signupRes.message.length).not.toEqual(0)
+    expect(signupRes?.ok).toEqual(true)
+    expect(signupRes?.response.message.length).not.toEqual(0)
   })
 
   it('should verify email', async () => {
@@ -47,7 +48,7 @@ describe('signup success', () => {
 
     const verifyEmailRes = await authRef.verifyEmail({ token: item.token })
 
-    expect(verifyEmailRes.access_token.length).not.toEqual(0)
+    expect(verifyEmailRes?response.access_token.length).not.toEqual(0)
   })
 })
 
