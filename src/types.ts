@@ -1,3 +1,8 @@
+export interface ApiResponse<T> {
+  ok: boolean
+  error: Error | undefined
+  response: T | undefined
+}
 export interface ConfigType {
   authorizerURL: string
   redirectURL: string

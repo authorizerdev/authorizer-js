@@ -12,6 +12,7 @@ import {
   sha256,
   trimURL,
 } from './utils'
+import type { ApiResponse, AuthToken } from './types'
 
 // re-usable gql response fragment
 const userFragment =
@@ -389,7 +390,7 @@ export class Authorizer {
     return await res.json()
   }
 
-  signup = async (data: Types.SignupInput): Promise<Types.AuthToken | void> => {
+  signup = async (data: Types.SignupInput): Promise<ApiResponse<AuthToken>> => {
     try {
       const res = await this.graphqlQuery({
         query: `
@@ -398,9 +399,9 @@ export class Authorizer {
         variables: { data },
       })
 
-      return res.signup
+      return { ok: true, response: res.signup, error: undefined }
     } catch (err) {
-      throw new Error(err)
+      return { ok: false, response: undefined, error: err }
     }
   }
 
