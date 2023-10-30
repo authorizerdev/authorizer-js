@@ -15,8 +15,8 @@ import {
 import type { ApiResponse, AuthToken } from './types'
 
 // re-usable gql response fragment
-const userFragment =
-  'id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at is_multi_factor_auth_enabled app_data'
+const userFragment
+  = 'id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at is_multi_factor_auth_enabled app_data'
 const authTokenFragment = `message access_token expires_in refresh_token id_token should_show_email_otp_screen should_show_mobile_otp_screen user { ${userFragment} }`
 
 // set fetch based on window object. Cross fetch have issues with umd build
@@ -30,7 +30,8 @@ export class Authorizer {
 
   // constructor
   constructor(config: Types.ConfigType) {
-    if (!config) throw new Error('Configuration is required')
+    if (!config)
+      throw new Error('Configuration is required')
 
     this.config = config
     if (!config.authorizerURL && !config.authorizerURL.trim())
@@ -56,7 +57,8 @@ export class Authorizer {
       throw new Error('this feature is only supported in browser')
 
     const scopes = ['openid', 'profile', 'email']
-    if (data.use_refresh_token) scopes.push('offline_access')
+    if (data.use_refresh_token)
+      scopes.push('offline_access')
 
     const requestData: Record<string, string> = {
       redirect_uri: this.config.redirectURL,
@@ -88,7 +90,7 @@ export class Authorizer {
       const iframeRes = await executeIframe(
         authorizeURL,
         this.config.authorizerURL,
-        DEFAULT_AUTHORIZE_TIMEOUT_IN_SECONDS
+        DEFAULT_AUTHORIZE_TIMEOUT_IN_SECONDS,
       )
 
       if (data.response_type === Types.ResponseTypes.Code) {
@@ -99,12 +101,13 @@ export class Authorizer {
 
       // this includes access_token, id_token & refresh_token(optionally)
       return iframeRes
-    } catch (err) {
+    }
+    catch (err) {
       if (err.error) {
         window.location.replace(
           `${this.config.authorizerURL}/app?state=${encode(
-            JSON.stringify(this.config)
-          )}&redirect_uri=${this.config.redirectURL}`
+            JSON.stringify(this.config),
+          )}&redirect_uri=${this.config.redirectURL}`,
         )
       }
 
@@ -116,24 +119,27 @@ export class Authorizer {
     try {
       const token = await this.getSession()
       return token
-    } catch (err) {
+    }
+    catch (err) {
       if (!hasWindow())
         throw new Error('browserLogin is only supported for browsers')
 
       window.location.replace(
         `${this.config.authorizerURL}/app?state=${encode(
-          JSON.stringify(this.config)
-        )}&redirect_uri=${this.config.redirectURL}`
+          JSON.stringify(this.config),
+        )}&redirect_uri=${this.config.redirectURL}`,
       )
     }
   }
 
   forgotPassword = async (
-    data: Types.ForgotPasswordInput
+    data: Types.ForgotPasswordInput,
   ): Promise<Types.Response | void> => {
-    if (!data.state) data.state = encode(createRandomString())
+    if (!data.state)
+      data.state = encode(createRandomString())
 
-    if (!data.redirect_uri) data.redirect_uri = this.config.redirectURL
+    if (!data.redirect_uri)
+      data.redirect_uri = this.config.redirectURL
 
     try {
       const forgotPasswordRes = await this.graphqlQuery({
@@ -144,7 +150,8 @@ export class Authorizer {
         },
       })
       return forgotPasswordRes.forgot_password
-    } catch (error) {
+    }
+    catch (error) {
       throw new Error(error)
     }
   }
@@ -157,7 +164,8 @@ export class Authorizer {
       })
 
       return res.meta
-    } catch (err) {
+    }
+    catch (err) {
       throw new Error(err)
     }
   }
@@ -170,7 +178,8 @@ export class Authorizer {
       })
 
       return profileRes.profile
-    } catch (error) {
+    }
+    catch (error) {
       throw new Error(error)
     }
   }
@@ -178,7 +187,7 @@ export class Authorizer {
   // this is used to verify / get session using cookie by default. If using nodejs pass authorization header
   getSession = async (
     headers?: Types.Headers,
-    params?: Types.SessionQueryInput
+    params?: Types.SessionQueryInput,
   ): Promise<Types.AuthToken> => {
     try {
       const res = await this.graphqlQuery({
@@ -189,15 +198,17 @@ export class Authorizer {
         },
       })
       return res.session
-    } catch (err) {
+    }
+    catch (err) {
       throw new Error(err)
     }
   }
 
   getToken = async (
-    data: Types.GetTokenInput
+    data: Types.GetTokenInput,
   ): Promise<Types.GetTokenResponse> => {
-    if (!data.grant_type) data.grant_type = 'authorization_code'
+    if (!data.grant_type)
+      data.grant_type = 'authorization_code'
 
     if (data.grant_type === 'refresh_token' && !data.refresh_token)
       throw new Error('Invalid refresh_token')
@@ -225,10 +236,12 @@ export class Authorizer {
       })
 
       const json = await res.json()
-      if (res.status >= 400) throw new Error(json)
+      if (res.status >= 400)
+        throw new Error(json)
 
       return json
-    } catch (err) {
+    }
+    catch (err) {
       throw new Error(err)
     }
   }
@@ -270,7 +283,8 @@ export class Authorizer {
       })
 
       return res.login
-    } catch (err) {
+    }
+    catch (err) {
       throw new Error(err)
     }
   }
@@ -282,18 +296,21 @@ export class Authorizer {
         headers,
       })
       return res.logout
-    } catch (err) {
+    }
+    catch (err) {
       console.error(err)
     }
   }
 
   magicLinkLogin = async (
-    data: Types.MagicLinkLoginInput
+    data: Types.MagicLinkLoginInput,
   ): Promise<Types.Response> => {
     try {
-      if (!data.state) data.state = encode(createRandomString())
+      if (!data.state)
+        data.state = encode(createRandomString())
 
-      if (!data.redirect_uri) data.redirect_uri = this.config.redirectURL
+      if (!data.redirect_uri)
+        data.redirect_uri = this.config.redirectURL
 
       const res = await this.graphqlQuery({
         query: `
@@ -303,7 +320,8 @@ export class Authorizer {
       })
 
       return res.magic_link_login
-    } catch (err) {
+    }
+    catch (err) {
       throw new Error(err)
     }
   }
@@ -312,33 +330,35 @@ export class Authorizer {
     oauthProvider: string,
     roles?: string[],
     redirect_uri?: string,
-    state?: string
+    state?: string,
   ): Promise<void> => {
     let urlState = state
-    if (!urlState) urlState = encode(createRandomString())
+    if (!urlState)
+      urlState = encode(createRandomString())
 
     // @ts-expect-error
     if (!Object.values(Types.OAuthProviders).includes(oauthProvider)) {
       throw new Error(
         `only following oauth providers are supported: ${Object.values(
-          oauthProvider
-        ).toString()}`
+          oauthProvider,
+        ).toString()}`,
       )
     }
     if (!hasWindow())
       throw new Error('oauthLogin is only supported for browsers')
 
-    if (roles && roles.length) urlState += `&roles=${roles.join(',')}`
+    if (roles && roles.length)
+      urlState += `&roles=${roles.join(',')}`
 
     window.location.replace(
       `${this.config.authorizerURL}/oauth_login/${oauthProvider}?redirect_uri=${
         redirect_uri || this.config.redirectURL
-      }&state=${urlState}`
+      }&state=${urlState}`,
     )
   }
 
   resendOtp = async (
-    data: Types.ResendOtpInput
+    data: Types.ResendOtpInput,
   ): Promise<Types.Response | void> => {
     try {
       const res = await this.graphqlQuery({
@@ -349,13 +369,14 @@ export class Authorizer {
       })
 
       return res.resend_otp
-    } catch (err) {
+    }
+    catch (err) {
       throw new Error(err)
     }
   }
 
   resetPassword = async (
-    data: Types.ResetPasswordInput
+    data: Types.ResetPasswordInput,
   ): Promise<Types.Response | void> => {
     try {
       const resetPasswordRes = await this.graphqlQuery({
@@ -366,7 +387,8 @@ export class Authorizer {
         },
       })
       return resetPasswordRes.reset_password
-    } catch (error) {
+    }
+    catch (error) {
       throw new Error(error)
     }
   }
@@ -407,7 +429,7 @@ export class Authorizer {
 
   updateProfile = async (
     data: Types.UpdateProfileInput,
-    headers?: Types.Headers
+    headers?: Types.Headers,
   ): Promise<Types.Response | void> => {
     try {
       const updateProfileRes = await this.graphqlQuery({
@@ -420,13 +442,14 @@ export class Authorizer {
       })
 
       return updateProfileRes.update_profile
-    } catch (error) {
+    }
+    catch (error) {
       throw new Error(error)
     }
   }
 
   deactivateAccount = async (
-    headers?: Types.Headers
+    headers?: Types.Headers,
   ): Promise<Types.Response | void> => {
     try {
       const res = await this.graphqlQuery({
@@ -434,13 +457,14 @@ export class Authorizer {
         headers,
       })
       return res.deactivate_account
-    } catch (error) {
+    }
+    catch (error) {
       throw new Error(error)
     }
   }
 
   validateJWTToken = async (
-    params?: Types.ValidateJWTTokenInput
+    params?: Types.ValidateJWTTokenInput,
   ): Promise<Types.ValidateJWTTokenResponse> => {
     try {
       const res = await this.graphqlQuery({
@@ -452,13 +476,14 @@ export class Authorizer {
       })
 
       return res.validate_jwt_token
-    } catch (error) {
+    }
+    catch (error) {
       throw new Error(error)
     }
   }
 
   validateSession = async (
-    params?: Types.ValidateSessionInput
+    params?: Types.ValidateSessionInput,
   ): Promise<Types.ValidateSessionResponse> => {
     try {
       const res = await this.graphqlQuery({
@@ -470,13 +495,14 @@ export class Authorizer {
       })
 
       return res.validate_session
-    } catch (error) {
+    }
+    catch (error) {
       throw new Error(error)
     }
   }
 
   verifyEmail = async (
-    data: Types.VerifyEmailInput
+    data: Types.VerifyEmailInput,
   ): Promise<Types.AuthToken | void> => {
     try {
       const res = await this.graphqlQuery({
@@ -487,13 +513,14 @@ export class Authorizer {
       })
 
       return res.verify_email
-    } catch (err) {
+    }
+    catch (err) {
       throw new Error(err)
     }
   }
 
   verifyOtp = async (
-    data: Types.VerifyOtpInput
+    data: Types.VerifyOtpInput,
   ): Promise<Types.AuthToken | void> => {
     try {
       const res = await this.graphqlQuery({
@@ -504,7 +531,8 @@ export class Authorizer {
       })
 
       return res.verify_otp
-    } catch (err) {
+    }
+    catch (err) {
       throw new Error(err)
     }
   }
