@@ -487,8 +487,7 @@ export class Authorizer {
   ): Promise<Types.ValidateSessionResponse> => {
     try {
       const res = await this.graphqlQuery({
-        query:
-          'query validateSession($params: ValidateSessionInput!){validate_session(params: $params) { is_valid user } }',
+        query: `query validateSession($params: ValidateSessionInput){validate_session(params: $params) { is_valid user { ${userFragment} } } }`,
         variables: {
           params,
         },
