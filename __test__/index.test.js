@@ -19,7 +19,7 @@ describe('signup success', () => {
       confirm_password: password,
     })
     expect(signupRes?.ok).toEqual(true)
-    expect(signupRes?.response.message.length).not.toEqual(0)
+    expect(signupRes?.response?.message?.length).not.toEqual(0)
   })
 
   it('should verify email', async () => {
@@ -49,33 +49,32 @@ describe('signup success', () => {
 
     const verifyEmailRes = await authRef.verifyEmail({ token: item.token })
 
-    expect(verifyEmailRes?response.access_token.length).not.toEqual(0)
+    expect(verifyEmailRes?.response?.access_token?.length).toBeGreaterThan(0)
   })
 })
 
 describe('login failures', () => {
   it('should throw password invalid error', async () => {
-    try {
-      await authRef.login({
+
+     const resp= await authRef.login({
         email,
         password: `${password}test`,
       })
-    } catch (e) {
-      expect(e.message).toContain('bad user credentials')
-    }
+
+      expect(resp?.error?.message).toContain('bad user credentials')
   })
 
   it('should throw password invalid role', async () => {
-    try {
-      await authRef.login({
-        email,
-        password,
-        roles: ['admin'],
-      })
-    } catch (e) {
-      expect(e.message).toMatch('invalid role')
-    }
+
+    const resp = await authRef.login({
+      email,
+      password,
+      roles: ['admin'],
+    })
+    expect(resp.error?.message).toMatch('invalid role')
+    expect(resp.ok).toBeFalsy()
   })
+
 })
 
 describe('forgot password success', () => {
@@ -83,7 +82,7 @@ describe('forgot password success', () => {
     const forgotPasswordRes = await authRef.forgotPassword({
       email,
     })
-    expect(forgotPasswordRes.message.length).not.toEqual(0)
+    expect(forgotPasswordRes?.error?.message?.length).not.toEqual(0)
   })
 
   it('should reset password', async () => {
@@ -118,7 +117,7 @@ describe('forgot password success', () => {
         password,
         confirm_password: password,
       })
-      expect(resetPasswordRes.message.length).not.toEqual(0)
+      expect(resetPasswordRes?.error?.message?.length).not.toEqual(0)
     }
   })
 })
@@ -131,10 +130,10 @@ describe('login success', () => {
       password,
       scope: ['openid', 'profile', 'email', 'offline_access'],
     })
-    expect(loginRes.access_token.length).not.toEqual(0)
-    expect(loginRes.refresh_token.length).not.toEqual(0)
-    expect(loginRes.expires_in).not.toEqual(0)
-    expect(loginRes.id_token.length).not.toEqual(0)
+    expect(loginRes?.response?.access_token.length).not.toEqual(0)
+    expect(loginRes?.response?.refresh_token.length).not.toEqual(0)
+    expect(loginRes?.response?.expires_in).not.toEqual(0)
+    expect(loginRes?.response?.id_token.length).not.toEqual(0)
   })
 
   it('should validate jwt token', async () => {
@@ -142,7 +141,7 @@ describe('login success', () => {
       token_type: 'access_token',
       token: loginRes.access_token,
     })
-    expect(validateRes.is_valid).toEqual(true)
+    expect(validateRes?.response?.is_valid).toEqual(true)
   })
 
   it('should update profile successfully', async () => {
@@ -154,14 +153,14 @@ describe('login success', () => {
         Authorization: `Bearer ${loginRes.access_token}`,
       }
     )
-    expect(updateProfileRes.message.length).not.toEqual(0)
+    expect(updateProfileRes?.error?.message?.length).not.toEqual(0)
   })
 
   it('should fetch profile successfully', async () => {
     const profileRes = await authRef.getProfile({
       Authorization: `Bearer ${loginRes.access_token}`,
     })
-    expect(profileRes.given_name).toMatch('bob')
+    expect(profileRes?.response?.given_name).toMatch('bob')
   })
 
   it('should validate get token', async () => {
@@ -169,7 +168,7 @@ describe('login success', () => {
       grant_type: 'refresh_token',
       refresh_token: loginRes.refresh_token,
     })
-    expect(tokenRes.access_token.length).not.toEqual(0)
+    expect(tokenRes?.response?.access_token.length).not.toEqual(0)
   })
 
   it('should deactivate account', async () => {
@@ -177,15 +176,15 @@ describe('login success', () => {
     const deactivateRes = await authRef.deactivateAccount({
       Authorization: `Bearer ${loginRes.access_token}`,
     })
-    expect(deactivateRes.message.length).not.toEqual(0)
+    expect(deactivateRes?.error?.message?.length).not.toEqual(0)
   })
 
   it('should throw error while accessing profile after deactivation', async () => {
-    await expect(
+    const resp=await
       authRef.getProfile({
         Authorization: `Bearer ${loginRes.access_token}`,
       })
-    ).rejects.toThrow('Error: unauthorized')
+    expect(resp?.error?.message).toEqual('Error: unauthorized')
   })
 
   it('should clear data', async () => {
@@ -212,7 +211,7 @@ describe('magic login success', () => {
       email,
     })
 
-    expect(magicLinkLoginRes.message.length).not.toEqual(0)
+    expect(magicLinkLoginRes?.error?.message?.length).not.toEqual(0)
   })
 
   it('should verify email', async () => {
