@@ -158,7 +158,7 @@ describe('login success', () => {
 
   it('should fetch profile successfully', async () => {
     const profileRes = await authRef.getProfile({
-      Authorization: `Bearer ${loginRes.access_token}`,
+      Authorization: `Bearer ${loginRes?.response?.access_token}`,
     })
     expect(profileRes?.response?.given_name).toMatch('bob')
   })
