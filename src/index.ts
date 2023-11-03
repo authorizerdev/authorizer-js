@@ -151,7 +151,7 @@ export class Authorizer {
 
   forgotPassword = async (
     data: Types.ForgotPasswordInput,
-  ): Promise<ApiResponse<Response>> => {
+  ): Promise<ApiResponse<GenericResponse>> => {
     if (!data.state)
       data.state = encode(createRandomString())
 
@@ -279,7 +279,7 @@ export class Authorizer {
     }
   }
 
-  logout = async (headers?: Types.Headers): Promise<ApiResponse<Response>> => {
+  logout = async (headers?: Types.Headers): Promise<ApiResponse<GenericResponse>> => {
     try {
       const res = await this.graphqlQuery({
         query: ' mutation { logout { message } } ',
@@ -295,7 +295,7 @@ export class Authorizer {
 
   magicLinkLogin = async (
     data: Types.MagicLinkLoginInput,
-  ): Promise<ApiResponse<Response>> => {
+  ): Promise<ApiResponse<GenericResponse>> => {
     try {
       if (!data.state)
         data.state = encode(createRandomString())
