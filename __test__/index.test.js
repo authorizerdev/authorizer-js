@@ -139,7 +139,7 @@ describe('login success', () => {
   it('should validate jwt token', async () => {
     const validateRes = await authRef.validateJWTToken({
       token_type: 'access_token',
-      token: loginRes.access_token,
+      token: loginRes?.response?.access_token,
     })
     expect(validateRes?.response?.is_valid).toEqual(true)
   })
@@ -150,7 +150,7 @@ describe('login success', () => {
         given_name: 'bob',
       },
       {
-        Authorization: `Bearer ${loginRes.access_token}`,
+        Authorization: `Bearer ${loginRes?.response?.access_token}`,
       }
     )
     expect(updateProfileRes?.error?.message?.length).not.toEqual(0)
@@ -166,15 +166,15 @@ describe('login success', () => {
   it('should validate get token', async () => {
     const tokenRes = await authRef.getToken({
       grant_type: 'refresh_token',
-      refresh_token: loginRes.refresh_token,
+      refresh_token: loginRes?.response?.refresh_token,
     })
     expect(tokenRes?.response?.access_token.length).not.toEqual(0)
   })
 
   it('should deactivate account', async () => {
-    console.log(`loginRes.access_token`, loginRes.access_token)
+    console.log(`loginRes?.response?.access_token`, loginRes?.response?.access_token)
     const deactivateRes = await authRef.deactivateAccount({
-      Authorization: `Bearer ${loginRes.access_token}`,
+      Authorization: `Bearer ${loginRes?.response?.access_token}`,
     })
     expect(deactivateRes?.error?.message?.length).not.toEqual(0)
   })
@@ -182,7 +182,7 @@ describe('login success', () => {
   it('should throw error while accessing profile after deactivation', async () => {
     const resp=await
       authRef.getProfile({
-        Authorization: `Bearer ${loginRes.access_token}`,
+        Authorization: `Bearer ${loginRes?.response?.access_token}`,
       })
     expect(resp?.error?.message).toEqual('Error: unauthorized')
   })
