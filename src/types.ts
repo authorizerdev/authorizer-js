@@ -43,7 +43,7 @@ export interface AuthToken {
   should_show_mobile_otp_screen?: boolean
 }
 
-export interface Response {
+export interface GenericResponse {
   message: string
 }
 
