@@ -20,7 +20,7 @@ import type {
   GetTokenResponse,
   MetaData,
   User,
-  ValidateJWTTokenResponse, ValidateSessionResponse,
+  ValidateJWTTokenResponse, ValidateSessionResponse, GenericResponse
 } from './types'
 
 // re-usable gql response fragment
@@ -350,7 +350,7 @@ export class Authorizer {
 
   resendOtp = async (
     data: Types.ResendOtpInput,
-  ): Promise<ApiResponse<Response>> => {
+  ): Promise<ApiResponse<GenericResponse>> => {
     try {
       const res = await this.graphqlQuery({
         query: `
@@ -368,7 +368,7 @@ export class Authorizer {
 
   resetPassword = async (
     data: Types.ResetPasswordInput,
-  ): Promise<ApiResponse<Response>> => {
+  ): Promise<ApiResponse<GenericResponse>> => {
     try {
       const resetPasswordRes = await this.graphqlQuery({
         query:
@@ -423,7 +423,7 @@ export class Authorizer {
   updateProfile = async (
     data: Types.UpdateProfileInput,
     headers?: Types.Headers,
-  ): Promise<ApiResponse<Response>> => {
+  ): Promise<ApiResponse<GenericResponse>> => {
     try {
       const updateProfileRes = await this.graphqlQuery({
         query:
@@ -443,7 +443,7 @@ export class Authorizer {
 
   deactivateAccount = async (
     headers?: Types.Headers,
-  ): Promise<ApiResponse<Response>> => {
+  ): Promise<ApiResponse<GenericResponse>> => {
     try {
       const res = await this.graphqlQuery({
         query: 'mutation deactivateAccount { deactivate_account { message } }',
