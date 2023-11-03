@@ -1,0 +1,13 @@
+import { AuthorizeResponse } from './types';
+export declare const hasWindow: () => boolean;
+export declare const trimURL: (url: string) => string;
+export declare const getCrypto: () => Crypto | null;
+export declare const getCryptoSubtle: () => any;
+export declare const createRandomString: () => string;
+export declare const encode: (value: string) => string;
+export declare const decode: (value: string) => string;
+export declare const createQueryParams: (params: any) => string;
+export declare const sha256: (s: string) => Promise<any>;
+export declare const urlDecodeB64: (input: string) => string;
+export declare const bufferToBase64UrlEncoded: (input: number[] | Uint8Array) => string;
+export declare const executeIframe: (authorizeUrl: string, eventOrigin: string, timeoutInSeconds?: number) => Promise<AuthorizeResponse>;
