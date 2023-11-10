@@ -91,6 +91,11 @@ export interface VerifyEmailInput {
   state?: string
 }
 
+export interface ResendVerifyEmailInput {
+  email: string
+  identifier: string
+}
+
 export interface VerifyOtpInput {
   email?: string
   phone_number?: string
