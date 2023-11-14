@@ -256,6 +256,7 @@ export class Authorizer {
         variables: data.variables || {},
       }),
       headers: {
+        ...(this.config.adminSecret ? { 'x-authorizer-admin-secret': this.config.adminSecret } : {}),
         ...this.config.extraHeaders,
         ...(data.headers || {}),
       },
@@ -533,6 +534,161 @@ export class Authorizer {
     }
     catch (err) {
       throw new Error(err)
+    }
+  }
+
+  //Admin queries
+  _user = async (data?: Types.UserInput): Promise<Types.User | void> => {
+    try {
+      const userRes = await this.graphqlQuery({
+        query: `query {	_user( params: $data) { ${userFragment} } }`,
+        variables: { data },
+      })
+
+      return userRes
+    }
+    catch (error) {
+      throw new Error(error)
+    }
+  }
+
+  _users = async (data?: Types.PaginatedInput): Promise<{pagination: Types.PaginationResponse, users: Types.User[]} | void> => {
+    try {
+      const profileRes = await this.graphqlQuery({
+        query: `query {	_users(params: {
+          pagination: $data
+        }) {
+          pagination: {
+            offset
+            total
+            page
+            limit
+          }
+          users {
+            ${userFragment}
+          }
+        }`,
+        variables: { data },
+      })
+
+      return profileRes
+    }
+    catch (error) {
+      throw new Error(error)
+    }
+  }
+
+  _verification_requests = async (data?: Types.PaginatedInput): Promise<{pagination: Types.PaginationResponse, verification_requests: Types.VerificationResponse[]} | void> => {
+    try {
+      const profileRes = await this.graphqlQuery({
+        query: `query {	_verification_requests(params: {
+          pagination: $data
+        }) {
+          pagination: {
+            offset
+            total
+            page
+            limit
+          }
+          verification_requests {
+            id
+            token
+            email
+            expires
+            identifier
+          }
+        }`,
+        variables: { data },
+      })
+
+      return profileRes
+    }
+    catch (error) {
+      throw new Error(error)
+    }
+  }
+
+  _admin_session = async (): Promise<Types.Response | void> => {
+    try {
+      const profileRes = await this.graphqlQuery({
+        query: `query {
+          _admin_session {
+            message
+          }
+        }`
+      })
+
+      return profileRes._admin_session
+    }
+    catch (error) {
+      throw new Error(error)
+    }
+  }
+
+  _env = async (fields: Types.ServerConfigInput[]): Promise<Types.ServerConfigResponse | void> => {
+    const fieldList = fields.join(' ');
+    try {
+      const profileRes = await this.graphqlQuery({
+        query: `query {
+          _env {
+            ${fieldList}
+          }
+        }`
+      })
+
+      return profileRes._env
+    }
+    catch (error) {
+      throw new Error(error)
+    }
+  }
+
+  _webhook = async (data: Types.WebhookInput): Promise<Types.WebhookResponse | void> => {
+    try {
+      const userRes = await this.graphqlQuery({
+        query: `query {	_webhook( params: $data) { id
+          event_name
+          endpoint
+          enabled
+          headers
+          created_at
+          updated_at } }`,
+        variables: { data },
+      })
+
+      return userRes._webhook
+    }
+    catch (error) {
+      throw new Error(error)
+    }
+  }
+
+  _webhooks = async (data: Types.PaginatedInput): Promise<{pagination: Types.PaginationResponse, webhooks: Types.WebhookResponse[]} | void> => {
+    try {
+      const userRes = await this.graphqlQuery({
+        query: `query {	_webhooks( params: $data) 
+          pagination: {
+            offset
+            total
+            page
+            limit
+          }
+          webhooks { 
+            id
+            event_name
+            endpoint
+            enabled
+            headers
+            created_at
+            updated_at 
+        }}`,
+        variables: { data },
+      })
+
+      return userRes
+    }
+    catch (error) {
+      throw new Error(error)
     }
   }
 }

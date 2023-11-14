@@ -2,6 +2,7 @@ export interface ConfigType {
   authorizerURL: string
   redirectURL: string
   clientID: string
+  adminSecret?: string
   extraHeaders?: Record<string, string>
 }
 
@@ -226,4 +227,106 @@ export interface ValidateSessionInput {
 export interface ValidateSessionResponse {
   is_valid: boolean
   user: User
+}
+
+export interface UserInput {
+  id?: string
+  email?: string
+}
+
+export interface PaginatedInput {
+  page?: number
+  limit?: number
+}
+
+export interface VerificationResponse {
+  id: string
+  token: string
+  email: string
+  expires: number
+  identifier: string 
+}
+
+export interface ServerConfigResponse {
+  ENV?: 'production' | 'development'
+  ADMIN_SECRET?: string
+  DATABASE_TYPE?: 'postgres' | 'mysql' | 'planetscale' | 'sqlite' | 'sqlserver' | 'mongodb' | 'arangodb' | 'yugabyte' | 'mariadb' | 'cassandradb' | 'scylladb' | 'couchbase' | 'dynamodb'
+  DATABASE_URL?: string
+  DATABASE_NAME?: string
+  DATABASE_PORT?: string
+  DATABASE_HOST?: string
+  DATABASE_USERNAME?: string
+  DATABASE_PASSWORD?: string
+  DATABASE_CERT?: string
+  DATABASE_CERT_KEY?: string
+  DATABASE_CA_CERT?: string
+  PORT?: string
+  AUTHORIZER_URL?: string
+  REDIS_URL?: string
+  COOKIE_NAME: string
+  SMTP_HOST?: string
+  SMTP_PORT?: string
+  SMTP_USERNAME?: string
+  SMTP_PASSWORD?: string
+  SENDER_EMAIL?: string
+  SENDER_NAME?: string
+  RESET_PASSWORD_URL?: string
+  DISABLE_BASIC_AUTHENTICATION?: boolean
+  DISABLE_EMAIL_VERIFICATION?: boolean
+  DISABLE_MAGIC_LINK_LOGIN?: boolean
+  DISABLE_LOGIN_PAGE?: boolean
+  DISABLE_SIGN_UP?: boolean
+  DISABLE_PLAYGROUND?: boolean
+  ROLES?: string
+  DEFAULT_ROLES?: string
+  PROTECTED_ROLES?: string
+  JWT_ROLE_CLAIM?: string
+  ORGANIZATION_NAME?: string
+  ORGANIZATION_LOGO?: string
+  CUSTOM_ACCESS_TOKEN_SCRIPT?: string
+  ACCESS_TOKEN_EXPIRY_TIME?: string
+  AWS_REGION?: string
+  AWS_ACCESS_KEY_ID?: string
+  AWS_SECRET_ACCESS_KEY?: string
+  COUCHBASE_BUCKET?: string
+  COUCHBASE_BUCKET_RAM_QUOTA?: string
+  COUCHBASE_SCOPE?: string
+  GOOGLE_CLIENT_ID?: string
+  GOOGLE_CLIENT_SECRET?: string
+  GITHUB_CLIENT_ID?: string
+  GITHUB_CLIENT_SECRET?: string
+  FACEBOOK_CLIENT_ID?: string
+  FACEBOOK_CLIENT_SECRET?: string
+  LINKEDIN_CLIENT_ID?: string
+  LINKEDIN_CLIENT_SECRET?: string
+  APPLE_CLIENT_ID?: string
+  APPLE_CLIENT_SECRET?: string
+  TWITTER_CLIENT_ID?: string
+  TWITTER_CLIENT_SECRET?: string
+  MICROSOFT_CLIENT_ID?: string
+  MICROSOFT_CLIENT_SECRET?: string
+  MICROSOFT_ACTIVE_DIRECTORY_TENANT_ID?: string
+}
+
+export type ServerConfigInput = keyof ServerConfigResponse
+
+export interface WebhookInput {
+  id: string
+}
+
+export interface WebhookResponse {
+  id: string
+  event_name: string
+  endpoint: string
+  enabled: boolean
+  headers: Record<string, string>
+  created_at: string
+  updated_at: string
+}
+
+export interface PaginationResponse {
+  offset: number
+  total: number
+  page: number
+  limit: number
 }
