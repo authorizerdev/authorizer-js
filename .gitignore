@@ -5,3 +5,4 @@ dist
 lib
 package-lock.json
 .idea
+.history

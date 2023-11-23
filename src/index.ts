@@ -1,4 +1,3 @@
-// Note: write gql query in single line to reduce bundle size
 import crossFetch from 'cross-fetch'
 import { DEFAULT_AUTHORIZE_TIMEOUT_IN_SECONDS } from './constants'
 import * as Types from './types'
@@ -17,10 +16,10 @@ import type {
   AuthToken,
   AuthorizeResponse,
   ConfigType,
+  GenericResponse,
   GetTokenResponse,
   MetaData,
-  User,
-  ValidateJWTTokenResponse, ValidateSessionResponse, GenericResponse
+  User, ValidateJWTTokenResponse, ValidateSessionResponse,
 } from './types'
 
 // re-usable gql response fragment
