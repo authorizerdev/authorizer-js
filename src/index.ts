@@ -17,10 +17,10 @@ import type {
   AuthToken,
   AuthorizeResponse,
   ConfigType,
+  GenericResponse,
   GetTokenResponse,
   MetaData,
-  User,
-  ValidateJWTTokenResponse, ValidateSessionResponse, GenericResponse
+  User, ValidateJWTTokenResponse, ValidateSessionResponse,
 } from './types'
 
 // re-usable gql response fragment
