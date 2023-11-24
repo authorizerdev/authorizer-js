@@ -20,7 +20,7 @@ import type {
   GenericResponse,
   GetTokenResponse,
   MetaData,
-  User, ValidateJWTTokenResponse, ValidateSessionResponse,
+  ResendVerifyEmailInput, User, ValidateJWTTokenResponse, ValidateSessionResponse,
 } from './types'
 
 // re-usable gql response fragment
@@ -500,6 +500,24 @@ export class Authorizer {
       const res = await this.graphqlQuery({
         query: `
 					mutation verifyEmail($data: VerifyEmailInput!) { verify_email(params: $data) { ${authTokenFragment}}}
+				`,
+        variables: { data },
+      })
+
+      return this.okResponse(res.verify_email)
+    }
+    catch (err) {
+      return this.errorResponse(err)
+    }
+  }
+
+  resendVerifyEmail = async (
+    data: ResendVerifyEmailInput,
+  ): Promise<ApiResponse<GenericResponse>> => {
+    try {
+      const res = await this.graphqlQuery({
+        query: `
+					mutation resendVerifyEmail($data: ResendVerifyEmailInput!) { resend_verify_email(params: $data) { message }}
 				`,
         variables: { data },
       })
