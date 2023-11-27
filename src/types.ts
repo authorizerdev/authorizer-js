@@ -1,7 +1,11 @@
+export interface GrapQlResponseType{
+  data:any | undefined,
+  errors:Error[]
+}
 export interface ApiResponse<T> {
   ok: boolean
-  error: Error | undefined
-  response: T | undefined
+  errors: Error[]
+  data: T | undefined
 }
 export interface ConfigType {
   authorizerURL: string

@@ -19,6 +19,7 @@ import type {
   ConfigType,
   GenericResponse,
   GetTokenResponse,
+  GrapQlResponseType,
   MetaData,
   ResendVerifyEmailInput, User, ValidateJWTTokenResponse, ValidateSessionResponse,
 } from './types'
@@ -65,7 +66,7 @@ export class Authorizer {
 
   authorize = async (data: Types.AuthorizeInput): Promise<ApiResponse<GetTokenResponse> | ApiResponse<AuthorizeResponse>> => {
     if (!hasWindow())
-      return this.errorResponse(new Error('this feature is only supported in browser'))
+      return this.errorResponse([new Error('this feature is only supported in browser')])
 
     const scopes = ['openid', 'profile', 'email']
     if (data.use_refresh_token)
@@ -107,7 +108,7 @@ export class Authorizer {
       if (data.response_type === Types.ResponseTypes.Code) {
         // get token and return it
         const tokenResp: ApiResponse<GetTokenResponse> = await this.getToken({ code: iframeRes.code })
-        return tokenResp.ok ? this.okResponse(tokenResp.response) : this.errorResponse(tokenResp.error!)
+        return tokenResp.ok ? this.okResponse(tokenResp.data) : this.errorResponse(tokenResp.errors)
       }
 
       // this includes access_token, id_token & refresh_token(optionally)
@@ -129,14 +130,14 @@ export class Authorizer {
   browserLogin = async (): Promise<ApiResponse<AuthToken>> => {
     try {
       const tokenResp: ApiResponse<AuthToken> = await this.getSession()
-      return tokenResp.ok ? this.okResponse(tokenResp.response) : this.errorResponse(tokenResp.error!)
+      return tokenResp.ok ? this.okResponse(tokenResp.data) : this.errorResponse(tokenResp.errors)
     }
     catch (err) {
       if (!hasWindow()) {
         return {
           ok: false,
-          response: undefined,
-          error: new Error('browserLogin is only supported for browsers'),
+          data: undefined,
+          errors: [new Error('browserLogin is only supported for browsers')],
         }
       }
 
@@ -166,10 +167,10 @@ export class Authorizer {
           data,
         },
       })
-      return this.okResponse(forgotPasswordResp?.forgot_password)
+      return forgotPasswordResp?.errors?.length ? this.errorResponse(forgotPasswordResp.errors) : this.okResponse(forgotPasswordResp?.data.forgot_password)
     }
     catch (error) {
-      return this.errorResponse(error)
+      return this.errorResponse([error])
     }
   }
 
@@ -180,10 +181,10 @@ export class Authorizer {
           'query { meta { version is_google_login_enabled is_facebook_login_enabled is_github_login_enabled is_linkedin_login_enabled is_apple_login_enabled is_twitter_login_enabled is_microsoft_login_enabled is_email_verification_enabled is_basic_authentication_enabled is_magic_link_login_enabled is_sign_up_enabled is_strong_password_enabled } }',
       })
 
-      return this.okResponse(res.meta)
+      return res?.errors?.length ? this.errorResponse(res.errors): this.okResponse(res.data.meta)
     }
     catch (error) {
-      return this.errorResponse(error)
+      return this.errorResponse([error])
     }
   }
 
@@ -194,10 +195,10 @@ export class Authorizer {
         headers,
       })
 
-      return this.okResponse(profileRes.profile)
+      return profileRes?.errors?.length ? this.errorResponse(profileRes.errors): this.okResponse(profileRes.data.profile)
     }
     catch (error) {
-      return this.errorResponse(error)
+      return this.errorResponse([error])
     }
   }
 
@@ -214,7 +215,7 @@ export class Authorizer {
           params,
         },
       })
-      return this.okResponse(res.session)
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.session)
     }
     catch (err) {
       return this.errorResponse(err)
@@ -228,10 +229,10 @@ export class Authorizer {
       data.grant_type = 'authorization_code'
 
     if (data.grant_type === 'refresh_token' && !data.refresh_token)
-      return this.errorResponse(new Error('Invalid refresh_token'))
+      return this.errorResponse([new Error('Invalid refresh_token')])
 
     if (data.grant_type === 'authorization_code' && !this.codeVerifier)
-      return this.errorResponse(new Error('Invalid code verifier'))
+      return this.errorResponse([new Error('Invalid code verifier')])
 
     const requestData = {
       client_id: this.config.clientID,
@@ -254,7 +255,7 @@ export class Authorizer {
 
       const json = await res.json()
       if (res.status >= 400)
-        return this.errorResponse(new Error(json))
+        return this.errorResponse([new Error(json)])
 
       return this.okResponse(json)
     }
@@ -272,10 +273,10 @@ export class Authorizer {
         variables: { data },
       })
 
-      return this.okResponse(res.login)
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.login)
     }
     catch (err) {
-      return this.errorResponse(new Error(err))
+      return this.errorResponse([new Error(err)])
     }
   }
 
@@ -285,11 +286,11 @@ export class Authorizer {
         query: ' mutation { logout { message } } ',
         headers,
       })
-      return this.okResponse(res.response)
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.response)
     }
     catch (err) {
       console.error(err)
-      return this.errorResponse(err)
+      return this.errorResponse([err])
     }
   }
 
@@ -310,10 +311,10 @@ export class Authorizer {
         variables: { data },
       })
 
-      return this.okResponse(res.magic_link_login)
+      return res?.errors?.length ? this.errorResponse(res.errors) :  this.okResponse(res.data?.magic_link_login)
     }
     catch (err) {
-      return this.errorResponse(err)
+      return this.errorResponse([err])
     }
   }
 
@@ -359,10 +360,10 @@ export class Authorizer {
         variables: { data },
       })
 
-      return this.okResponse(res.resend_otp)
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.resend_otp)
     }
     catch (err) {
-      return this.errorResponse(err)
+      return this.errorResponse([err])
     }
   }
 
@@ -377,16 +378,16 @@ export class Authorizer {
           data,
         },
       })
-      return this.okResponse(resetPasswordRes.reset_password)
+      return resetPasswordRes?.errors?.length ? this.errorResponse(resetPasswordRes.errors) : this.okResponse(resetPasswordRes.data?.reset_password)
     }
     catch (error) {
-      return this.errorResponse(error)
+      return this.errorResponse([error])
     }
   }
 
   revokeToken = async (data: { refresh_token: string }) => {
     if (!data.refresh_token && !data.refresh_token.trim())
-      return this.errorResponse(new Error('Invalid refresh_token'))
+      return this.errorResponse([new Error('Invalid refresh_token')])
 
     const fetcher = getFetcher()
     const res = await fetcher(`${this.config.authorizerURL}/oauth/revoke`, {
@@ -413,10 +414,10 @@ export class Authorizer {
         variables: { data },
       })
 
-      return this.okResponse(res.signup)
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.signup)
     }
     catch (err) {
-      return this.errorResponse(err)
+      return this.errorResponse([err])
     }
   }
 
@@ -434,10 +435,10 @@ export class Authorizer {
         },
       })
 
-      return this.okResponse(updateProfileRes.update_profile)
+      return updateProfileRes?.errors?.length ? this.errorResponse(updateProfileRes.errors) : this.okResponse(updateProfileRes.data?.update_profile)
     }
     catch (error) {
-      return this.errorResponse(new Error(error))
+      return this.errorResponse([error])
     }
   }
 
@@ -449,10 +450,10 @@ export class Authorizer {
         query: 'mutation deactivateAccount { deactivate_account { message } }',
         headers,
       })
-      return this.okResponse(res.deactivate_account)
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.deactivate_account)
     }
     catch (error) {
-      return this.errorResponse(error)
+      return this.errorResponse([error])
     }
   }
 
@@ -468,10 +469,10 @@ export class Authorizer {
         },
       })
 
-      return this.okResponse(res.validate_jwt_token)
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.validate_jwt_token)
     }
     catch (error) {
-      return this.errorResponse(error)
+      return this.errorResponse([error])
     }
   }
 
@@ -486,10 +487,10 @@ export class Authorizer {
         },
       })
 
-      return this.okResponse(res.validate_session)
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.validate_session)
     }
     catch (error) {
-      return this.errorResponse(error)
+      return this.errorResponse([error])
     }
   }
 
@@ -504,10 +505,10 @@ export class Authorizer {
         variables: { data },
       })
 
-      return this.okResponse(res.verify_email)
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.verify_email)
     }
     catch (err) {
-      return this.errorResponse(err)
+      return this.errorResponse([err])
     }
   }
 
@@ -522,10 +523,10 @@ export class Authorizer {
         variables: { data },
       })
 
-      return this.okResponse(res.verify_email)
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.verify_email)
     }
     catch (err) {
-      return this.errorResponse(err)
+      return this.errorResponse([err])
     }
   }
 
@@ -540,16 +541,16 @@ export class Authorizer {
         variables: { data },
       })
 
-      return this.okResponse(res.verify_otp)
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.verify_otp)
     }
     catch (err) {
-      return this.errorResponse(err)
+      return this.errorResponse([err])
     }
   }
 
   // helper to execute graphql queries
   // takes in any query or mutation string as input
-  private graphqlQuery = async (data: Types.GraphqlQueryInput) => {
+  private graphqlQuery = async (data: Types.GraphqlQueryInput):Promise<GrapQlResponseType> => {
     const fetcher = getFetcher()
     const res = await fetcher(`${this.config.authorizerURL}/graphql`, {
       method: 'POST',
@@ -566,27 +567,27 @@ export class Authorizer {
 
     const json = await res.json()
 
-    if (json.errors && json.errors.length) {
+    if (json?.errors?.length) {
       console.error(json.errors)
-      throw new Error(json.errors[0].message)
+      return {data:undefined,errors:json.errors}
     }
 
-    return json.data
+    return {data:json.data,errors:[]}
   }
 
-  private errorResponse = (error: Error): ApiResponse<any> => {
+  private errorResponse = (errors: Error[]): ApiResponse<any> => {
     return {
       ok: false,
-      response: undefined,
-      error,
+      data: undefined,
+      errors,
     }
   }
 
-  private okResponse = (response: any): ApiResponse<any> => {
+  private okResponse = (data: any): ApiResponse<any> => {
     return {
       ok: true,
-      response,
-      error: undefined,
+      data,
+      errors:[],
     }
   }
 }
