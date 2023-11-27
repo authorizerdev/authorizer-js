@@ -108,7 +108,7 @@ export class Authorizer {
       if (data.response_type === Types.ResponseTypes.Code) {
         // get token and return it
         const tokenResp: ApiResponse<GetTokenResponse> = await this.getToken({ code: iframeRes.code })
-        return tokenResp.ok ? this.okResponse(tokenResp.data) : this.errorResponse(tokenResp.errors)
+        return tokenResp.errors.length ? this.errorResponse(tokenResp.errors) : this.okResponse(tokenResp.data)
       }
 
       // this includes access_token, id_token & refresh_token(optionally)
@@ -130,12 +130,11 @@ export class Authorizer {
   browserLogin = async (): Promise<ApiResponse<AuthToken>> => {
     try {
       const tokenResp: ApiResponse<AuthToken> = await this.getSession()
-      return tokenResp.ok ? this.okResponse(tokenResp.data) : this.errorResponse(tokenResp.errors)
+      return tokenResp.errors.length ? this.errorResponse(tokenResp.errors) : this.okResponse(tokenResp.data)
     }
     catch (err) {
       if (!hasWindow()) {
         return {
-          ok: false,
           data: undefined,
           errors: [new Error('browserLogin is only supported for browsers')],
         }
@@ -577,7 +576,6 @@ export class Authorizer {
 
   private errorResponse = (errors: Error[]): ApiResponse<any> => {
     return {
-      ok: false,
       data: undefined,
       errors,
     }
@@ -585,7 +583,6 @@ export class Authorizer {
 
   private okResponse = (data: any): ApiResponse<any> => {
     return {
-      ok: true,
       data,
       errors: [],
     }

@@ -3,7 +3,6 @@ export interface GrapQlResponseType {
   errors: Error[]
 }
 export interface ApiResponse<T> {
-  ok: boolean
   errors: Error[]
   data: T | undefined
 }
