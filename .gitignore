@@ -3,6 +3,7 @@
 node_modules
 dist
 lib
+lib/*
 package-lock.json
 .idea
 .history
