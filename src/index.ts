@@ -181,7 +181,7 @@ export class Authorizer {
           'query { meta { version is_google_login_enabled is_facebook_login_enabled is_github_login_enabled is_linkedin_login_enabled is_apple_login_enabled is_twitter_login_enabled is_microsoft_login_enabled is_email_verification_enabled is_basic_authentication_enabled is_magic_link_login_enabled is_sign_up_enabled is_strong_password_enabled } }',
       })
 
-      return res?.errors?.length ? this.errorResponse(res.errors): this.okResponse(res.data.meta)
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data.meta)
     }
     catch (error) {
       return this.errorResponse([error])
@@ -195,7 +195,7 @@ export class Authorizer {
         headers,
       })
 
-      return profileRes?.errors?.length ? this.errorResponse(profileRes.errors): this.okResponse(profileRes.data.profile)
+      return profileRes?.errors?.length ? this.errorResponse(profileRes.errors) : this.okResponse(profileRes.data.profile)
     }
     catch (error) {
       return this.errorResponse([error])
@@ -311,7 +311,7 @@ export class Authorizer {
         variables: { data },
       })
 
-      return res?.errors?.length ? this.errorResponse(res.errors) :  this.okResponse(res.data?.magic_link_login)
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.magic_link_login)
     }
     catch (err) {
       return this.errorResponse([err])
@@ -550,7 +550,7 @@ export class Authorizer {
 
   // helper to execute graphql queries
   // takes in any query or mutation string as input
-  private graphqlQuery = async (data: Types.GraphqlQueryInput):Promise<GrapQlResponseType> => {
+  private graphqlQuery = async (data: Types.GraphqlQueryInput): Promise<GrapQlResponseType> => {
     const fetcher = getFetcher()
     const res = await fetcher(`${this.config.authorizerURL}/graphql`, {
       method: 'POST',
@@ -569,10 +569,10 @@ export class Authorizer {
 
     if (json?.errors?.length) {
       console.error(json.errors)
-      return {data:undefined,errors:json.errors}
+      return { data: undefined, errors: json.errors }
     }
 
-    return {data:json.data,errors:[]}
+    return { data: json.data, errors: [] }
   }
 
   private errorResponse = (errors: Error[]): ApiResponse<any> => {
@@ -587,7 +587,7 @@ export class Authorizer {
     return {
       ok: true,
       data,
-      errors:[],
+      errors: [],
     }
   }
 }

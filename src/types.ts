@@ -1,6 +1,6 @@
-export interface GrapQlResponseType{
-  data:any | undefined,
-  errors:Error[]
+export interface GrapQlResponseType {
+  data: any | undefined
+  errors: Error[]
 }
 export interface ApiResponse<T> {
   ok: boolean
