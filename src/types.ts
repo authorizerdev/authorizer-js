@@ -114,6 +114,7 @@ export interface MetaData {
   is_apple_login_enabled: boolean
   is_twitter_login_enabled: boolean
   is_microsoft_login_enabled: boolean
+  is_twitch_login_enabled: boolean
   is_email_verification_enabled: boolean
   is_basic_authentication_enabled: boolean
   is_magic_link_login_enabled: boolean
@@ -170,6 +171,9 @@ export enum OAuthProviders {
   Google = 'google',
   Facebook = 'facebook',
   LinkedIn = 'linkedin',
+  Twitter = 'twitter',
+  Microsoft = 'microsoft',
+  Twitch = 'twitch',
 }
 
 export enum ResponseTypes {
