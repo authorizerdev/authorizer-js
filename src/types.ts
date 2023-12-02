@@ -36,6 +36,10 @@ export interface AuthToken {
   user?: User
   should_show_email_otp_screen?: boolean
   should_show_mobile_otp_screen?: boolean
+  should_show_totp_screen?: boolean
+  authenticator_scanner_image?: string
+  authenticator_secret?: string
+  authenticator_recovery_codes?: string[]
 }
 
 export interface Response {
