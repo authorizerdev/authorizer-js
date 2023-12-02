@@ -1,6 +1,6 @@
 {
   "name": "@authorizerdev/authorizer-js",
-  "version": "1.2.15",
+  "version": "1.2.16",
   "packageManager": "pnpm@7.28.0",
   "author": "Lakhan Samani",
   "license": "MIT",
