@@ -95,6 +95,7 @@ export interface VerifyOtpInput {
   phone_number?: string
   otp: string
   state?: string
+  totp?: boolean
 }
 
 export interface ResendOtpInput {
