@@ -1,3 +1,11 @@
+export interface GrapQlResponseType {
+  data: any | undefined
+  errors: Error[]
+}
+export interface ApiResponse<T> {
+  errors: Error[]
+  data: T | undefined
+}
 export interface ConfigType {
   authorizerURL: string
   redirectURL: string
@@ -42,7 +50,7 @@ export interface AuthToken {
   authenticator_recovery_codes?: string[]
 }
 
-export interface Response {
+export interface GenericResponse {
   message: string
 }
 
@@ -88,6 +96,11 @@ export interface MagicLinkLoginInput {
 export interface VerifyEmailInput {
   token: string
   state?: string
+}
+
+export interface ResendVerifyEmailInput {
+  email: string
+  identifier: string
 }
 
 export interface VerifyOtpInput {

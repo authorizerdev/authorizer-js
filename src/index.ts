@@ -12,6 +12,17 @@ import {
   sha256,
   trimURL,
 } from './utils'
+import type {
+  ApiResponse,
+  AuthToken,
+  AuthorizeResponse,
+  ConfigType,
+  GenericResponse,
+  GetTokenResponse,
+  GrapQlResponseType,
+  MetaData,
+  ResendVerifyEmailInput, User, ValidateJWTTokenResponse, ValidateSessionResponse,
+} from './types'
 
 // re-usable gql response fragment
 const userFragment
@@ -22,13 +33,14 @@ const authTokenFragment = `message access_token expires_in refresh_token id_toke
 const getFetcher = () => (hasWindow() ? window.fetch : crossFetch)
 
 export * from './types'
+
 export class Authorizer {
   // class variable
-  config: Types.ConfigType
+  config: ConfigType
   codeVerifier: string
 
   // constructor
-  constructor(config: Types.ConfigType) {
+  constructor(config: ConfigType) {
     if (!config)
       throw new Error('Configuration is required')
 
@@ -41,7 +53,8 @@ export class Authorizer {
 
     if (!config.redirectURL && !config.redirectURL.trim())
       throw new Error('Invalid redirectURL')
-    else this.config.redirectURL = trimURL(config.redirectURL)
+    else
+      this.config.redirectURL = trimURL(config.redirectURL)
 
     this.config.extraHeaders = {
       ...(config.extraHeaders || {}),
@@ -51,9 +64,9 @@ export class Authorizer {
     this.config.clientID = config.clientID.trim()
   }
 
-  authorize = async (data: Types.AuthorizeInput) => {
+  authorize = async (data: Types.AuthorizeInput): Promise<ApiResponse<GetTokenResponse> | ApiResponse<AuthorizeResponse>> => {
     if (!hasWindow())
-      throw new Error('this feature is only supported in browser')
+      return this.errorResponse([new Error('this feature is only supported in browser')])
 
     const scopes = ['openid', 'profile', 'email']
     if (data.use_refresh_token)
@@ -82,7 +95,7 @@ export class Authorizer {
 
     if (requestData.response_mode !== 'web_message') {
       window.location.replace(authorizeURL)
-      return
+      return this.okResponse(undefined)
     }
 
     try {
@@ -94,12 +107,12 @@ export class Authorizer {
 
       if (data.response_type === Types.ResponseTypes.Code) {
         // get token and return it
-        const token = await this.getToken({ code: iframeRes.code })
-        return token
+        const tokenResp: ApiResponse<GetTokenResponse> = await this.getToken({ code: iframeRes.code })
+        return tokenResp.errors.length ? this.errorResponse(tokenResp.errors) : this.okResponse(tokenResp.data)
       }
 
       // this includes access_token, id_token & refresh_token(optionally)
-      return iframeRes
+      return this.okResponse(iframeRes)
     }
     catch (err) {
       if (err.error) {
@@ -110,30 +123,35 @@ export class Authorizer {
         )
       }
 
-      throw err
+      return this.errorResponse(err)
     }
   }
 
-  browserLogin = async (): Promise<Types.AuthToken | void> => {
+  browserLogin = async (): Promise<ApiResponse<AuthToken>> => {
     try {
-      const token = await this.getSession()
-      return token
+      const tokenResp: ApiResponse<AuthToken> = await this.getSession()
+      return tokenResp.errors.length ? this.errorResponse(tokenResp.errors) : this.okResponse(tokenResp.data)
     }
     catch (err) {
-      if (!hasWindow())
-        throw new Error('browserLogin is only supported for browsers')
+      if (!hasWindow()) {
+        return {
+          data: undefined,
+          errors: [new Error('browserLogin is only supported for browsers')],
+        }
+      }
 
       window.location.replace(
         `${this.config.authorizerURL}/app?state=${encode(
           JSON.stringify(this.config),
         )}&redirect_uri=${this.config.redirectURL}`,
       )
+      return this.errorResponse(err)
     }
   }
 
   forgotPassword = async (
     data: Types.ForgotPasswordInput,
-  ): Promise<Types.Response | void> => {
+  ): Promise<ApiResponse<GenericResponse>> => {
     if (!data.state)
       data.state = encode(createRandomString())
 
@@ -141,53 +159,53 @@ export class Authorizer {
       data.redirect_uri = this.config.redirectURL
 
     try {
-      const forgotPasswordRes = await this.graphqlQuery({
+      const forgotPasswordResp = await this.graphqlQuery({
         query:
           'mutation forgotPassword($data: ForgotPasswordInput!) {	forgot_password(params: $data) { message } }',
         variables: {
           data,
         },
       })
-      return forgotPasswordRes.forgot_password
+      return forgotPasswordResp?.errors?.length ? this.errorResponse(forgotPasswordResp.errors) : this.okResponse(forgotPasswordResp?.data.forgot_password)
     }
     catch (error) {
-      throw new Error(error)
+      return this.errorResponse([error])
     }
   }
 
-  getMetaData = async (): Promise<Types.MetaData | void> => {
+  getMetaData = async (): Promise<ApiResponse<MetaData>> => {
     try {
       const res = await this.graphqlQuery({
         query:
           'query { meta { version is_google_login_enabled is_facebook_login_enabled is_github_login_enabled is_linkedin_login_enabled is_apple_login_enabled is_twitter_login_enabled is_microsoft_login_enabled is_twitch_login_enabled is_email_verification_enabled is_basic_authentication_enabled is_magic_link_login_enabled is_sign_up_enabled is_strong_password_enabled is_multi_factor_auth_enabled is_mobile_basic_authentication_enabled is_phone_verification_enabled } }',
       })
 
-      return res.meta
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data.meta)
     }
-    catch (err) {
-      throw new Error(err)
+    catch (error) {
+      return this.errorResponse([error])
     }
   }
 
-  getProfile = async (headers?: Types.Headers): Promise<Types.User | void> => {
+  getProfile = async (headers?: Types.Headers): Promise<ApiResponse<User>> => {
     try {
       const profileRes = await this.graphqlQuery({
         query: `query {	profile { ${userFragment} } }`,
         headers,
       })
 
-      return profileRes.profile
+      return profileRes?.errors?.length ? this.errorResponse(profileRes.errors) : this.okResponse(profileRes.data.profile)
     }
     catch (error) {
-      throw new Error(error)
+      return this.errorResponse([error])
     }
   }
 
-  // this is used to verify / get session using cookie by default. If using nodejs pass authorization header
+  // this is used to verify / get session using cookie by default. If using node.js pass authorization header
   getSession = async (
     headers?: Types.Headers,
     params?: Types.SessionQueryInput,
-  ): Promise<Types.AuthToken> => {
+  ): Promise<ApiResponse<AuthToken>> => {
     try {
       const res = await this.graphqlQuery({
         query: `query getSession($params: SessionQueryInput){session(params: $params) { ${authTokenFragment} } }`,
@@ -196,24 +214,24 @@ export class Authorizer {
           params,
         },
       })
-      return res.session
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.session)
     }
     catch (err) {
-      throw new Error(err)
+      return this.errorResponse(err)
     }
   }
 
   getToken = async (
     data: Types.GetTokenInput,
-  ): Promise<Types.GetTokenResponse> => {
+  ): Promise<ApiResponse<GetTokenResponse>> => {
     if (!data.grant_type)
       data.grant_type = 'authorization_code'
 
     if (data.grant_type === 'refresh_token' && !data.refresh_token)
-      throw new Error('Invalid refresh_token')
+      return this.errorResponse([new Error('Invalid refresh_token')])
 
     if (data.grant_type === 'authorization_code' && !this.codeVerifier)
-      throw new Error('Invalid code verifier')
+      return this.errorResponse([new Error('Invalid code verifier')])
 
     const requestData = {
       client_id: this.config.clientID,
@@ -236,43 +254,16 @@ export class Authorizer {
 
       const json = await res.json()
       if (res.status >= 400)
-        throw new Error(json)
+        return this.errorResponse([new Error(json)])
 
-      return json
+      return this.okResponse(json)
     }
     catch (err) {
-      throw new Error(err)
+      return this.errorResponse(err)
     }
   }
 
-  // helper to execute graphql queries
-  // takes in any query or mutation string as input
-  graphqlQuery = async (data: Types.GraphqlQueryInput) => {
-    const fetcher = getFetcher()
-    const res = await fetcher(`${this.config.authorizerURL}/graphql`, {
-      method: 'POST',
-      body: JSON.stringify({
-        query: data.query,
-        variables: data.variables || {},
-      }),
-      headers: {
-        ...this.config.extraHeaders,
-        ...(data.headers || {}),
-      },
-      credentials: 'include',
-    })
-
-    const json = await res.json()
-
-    if (json.errors && json.errors.length) {
-      console.error(json.errors)
-      throw new Error(json.errors[0].message)
-    }
-
-    return json.data
-  }
-
-  login = async (data: Types.LoginInput): Promise<Types.AuthToken | void> => {
+  login = async (data: Types.LoginInput): Promise<ApiResponse<AuthToken>> => {
     try {
       const res = await this.graphqlQuery({
         query: `
@@ -281,29 +272,30 @@ export class Authorizer {
         variables: { data },
       })
 
-      return res.login
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.login)
     }
     catch (err) {
-      throw new Error(err)
+      return this.errorResponse([new Error(err)])
     }
   }
 
-  logout = async (headers?: Types.Headers): Promise<Types.Response | void> => {
+  logout = async (headers?: Types.Headers): Promise<ApiResponse<GenericResponse>> => {
     try {
       const res = await this.graphqlQuery({
         query: ' mutation { logout { message } } ',
         headers,
       })
-      return res.logout
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.response)
     }
     catch (err) {
       console.error(err)
+      return this.errorResponse([err])
     }
   }
 
   magicLinkLogin = async (
     data: Types.MagicLinkLoginInput,
-  ): Promise<Types.Response> => {
+  ): Promise<ApiResponse<GenericResponse>> => {
     try {
       if (!data.state)
         data.state = encode(createRandomString())
@@ -318,10 +310,10 @@ export class Authorizer {
         variables: { data },
       })
 
-      return res.magic_link_login
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.magic_link_login)
     }
     catch (err) {
-      throw new Error(err)
+      return this.errorResponse([err])
     }
   }
 
@@ -358,7 +350,7 @@ export class Authorizer {
 
   resendOtp = async (
     data: Types.ResendOtpInput,
-  ): Promise<Types.Response | void> => {
+  ): Promise<ApiResponse<GenericResponse>> => {
     try {
       const res = await this.graphqlQuery({
         query: `
@@ -367,16 +359,16 @@ export class Authorizer {
         variables: { data },
       })
 
-      return res.resend_otp
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.resend_otp)
     }
     catch (err) {
-      throw new Error(err)
+      return this.errorResponse([err])
     }
   }
 
   resetPassword = async (
     data: Types.ResetPasswordInput,
-  ): Promise<Types.Response | void> => {
+  ): Promise<ApiResponse<GenericResponse>> => {
     try {
       const resetPasswordRes = await this.graphqlQuery({
         query:
@@ -385,16 +377,16 @@ export class Authorizer {
           data,
         },
       })
-      return resetPasswordRes.reset_password
+      return resetPasswordRes?.errors?.length ? this.errorResponse(resetPasswordRes.errors) : this.okResponse(resetPasswordRes.data?.reset_password)
     }
     catch (error) {
-      throw new Error(error)
+      return this.errorResponse([error])
     }
   }
 
   revokeToken = async (data: { refresh_token: string }) => {
     if (!data.refresh_token && !data.refresh_token.trim())
-      throw new Error('Invalid refresh_token')
+      return this.errorResponse([new Error('Invalid refresh_token')])
 
     const fetcher = getFetcher()
     const res = await fetcher(`${this.config.authorizerURL}/oauth/revoke`, {
@@ -408,10 +400,11 @@ export class Authorizer {
       }),
     })
 
-    return await res.json()
+    const responseData = await res.json()
+    return this.okResponse(responseData)
   }
 
-  signup = async (data: Types.SignupInput): Promise<Types.AuthToken | void> => {
+  signup = async (data: Types.SignupInput): Promise<ApiResponse<AuthToken>> => {
     try {
       const res = await this.graphqlQuery({
         query: `
@@ -420,17 +413,17 @@ export class Authorizer {
         variables: { data },
       })
 
-      return res.signup
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.signup)
     }
     catch (err) {
-      throw new Error(err)
+      return this.errorResponse([err])
     }
   }
 
   updateProfile = async (
     data: Types.UpdateProfileInput,
     headers?: Types.Headers,
-  ): Promise<Types.Response | void> => {
+  ): Promise<ApiResponse<GenericResponse>> => {
     try {
       const updateProfileRes = await this.graphqlQuery({
         query:
@@ -441,31 +434,31 @@ export class Authorizer {
         },
       })
 
-      return updateProfileRes.update_profile
+      return updateProfileRes?.errors?.length ? this.errorResponse(updateProfileRes.errors) : this.okResponse(updateProfileRes.data?.update_profile)
     }
     catch (error) {
-      throw new Error(error)
+      return this.errorResponse([error])
     }
   }
 
   deactivateAccount = async (
     headers?: Types.Headers,
-  ): Promise<Types.Response | void> => {
+  ): Promise<ApiResponse<GenericResponse>> => {
     try {
       const res = await this.graphqlQuery({
         query: 'mutation deactivateAccount { deactivate_account { message } }',
         headers,
       })
-      return res.deactivate_account
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.deactivate_account)
     }
     catch (error) {
-      throw new Error(error)
+      return this.errorResponse([error])
     }
   }
 
   validateJWTToken = async (
     params?: Types.ValidateJWTTokenInput,
-  ): Promise<Types.ValidateJWTTokenResponse> => {
+  ): Promise<ApiResponse<ValidateJWTTokenResponse>> => {
     try {
       const res = await this.graphqlQuery({
         query:
@@ -475,16 +468,16 @@ export class Authorizer {
         },
       })
 
-      return res.validate_jwt_token
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.validate_jwt_token)
     }
     catch (error) {
-      throw new Error(error)
+      return this.errorResponse([error])
     }
   }
 
   validateSession = async (
     params?: Types.ValidateSessionInput,
-  ): Promise<Types.ValidateSessionResponse> => {
+  ): Promise<ApiResponse<ValidateSessionResponse>> => {
     try {
       const res = await this.graphqlQuery({
         query: `query validateSession($params: ValidateSessionInput){validate_session(params: $params) { is_valid user { ${userFragment} } } }`,
@@ -493,16 +486,16 @@ export class Authorizer {
         },
       })
 
-      return res.validate_session
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.validate_session)
     }
     catch (error) {
-      throw new Error(error)
+      return this.errorResponse([error])
     }
   }
 
   verifyEmail = async (
     data: Types.VerifyEmailInput,
-  ): Promise<Types.AuthToken | void> => {
+  ): Promise<ApiResponse<AuthToken>> => {
     try {
       const res = await this.graphqlQuery({
         query: `
@@ -511,16 +504,34 @@ export class Authorizer {
         variables: { data },
       })
 
-      return res.verify_email
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.verify_email)
     }
     catch (err) {
-      throw new Error(err)
+      return this.errorResponse([err])
+    }
+  }
+
+  resendVerifyEmail = async (
+    data: ResendVerifyEmailInput,
+  ): Promise<ApiResponse<GenericResponse>> => {
+    try {
+      const res = await this.graphqlQuery({
+        query: `
+					mutation resendVerifyEmail($data: ResendVerifyEmailInput!) { resend_verify_email(params: $data) { message }}
+				`,
+        variables: { data },
+      })
+
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.verify_email)
+    }
+    catch (err) {
+      return this.errorResponse([err])
     }
   }
 
   verifyOtp = async (
     data: Types.VerifyOtpInput,
-  ): Promise<Types.AuthToken | void> => {
+  ): Promise<ApiResponse<AuthToken>> => {
     try {
       const res = await this.graphqlQuery({
         query: `
@@ -529,10 +540,51 @@ export class Authorizer {
         variables: { data },
       })
 
-      return res.verify_otp
+      return res?.errors?.length ? this.errorResponse(res.errors) : this.okResponse(res.data?.verify_otp)
     }
     catch (err) {
-      throw new Error(err)
+      return this.errorResponse([err])
+    }
+  }
+
+  // helper to execute graphql queries
+  // takes in any query or mutation string as input
+  private graphqlQuery = async (data: Types.GraphqlQueryInput): Promise<GrapQlResponseType> => {
+    const fetcher = getFetcher()
+    const res = await fetcher(`${this.config.authorizerURL}/graphql`, {
+      method: 'POST',
+      body: JSON.stringify({
+        query: data.query,
+        variables: data.variables || {},
+      }),
+      headers: {
+        ...this.config.extraHeaders,
+        ...(data.headers || {}),
+      },
+      credentials: 'include',
+    })
+
+    const json = await res.json()
+
+    if (json?.errors?.length) {
+      console.error(json.errors)
+      return { data: undefined, errors: json.errors }
+    }
+
+    return { data: json.data, errors: [] }
+  }
+
+  private errorResponse = (errors: Error[]): ApiResponse<any> => {
+    return {
+      data: undefined,
+      errors,
+    }
+  }
+
+  private okResponse = (data: any): ApiResponse<any> => {
+    return {
+      data,
+      errors: [],
     }
   }
 }
