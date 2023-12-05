@@ -24,7 +24,7 @@ const authorizerENV = {
   DATABASE_URL: 'data.db',
   DATABASE_TYPE: 'sqlite',
   CUSTOM_ACCESS_TOKEN_SCRIPT:
-    "function(user,tokenPayload){var data = tokenPayload;data.extra = {'x-extra-id': user.id};return data;}",
+    'function(user,tokenPayload){var data = tokenPayload;data.extra = {\'x-extra-id\': user.id};return data;}',
   DISABLE_PLAYGROUND: 'true',
   SMTP_HOST: 'smtp.ethereal.email',
   SMTP_PASSWORD: 'WncNxwVFqb6nBjKDQJ',
@@ -34,7 +34,7 @@ const authorizerENV = {
   ADMIN_SECRET: 'secret',
 };
 
-const verificationRequests = `query {_verification_requests { verification_requests { id token email expires identifier } } }`;
+const verificationRequests = 'query {_verification_requests { verification_requests { id token email expires identifier } } }';
 
 describe('Integration Tests - authorizer-js', () => {
   let container: StartedTestContainer;
@@ -175,27 +175,27 @@ describe('Integration Tests - authorizer-js', () => {
     it('should login with magic link', async () => {
       const magicLinkLoginRes = await authorizer.magicLinkLogin({
         email: testConfig.maginLinkLoginEmail,
-      })
-      expect(magicLinkLoginRes?.data).toBeDefined()
-      expect(magicLinkLoginRes?.errors).toHaveLength(0)
-    })
+      });
+      expect(magicLinkLoginRes?.data).toBeDefined();
+      expect(magicLinkLoginRes?.errors).toHaveLength(0);
+    });
     it('should verify email', async () => {
       const verificationRequestsRes = await authorizer.graphqlQuery({
         query: verificationRequests,
         headers: {
           'x-authorizer-admin-secret': authorizerConfig.adminSecret,
         },
-      })
+      });
       const requests
-        = verificationRequestsRes?.data?._verification_requests.verification_requests
-      const item = requests.find((i:{email: string}) => i.email === testConfig.maginLinkLoginEmail)
-      expect(item).not.toBeNull()  
+        = verificationRequestsRes?.data?._verification_requests.verification_requests;
+      const item = requests.find((i:{email: string}) => i.email === testConfig.maginLinkLoginEmail);
+      expect(item).not.toBeNull();  
       const verifyEmailRes = await authorizer.verifyEmail({
         token: item.token,
-      })
-      expect(verifyEmailRes?.data).toBeDefined()
-      expect(verifyEmailRes?.errors).toHaveLength(0)
-      expect(verifyEmailRes?.data?.user?.signup_methods).toContain('magic_link_login')
-    })
-  })
+      });
+      expect(verifyEmailRes?.data).toBeDefined();
+      expect(verifyEmailRes?.errors).toHaveLength(0);
+      expect(verifyEmailRes?.data?.user?.signup_methods).toContain('magic_link_login');
+    });
+  });
 });
