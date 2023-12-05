@@ -304,7 +304,6 @@ export class Authorizer {
         ? this.errorResponse(res.errors)
         : this.okResponse(res.data?.response);
     } catch (err) {
-      console.error(err);
       return this.errorResponse([err]);
     }
   };
@@ -594,7 +593,6 @@ export class Authorizer {
     const json = await res.json();
 
     if (json?.errors?.length) {
-      console.error(json.errors);
       return { data: undefined, errors: json.errors };
     }
 
