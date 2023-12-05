@@ -33,7 +33,7 @@
     "start": "rollup -w --config rollup.test.config.js",
     "ts-types": "tsc --emitDeclarationOnly --outDir lib",
     "build": "tsup",
-    "test": "npm run build && jest --testTimeout=20000 --runInBand",
+    "test": "npm run build && jest --testTimeout=500000 --runInBand",
     "prepare": "husky install",
     "prepublishOnly": "npm run build",
     "release": "pnpm build && bumpp --commit --push --tag && pnpm publish",

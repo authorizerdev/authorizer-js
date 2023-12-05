@@ -28,12 +28,12 @@ export default defineConfig(() => [
     footer: {
       js: 'window.__TAURI__ = authorizerdev',
     },
-    outExtension({ format, options }) {
+    outExtension() {
       return {
         js: '.min.js',
       };
     },
-    esbuildOptions(options, ctx) {
+    esbuildOptions(options) {
       options.entryNames = 'authorizer';
     },
   },
