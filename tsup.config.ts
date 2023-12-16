@@ -1,6 +1,6 @@
-import { defineConfig } from 'tsup'
-import pkg from './package.json'
-const external = [...Object.keys(pkg.dependencies || {})]
+import { defineConfig } from 'tsup';
+import pkg from './package.json';
+const external = [...Object.keys(pkg.dependencies || {})];
 
 export default defineConfig(() => [
   {
@@ -28,13 +28,13 @@ export default defineConfig(() => [
     footer: {
       js: 'window.__TAURI__ = authorizerdev',
     },
-    outExtension({ format, options }) {
+    outExtension() {
       return {
         js: '.min.js',
-      }
+      };
     },
-    esbuildOptions(options, ctx) {
-      options.entryNames = 'authorizer'
+    esbuildOptions(options) {
+      options.entryNames = 'authorizer';
     },
   },
-])
+]);

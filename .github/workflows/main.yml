@@ -1,68 +1,29 @@
-name: Main
+name: Integration Tests
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-
-on:
-  push:
-    branches:
-      - main
-
-  pull_request:
-    branches:
-      - main
+on: [push, pull_request]
 
 jobs:
-  build-test:
-    if: "!contains(github.event.head_commit.message, 'chore: release')"
-    runs-on: ${{ matrix.os }}
+  test:
+    runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-
+    services:
+      docker:
+        image: docker:dind
+        options: --privileged
+        ports:
+          - 8080:8080
     steps:
-      - uses: actions/checkout@v3
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
-          fetch-depth: 0
-
-      - uses: pnpm/action-setup@v2.2.4
-
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 18.x
-
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        run: |
-          echo "pnpm_cache_dir=$(pnpm store path)" >> $GITHUB_OUTPUT
-          
-      - uses: actions/cache@v3
-        name: Setup pnpm cache
-        with:
-          path: ${{ steps.pnpm-cache.outputs.pnpm_cache_dir }}
-          key: ${{ runner.os }}-pnpm-cache-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-cache-
-      - name: 📦 Install deps (with cache)
-        run: pnpm install --child-concurrency 3
-
-      - name: 👀 Lint
-        run: pnpm lint
-
-      - name: 🚀 Build
-        run: pnpm build
-
-      # - name: Docker Compose
-      #   run: docker-compose up -d
-      
-      # - name: 🧪 Test with coverage
-      #   run: pnpm coverage
-      #   env:
-      #     VITE_TEST_DB_URL: ${{ secrets.VITE_TEST_DB_URL }}
-
-      # - name: 📝 Upload coverage
-      #   if: always()
-      #   uses: davelosert/vitest-coverage-report-action@v1
+          node-version: '16' # Specify your Node.js version here
+      - name: Install dependencies
+        run: npm install
+      - name: Run integration tests
+        run: npm test # Make sure this command runs your integration tests
