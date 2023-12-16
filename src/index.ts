@@ -25,6 +25,7 @@ import type {
   User,
   ValidateJWTTokenResponse,
   ValidateSessionResponse,
+  ForgotPasswordResponse,
 } from './types';
 
 // re-usable gql response fragment
@@ -161,7 +162,7 @@ export class Authorizer {
 
   forgotPassword = async (
     data: Types.ForgotPasswordInput
-  ): Promise<ApiResponse<GenericResponse>> => {
+  ): Promise<ApiResponse<ForgotPasswordResponse>> => {
     if (!data.state) data.state = encode(createRandomString());
 
     if (!data.redirect_uri) data.redirect_uri = this.config.redirectURL;
