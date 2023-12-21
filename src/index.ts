@@ -170,7 +170,7 @@ export class Authorizer {
     try {
       const forgotPasswordResp = await this.graphqlQuery({
         query:
-          'mutation forgotPassword($data: ForgotPasswordInput!) {	forgot_password(params: $data) { message } }',
+          'mutation forgotPassword($data: ForgotPasswordInput!) {	forgot_password(params: $data) { message should_show_mobile_otp_screen } }',
         variables: {
           data,
         },
