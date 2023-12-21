@@ -161,7 +161,8 @@ export interface UpdateProfileInput {
 }
 
 export interface ForgotPasswordInput {
-  email: string;
+  email?: string;
+  phone_number?: string;
   state?: string;
   redirect_uri?: string;
 }
