@@ -173,7 +173,9 @@ export interface ForgotPasswordResponse {
 }
 
 export interface ResetPasswordInput {
-  token: string;
+  token?: string;
+  otp?: string;
+  phone_number?: string;
   password: string;
   confirm_password: string;
 }
