@@ -7,9 +7,13 @@ It supports:
 - [CommonJS(cjs)](https://flaviocopes.com/commonjs/) build for NodeJS version that don't support ES Modules
 - [ESM (ES Modules)](https://hacks.mozilla.org/2018/03/es-modules-a-cartoon-deep-dive/) build for modern javascript standard, i.e. ES Modules
 
-# Migration from 1.x -> 2.x
+# Migration Guide from 1.x -> 2.x
 
-`2.x` version of `@authorizerdev/authorizer-js` has a uniform response structure that will help your applications to get right error codes and success response. Methods here have `{data, errors}` as response object for methods of this library
+`2.x` version of `@authorizerdev/authorizer-js` has a uniform response structure that will help your applications to get right error codes and success response. Methods here have `{data, errors}` as response objects for methods of this library.
+
+For `1.x` version of this library you can get only data in response and error would be thrown so you had to handle that in catch.
+
+---
 
 All the above versions require `Authorizer` instance to be instantiated and used. Instance constructor requires an object with the following keys
 
