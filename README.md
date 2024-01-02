@@ -63,7 +63,7 @@ const authRef = new Authorizer({
     });
     if (data && data.access_token) {
       // get user profile using the access token
-      const user = await authorizerRef.getProfile({
+      const { data: user, errors } = await authorizerRef.getProfile({
         Authorization: `Bearer ${res.access_token}`,
       });
 
