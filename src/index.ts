@@ -61,7 +61,7 @@ export class Authorizer {
     this.config.extraHeaders = {
       ...(config.extraHeaders || {}),
       'x-authorizer-url': this.config.authorizerURL,
-      'x-authorizer-client-id': this.config.clientID,
+      'x-authorizer-client-id': this.config.clientID || '',
       'Content-Type': 'application/json',
     };
     this.config.clientID = config.clientID.trim();
