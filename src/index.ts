@@ -51,9 +51,6 @@ export class Authorizer {
     if (!config.authorizerURL && !config.authorizerURL.trim())
       throw new Error('Invalid authorizerURL');
 
-    if (!config.clientID && !config.clientID.trim())
-      throw new Error('Invalid clientID');
-
     if (config.authorizerURL)
       this.config.authorizerURL = trimURL(config.authorizerURL);
 
