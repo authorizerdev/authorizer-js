@@ -51,6 +51,9 @@ export class Authorizer {
     if (!config.authorizerURL && !config.authorizerURL.trim())
       throw new Error('Invalid authorizerURL');
 
+    if (!config.clientID && !config.clientID.trim())
+      throw new Error('Invalid clientID');
+
     if (config.authorizerURL)
       this.config.authorizerURL = trimURL(config.authorizerURL);
 
@@ -61,13 +64,14 @@ export class Authorizer {
     this.config.extraHeaders = {
       ...(config.extraHeaders || {}),
       'x-authorizer-url': this.config.authorizerURL,
+      'x-client-id': this.config.clientID,
       'Content-Type': 'application/json',
     };
     this.config.clientID = config.clientID.trim();
   }
 
   authorize = async (
-    data: Types.AuthorizeInput
+    data: Types.AuthorizeInput,
   ): Promise<
     ApiResponse<GetTokenResponse> | ApiResponse<AuthorizeResponse>
   > => {
@@ -109,7 +113,7 @@ export class Authorizer {
       const iframeRes = await executeIframe(
         authorizeURL,
         this.config.authorizerURL,
-        DEFAULT_AUTHORIZE_TIMEOUT_IN_SECONDS
+        DEFAULT_AUTHORIZE_TIMEOUT_IN_SECONDS,
       );
 
       if (data.response_type === Types.ResponseTypes.Code) {
@@ -128,8 +132,8 @@ export class Authorizer {
       if (err.error) {
         window.location.replace(
           `${this.config.authorizerURL}/app?state=${encode(
-            JSON.stringify(this.config)
-          )}&redirect_uri=${this.config.redirectURL}`
+            JSON.stringify(this.config),
+          )}&redirect_uri=${this.config.redirectURL}`,
         );
       }
 
@@ -153,15 +157,15 @@ export class Authorizer {
 
       window.location.replace(
         `${this.config.authorizerURL}/app?state=${encode(
-          JSON.stringify(this.config)
-        )}&redirect_uri=${this.config.redirectURL}`
+          JSON.stringify(this.config),
+        )}&redirect_uri=${this.config.redirectURL}`,
       );
       return this.errorResponse(err);
     }
   };
 
   forgotPassword = async (
-    data: Types.ForgotPasswordInput
+    data: Types.ForgotPasswordInput,
   ): Promise<ApiResponse<ForgotPasswordResponse>> => {
     if (!data.state) data.state = encode(createRandomString());
 
@@ -216,7 +220,7 @@ export class Authorizer {
   // this is used to verify / get session using cookie by default. If using node.js pass authorization header
   getSession = async (
     headers?: Types.Headers,
-    params?: Types.SessionQueryInput
+    params?: Types.SessionQueryInput,
   ): Promise<ApiResponse<AuthToken>> => {
     try {
       const res = await this.graphqlQuery({
@@ -235,7 +239,7 @@ export class Authorizer {
   };
 
   getToken = async (
-    data: Types.GetTokenInput
+    data: Types.GetTokenInput,
   ): Promise<ApiResponse<GetTokenResponse>> => {
     if (!data.grant_type) data.grant_type = 'authorization_code';
 
@@ -294,7 +298,7 @@ export class Authorizer {
   };
 
   logout = async (
-    headers?: Types.Headers
+    headers?: Types.Headers,
   ): Promise<ApiResponse<GenericResponse>> => {
     try {
       const res = await this.graphqlQuery({
@@ -310,7 +314,7 @@ export class Authorizer {
   };
 
   magicLinkLogin = async (
-    data: Types.MagicLinkLoginInput
+    data: Types.MagicLinkLoginInput,
   ): Promise<ApiResponse<GenericResponse>> => {
     try {
       if (!data.state) data.state = encode(createRandomString());
@@ -336,7 +340,7 @@ export class Authorizer {
     oauthProvider: string,
     roles?: string[],
     redirect_uri?: string,
-    state?: string
+    state?: string,
   ): Promise<void> => {
     let urlState = state;
     if (!urlState) {
@@ -347,8 +351,8 @@ export class Authorizer {
     if (!Object.values(Types.OAuthProviders).includes(oauthProvider)) {
       throw new Error(
         `only following oauth providers are supported: ${Object.values(
-          oauthProvider
-        ).toString()}`
+          oauthProvider,
+        ).toString()}`,
       );
     }
     if (!hasWindow())
@@ -359,12 +363,12 @@ export class Authorizer {
     window.location.replace(
       `${this.config.authorizerURL}/oauth_login/${oauthProvider}?redirect_uri=${
         redirect_uri || this.config.redirectURL
-      }&state=${urlState}`
+      }&state=${urlState}`,
     );
   };
 
   resendOtp = async (
-    data: Types.ResendOtpInput
+    data: Types.ResendOtpInput,
   ): Promise<ApiResponse<GenericResponse>> => {
     try {
       const res = await this.graphqlQuery({
@@ -383,7 +387,7 @@ export class Authorizer {
   };
 
   resetPassword = async (
-    data: Types.ResetPasswordInput
+    data: Types.ResetPasswordInput,
   ): Promise<ApiResponse<GenericResponse>> => {
     try {
       const resetPasswordRes = await this.graphqlQuery({
@@ -440,7 +444,7 @@ export class Authorizer {
 
   updateProfile = async (
     data: Types.UpdateProfileInput,
-    headers?: Types.Headers
+    headers?: Types.Headers,
   ): Promise<ApiResponse<GenericResponse>> => {
     try {
       const updateProfileRes = await this.graphqlQuery({
@@ -461,7 +465,7 @@ export class Authorizer {
   };
 
   deactivateAccount = async (
-    headers?: Types.Headers
+    headers?: Types.Headers,
   ): Promise<ApiResponse<GenericResponse>> => {
     try {
       const res = await this.graphqlQuery({
@@ -477,7 +481,7 @@ export class Authorizer {
   };
 
   validateJWTToken = async (
-    params?: Types.ValidateJWTTokenInput
+    params?: Types.ValidateJWTTokenInput,
   ): Promise<ApiResponse<ValidateJWTTokenResponse>> => {
     try {
       const res = await this.graphqlQuery({
@@ -497,7 +501,7 @@ export class Authorizer {
   };
 
   validateSession = async (
-    params?: Types.ValidateSessionInput
+    params?: Types.ValidateSessionInput,
   ): Promise<ApiResponse<ValidateSessionResponse>> => {
     try {
       const res = await this.graphqlQuery({
@@ -516,7 +520,7 @@ export class Authorizer {
   };
 
   verifyEmail = async (
-    data: Types.VerifyEmailInput
+    data: Types.VerifyEmailInput,
   ): Promise<ApiResponse<AuthToken>> => {
     try {
       const res = await this.graphqlQuery({
@@ -535,7 +539,7 @@ export class Authorizer {
   };
 
   resendVerifyEmail = async (
-    data: ResendVerifyEmailInput
+    data: ResendVerifyEmailInput,
   ): Promise<ApiResponse<GenericResponse>> => {
     try {
       const res = await this.graphqlQuery({
@@ -554,7 +558,7 @@ export class Authorizer {
   };
 
   verifyOtp = async (
-    data: Types.VerifyOtpInput
+    data: Types.VerifyOtpInput,
   ): Promise<ApiResponse<AuthToken>> => {
     try {
       const res = await this.graphqlQuery({
@@ -575,7 +579,7 @@ export class Authorizer {
   // helper to execute graphql queries
   // takes in any query or mutation string as input
   graphqlQuery = async (
-    data: Types.GraphqlQueryInput
+    data: Types.GraphqlQueryInput,
   ): Promise<GrapQlResponseType> => {
     const fetcher = getFetcher();
     const res = await fetcher(`${this.config.authorizerURL}/graphql`, {
