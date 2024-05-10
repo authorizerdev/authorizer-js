@@ -24,7 +24,7 @@ const authorizerENV = {
   DATABASE_URL: 'data.db',
   DATABASE_TYPE: 'sqlite',
   CUSTOM_ACCESS_TOKEN_SCRIPT:
-    "function(user,tokenPayload){var data = tokenPayload;data.extra = {'x-extra-id': user.id};return data;}",
+    'function(user,tokenPayload){var data = tokenPayload;data.extra = {\'x-extra-id\': user.id};return data;}',
   DISABLE_PLAYGROUND: 'true',
   SMTP_HOST: 'smtp.ethereal.email',
   SMTP_PASSWORD: 'WncNxwVFqb6nBjKDQJ',
