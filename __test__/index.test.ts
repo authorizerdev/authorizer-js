@@ -4,7 +4,7 @@ import { ApiResponse, AuthToken, Authorizer } from '../lib';
 const authorizerConfig = {
   authorizerURL: 'http://localhost:8080',
   redirectURL: 'http://localhost:8080/app',
-  clientID: '3fab5e58-5693-46f2-8123-83db8133cd22',
+  // clientID: '3fab5e58-5693-46f2-8123-83db8133cd22',
   adminSecret: 'secret',
 };
 
@@ -24,17 +24,21 @@ const authorizerENV = {
   DATABASE_URL: 'data.db',
   DATABASE_TYPE: 'sqlite',
   CUSTOM_ACCESS_TOKEN_SCRIPT:
-    'function(user,tokenPayload){var data = tokenPayload;data.extra = {\'x-extra-id\': user.id};return data;}',
+    "function(user,tokenPayload){var data = tokenPayload;data.extra = {'x-extra-id': user.id};return data;}",
   DISABLE_PLAYGROUND: 'true',
   SMTP_HOST: 'smtp.ethereal.email',
   SMTP_PASSWORD: 'WncNxwVFqb6nBjKDQJ',
   SMTP_USERNAME: 'sydnee.lesch77@ethereal.email',
+  LOG_LELVEL: 'debug',
   SMTP_PORT: '587',
   SENDER_EMAIL: 'test@authorizer.dev',
   ADMIN_SECRET: 'secret',
 };
 
-const verificationRequests = 'query {_verification_requests { verification_requests { id token email expires identifier } } }';
+// const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const verificationRequests =
+  'query {_verification_requests { verification_requests { id token email expires identifier } } }';
 
 describe('Integration Tests - authorizer-js', () => {
   let container: StartedTestContainer;
@@ -45,19 +49,28 @@ describe('Integration Tests - authorizer-js', () => {
     container = await new GenericContainer('lakhansamani/authorizer:latest')
       .withEnvironment(authorizerENV)
       .withExposedPorts(8080)
-      .withWaitStrategy(Wait.forHttp('/userinfo', 8080).forStatusCode(401))
+      .withWaitStrategy(Wait.forHttp('/health', 8080).forStatusCode(200))
       .start();
 
-    authorizerConfig.authorizerURL = `http://${container.getHost()}:${container.getFirstMappedPort()}`;
-    authorizerConfig.redirectURL = `http://${container.getHost()}:${container.getFirstMappedPort()}/app`;
-
+    authorizerConfig.authorizerURL = `http://${container.getHost()}:${container.getMappedPort(
+      8080,
+    )}`;
+    authorizerConfig.redirectURL = `http://${container.getHost()}:${container.getMappedPort(
+      8080,
+    )}/app`;
+    console.log('Authorizer URL:', authorizerConfig.authorizerURL);
     authorizer = new Authorizer(authorizerConfig);
     // get metadata
     const metadataRes = await authorizer.getMetaData();
+    // await sleep(50000);
     expect(metadataRes?.data).toBeDefined();
     if (metadataRes?.data?.client_id) {
       authorizer.config.clientID = metadataRes?.data?.client_id;
     }
+  });
+
+  afterAll(async () => {
+    await container.stop();
   });
 
   it('should signup with email verification enabled', async () => {
@@ -85,7 +98,7 @@ describe('Integration Tests - authorizer-js', () => {
     expect(verificationRequestsRes?.data).toBeDefined();
     expect(verificationRequestsRes?.errors).toHaveLength(0);
     const item = requests.find(
-      (i: { email: string }) => i.email === testConfig.email
+      (i: { email: string }) => i.email === testConfig.email,
     );
     expect(item).not.toBeNull();
 
@@ -95,7 +108,7 @@ describe('Integration Tests - authorizer-js', () => {
     expect(verifyEmailRes?.data?.access_token?.length).toBeGreaterThan(0);
   });
 
-  let loginRes:ApiResponse<AuthToken> | null;
+  let loginRes: ApiResponse<AuthToken> | null;
   it('should log in successfully', async () => {
     loginRes = await authorizer.login({
       email: testConfig.email,
@@ -127,7 +140,7 @@ describe('Integration Tests - authorizer-js', () => {
       },
       {
         Authorization: `Bearer ${loginRes?.data?.access_token}`,
-      }
+      },
     );
     expect(updateProfileRes?.data).toBeDefined();
     expect(updateProfileRes?.errors).toHaveLength(0);
@@ -186,16 +199,21 @@ describe('Integration Tests - authorizer-js', () => {
           'x-authorizer-admin-secret': authorizerConfig.adminSecret,
         },
       });
-      const requests
-        = verificationRequestsRes?.data?._verification_requests.verification_requests;
-      const item = requests.find((i:{email: string}) => i.email === testConfig.maginLinkLoginEmail);
-      expect(item).not.toBeNull();  
+      const requests =
+        verificationRequestsRes?.data?._verification_requests
+          .verification_requests;
+      const item = requests.find(
+        (i: { email: string }) => i.email === testConfig.maginLinkLoginEmail,
+      );
+      expect(item).not.toBeNull();
       const verifyEmailRes = await authorizer.verifyEmail({
         token: item.token,
       });
       expect(verifyEmailRes?.data).toBeDefined();
       expect(verifyEmailRes?.errors).toHaveLength(0);
-      expect(verifyEmailRes?.data?.user?.signup_methods).toContain('magic_link_login');
+      expect(verifyEmailRes?.data?.user?.signup_methods).toContain(
+        'magic_link_login',
+      );
     });
   });
 });

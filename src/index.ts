@@ -64,7 +64,7 @@ export class Authorizer {
       'x-authorizer-client-id': this.config.clientID || '',
       'Content-Type': 'application/json',
     };
-    this.config.clientID = config.clientID.trim();
+    this.config.clientID = (config?.clientID || '').trim();
   }
 
   authorize = async (
@@ -87,7 +87,7 @@ export class Authorizer {
       nonce: encode(createRandomString()),
       response_type: data.response_type,
       scope: scopes.join(' '),
-      client_id: this.config.clientID,
+      client_id: this.config?.clientID || '',
     };
 
     if (data.response_type === Types.ResponseTypes.Code) {

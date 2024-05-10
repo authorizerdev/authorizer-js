@@ -9,7 +9,7 @@ export interface ApiResponse<T> {
 export interface ConfigType {
   authorizerURL: string;
   redirectURL: string;
-  clientID: string;
+  clientID?: string;
   extraHeaders?: Record<string, string>;
 }
 
