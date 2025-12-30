@@ -13,116 +13,16 @@ export interface ConfigType {
   extraHeaders?: Record<string, string>;
 }
 
-export interface User {
-  id: string;
-  email: string;
-  preferred_username: string;
-  email_verified: boolean;
-  signup_methods: string;
-  given_name?: string | null;
-  family_name?: string | null;
-  middle_name?: string | null;
-  nickname?: string | null;
-  picture?: string | null;
-  gender?: string | null;
-  birthdate?: string | null;
-  phone_number?: string | null;
-  phone_number_verified?: boolean | null;
-  roles?: string[];
-  created_at: number;
-  updated_at: number;
-  is_multi_factor_auth_enabled?: boolean;
-  app_data?: Record<string, any>;
+// Pagination
+export interface Pagination {
+  limit: number;
+  page: number;
+  offset: number;
+  total: number;
 }
 
-export interface AuthToken {
-  message?: string;
-  access_token: string;
-  expires_in: number;
-  id_token: string;
-  refresh_token?: string;
-  user?: User;
-  should_show_email_otp_screen?: boolean;
-  should_show_mobile_otp_screen?: boolean;
-  should_show_totp_screen?: boolean;
-  authenticator_scanner_image?: string;
-  authenticator_secret?: string;
-  authenticator_recovery_codes?: string[];
-}
-
-export interface GenericResponse {
-  message: string;
-}
-
-export type Headers = Record<string, string>;
-
-export interface LoginInput {
-  email?: string;
-  phone_number?: string;
-  password: string;
-  roles?: string[];
-  scope?: string[];
-  state?: string;
-}
-
-export interface SignupInput {
-  email?: string;
-  password: string;
-  confirm_password: string;
-  given_name?: string;
-  family_name?: string;
-  middle_name?: string;
-  nickname?: string;
-  picture?: string;
-  gender?: string;
-  birthdate?: string;
-  phone_number?: string;
-  roles?: string[];
-  scope?: string[];
-  redirect_uri?: string;
-  is_multi_factor_auth_enabled?: boolean;
-  state?: string;
-  app_data?: Record<string, any>;
-}
-
-export interface MagicLinkLoginInput {
-  email: string;
-  roles?: string[];
-  scopes?: string[];
-  state?: string;
-  redirect_uri?: string;
-}
-
-export interface VerifyEmailInput {
-  token: string;
-  state?: string;
-}
-
-export interface ResendVerifyEmailInput {
-  email: string;
-  identifier: string;
-}
-
-export interface VerifyOtpInput {
-  email?: string;
-  phone_number?: string;
-  otp: string;
-  state?: string;
-  is_totp?: boolean;
-}
-
-export interface ResendOtpInput {
-  email?: string;
-  phone_number?: string;
-}
-
-export interface GraphqlQueryInput {
-  query: string;
-  variables?: Record<string, any>;
-  headers?: Headers;
-}
-
-export interface MetaData {
+// Meta
+export interface Meta {
   version: string;
   client_id: string;
   is_google_login_enabled: boolean;
@@ -130,6 +30,7 @@ export interface MetaData {
   is_github_login_enabled: boolean;
   is_linkedin_login_enabled: boolean;
   is_apple_login_enabled: boolean;
+  is_discord_login_enabled: boolean;
   is_twitter_login_enabled: boolean;
   is_microsoft_login_enabled: boolean;
   is_twitch_login_enabled: boolean;
@@ -144,57 +45,281 @@ export interface MetaData {
   is_phone_verification_enabled: boolean;
 }
 
-export interface UpdateProfileInput {
-  old_password?: string;
-  new_password?: string;
-  confirm_new_password?: string;
-  email?: string;
-  given_name?: string;
-  family_name?: string;
-  middle_name?: string;
-  nickname?: string;
-  gender?: string;
-  birthdate?: string;
-  phone_number?: string;
-  picture?: string;
-  is_multi_factor_auth_enabled?: boolean;
-  app_data?: Record<string, any>;
+// User
+export interface User {
+  id: string;
+  email: string | null;
+  email_verified: boolean;
+  signup_methods: string;
+  given_name: string | null;
+  family_name: string | null;
+  middle_name: string | null;
+  nickname: string | null;
+  preferred_username: string | null;
+  gender: string | null;
+  birthdate: string | null;
+  phone_number: string | null;
+  phone_number_verified: boolean;
+  picture: string | null;
+  roles: string[];
+  created_at: number | null;
+  updated_at: number | null;
+  revoked_timestamp: number | null;
+  is_multi_factor_auth_enabled: boolean | null;
+  app_data: Record<string, any> | null;
 }
 
-export interface ForgotPasswordInput {
-  email?: string;
-  phone_number?: string;
-  state?: string;
-  redirect_uri?: string;
+// Users
+export interface Users {
+  pagination: Pagination;
+  users: User[];
 }
 
+// VerificationRequest
+export interface VerificationRequest {
+  id: string;
+  identifier: string | null;
+  token: string | null;
+  email: string | null;
+  expires: number | null;
+  created_at: number | null;
+  updated_at: number | null;
+  nonce: string | null;
+  redirect_uri: string | null;
+}
+
+// VerificationRequests
+export interface VerificationRequests {
+  pagination: Pagination;
+  verification_requests: VerificationRequest[];
+}
+
+// AuthorizerError (GraphQL Error type - renamed to avoid conflict with native Error)
+export interface AuthorizerError {
+  message: string;
+  reason: string;
+}
+
+// AuthResponse
+export interface AuthResponse {
+  message: string;
+  should_show_email_otp_screen: boolean | null;
+  should_show_mobile_otp_screen: boolean | null;
+  should_show_totp_screen: boolean | null;
+  access_token: string | null;
+  id_token: string | null;
+  refresh_token: string | null;
+  expires_in: number | null;
+  user: User | null;
+  authenticator_scanner_image: string | null;
+  authenticator_secret: string | null;
+  authenticator_recovery_codes: string[] | null;
+}
+
+// Keep AuthToken as alias for backward compatibility
+export type AuthToken = AuthResponse;
+
+// Response
+export interface Response {
+  message: string;
+}
+
+// Keep GenericResponse as alias for backward compatibility
+export type GenericResponse = Response;
+
+// ForgotPasswordResponse
 export interface ForgotPasswordResponse {
   message: string;
-  should_show_mobile_otp_screen?: boolean;
+  should_show_mobile_otp_screen: boolean | null;
 }
 
-export interface ResetPasswordInput {
-  token?: string;
-  otp?: string;
-  phone_number?: string;
+// InviteMembersResponse
+export interface InviteMembersResponse {
+  message: string;
+  Users: User[];
+}
+
+// LoginRequest
+export interface LoginRequest {
+  email?: string | null;
+  phone_number?: string | null;
+  password: string;
+  roles?: string[] | null;
+  scope?: string[] | null;
+  state?: string | null;
+}
+
+// SignUpRequest
+export interface SignUpRequest {
+  email?: string | null;
+  given_name?: string | null;
+  family_name?: string | null;
+  middle_name?: string | null;
+  nickname?: string | null;
+  gender?: string | null;
+  birthdate?: string | null;
+  phone_number?: string | null;
+  picture?: string | null;
+  password: string;
+  confirm_password: string;
+  roles?: string[] | null;
+  scope?: string[] | null;
+  redirect_uri?: string | null;
+  is_multi_factor_auth_enabled?: boolean | null;
+  state?: string | null;
+  app_data?: Record<string, any> | null;
+}
+
+// Keep SignupRequest as alias for backward compatibility
+export type SignupRequest = SignUpRequest;
+
+// MagicLinkLoginRequest
+export interface MagicLinkLoginRequest {
+  email: string;
+  roles?: string[] | null;
+  scope?: string[] | null;
+  state?: string | null;
+  redirect_uri?: string | null;
+}
+
+// VerifyEmailRequest
+export interface VerifyEmailRequest {
+  token: string;
+  state?: string | null;
+}
+
+// ResendVerifyEmailRequest
+export interface ResendVerifyEmailRequest {
+  email: string;
+  identifier: string;
+  state?: string | null;
+}
+
+// VerifyOTPRequest
+export interface VerifyOTPRequest {
+  email?: string | null;
+  phone_number?: string | null;
+  otp: string;
+  is_totp?: boolean | null;
+  state?: string | null;
+}
+
+// Keep VerifyOtpRequest as alias for backward compatibility
+export type VerifyOtpRequest = VerifyOTPRequest;
+
+// ResendOTPRequest
+export interface ResendOTPRequest {
+  email?: string | null;
+  phone_number?: string | null;
+  state?: string | null;
+}
+
+// Keep ResendOtpRequest as alias for backward compatibility
+export type ResendOtpRequest = ResendOTPRequest;
+
+// UpdateProfileRequest
+export interface UpdateProfileRequest {
+  old_password?: string | null;
+  new_password?: string | null;
+  confirm_new_password?: string | null;
+  email?: string | null;
+  given_name?: string | null;
+  family_name?: string | null;
+  middle_name?: string | null;
+  nickname?: string | null;
+  gender?: string | null;
+  birthdate?: string | null;
+  phone_number?: string | null;
+  picture?: string | null;
+  is_multi_factor_auth_enabled?: boolean | null;
+  app_data?: Record<string, any> | null;
+}
+
+// UpdateUserRequest (admin only)
+export interface UpdateUserRequest {
+  id: string;
+  email?: string | null;
+  email_verified?: boolean | null;
+  given_name?: string | null;
+  family_name?: string | null;
+  middle_name?: string | null;
+  nickname?: string | null;
+  gender?: string | null;
+  birthdate?: string | null;
+  phone_number?: string | null;
+  phone_number_verified?: boolean | null;
+  picture?: string | null;
+  roles?: string[] | null;
+  is_multi_factor_auth_enabled?: boolean | null;
+  app_data?: Record<string, any> | null;
+}
+
+// ForgotPasswordRequest
+export interface ForgotPasswordRequest {
+  email?: string | null;
+  phone_number?: string | null;
+  state?: string | null;
+  redirect_uri?: string | null;
+}
+
+// ResetPasswordRequest
+export interface ResetPasswordRequest {
+  token?: string | null;
+  otp?: string | null;
+  phone_number?: string | null;
   password: string;
   confirm_password: string;
 }
 
-export interface SessionQueryInput {
-  roles?: string[];
+// Keep ResetPasswordInput as alias for backward compatibility
+export type ResetPasswordInput = ResetPasswordRequest;
+
+// DeleteUserRequest (admin only)
+export interface DeleteUserRequest {
+  email: string;
 }
 
-export interface IsValidJWTQueryInput {
-  jwt: string;
-  roles?: string[];
+// SessionQueryRequest
+export interface SessionQueryRequest {
+  roles?: string[] | null;
+  scope?: string[] | null;
 }
 
-export interface ValidJWTResponse {
-  valid: string;
-  message: string;
+// Keep SessionQueryInput as alias for backward compatibility
+export type SessionQueryInput = SessionQueryRequest;
+
+// ValidateJWTTokenRequest
+export interface ValidateJWTTokenRequest {
+  token_type: string;
+  token: string;
+  roles?: string[] | null;
 }
 
+// Keep ValidateJWTTokenInput as alias for backward compatibility
+export type ValidateJWTTokenInput = ValidateJWTTokenRequest;
+
+// ValidateJWTTokenResponse
+export interface ValidateJWTTokenResponse {
+  is_valid: boolean;
+  claims: Record<string, any>;
+}
+
+// ValidateSessionRequest
+export interface ValidateSessionRequest {
+  cookie: string;
+  roles?: string[] | null;
+}
+
+// Keep ValidateSessionInput as alias for backward compatibility
+export type ValidateSessionInput = ValidateSessionRequest;
+
+// ValidateSessionResponse
+export interface ValidateSessionResponse {
+  is_valid: boolean;
+  user: User;
+}
+
+// OAuth types (not part of GraphQL schema, but used for OAuth flow)
 export enum OAuthProviders {
   Apple = 'apple',
   Github = 'github',
@@ -205,6 +330,7 @@ export enum OAuthProviders {
   Microsoft = 'microsoft',
   Twitch = 'twitch',
   Roblox = 'roblox',
+  Discord = 'discord',
 }
 
 export enum ResponseTypes {
@@ -212,11 +338,14 @@ export enum ResponseTypes {
   Token = 'token',
 }
 
-export interface AuthorizeInput {
+export interface AuthorizeRequest {
   response_type: ResponseTypes;
   use_refresh_token?: boolean;
   response_mode?: string;
 }
+
+// Keep AuthorizeInput as alias for backward compatibility
+export type AuthorizeInput = AuthorizeRequest;
 
 export interface AuthorizeResponse {
   state: string;
@@ -229,11 +358,14 @@ export interface RevokeTokenInput {
   refresh_token: string;
 }
 
-export interface GetTokenInput {
+export interface GetTokenRequest {
   code?: string;
   grant_type?: string;
   refresh_token?: string;
 }
+
+// Keep GetTokenInput as alias for backward compatibility
+export type GetTokenInput = GetTokenRequest;
 
 export interface GetTokenResponse {
   access_token: string;
@@ -242,23 +374,28 @@ export interface GetTokenResponse {
   refresh_token?: string;
 }
 
-export interface ValidateJWTTokenInput {
-  token_type: 'access_token' | 'id_token' | 'refresh_token';
-  token: string;
+// GraphQL query request
+export type Headers = Record<string, string>;
+
+export interface GraphqlQueryRequest {
+  query: string;
+  variables?: Record<string, any>;
+  headers?: Headers;
+}
+
+// Deprecated types (for backward compatibility)
+export interface IsValidJWTQueryInput {
+  jwt: string;
   roles?: string[];
 }
 
-export interface ValidateJWTTokenResponse {
-  is_valid: boolean;
-  claims: Record<string, any>;
+export interface ValidJWTResponse {
+  valid: string;
+  message: string;
 }
 
-export interface ValidateSessionInput {
-  cookie?: string;
-  roles?: string[];
-}
+// Keep MetaDataResponse as alias for backward compatibility
+export type MetaDataResponse = Meta;
 
-export interface ValidateSessionResponse {
-  is_valid: boolean;
-  user: User;
-}
+// Keep MetaData as alias for backward compatibility
+export type MetaData = Meta;
