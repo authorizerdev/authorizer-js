@@ -1,6 +1,6 @@
 {
   "name": "@authorizerdev/authorizer-js",
-  "version": "2.0.3",
+  "version": "3.0.0-rc.1",
   "packageManager": "pnpm@7.28.0",
   "author": "Lakhan Samani",
   "license": "MIT",
@@ -37,6 +37,7 @@
     "prepublishOnly": "pnpm run build",
     "release": "pnpm build && bumpp --commit --push --tag && pnpm publish",
     "release-beta": "pnpm build && bumpp --commit --push --tag && pnpm publish --tag beta",
+    "release-rc": "pnpm build && pnpm publish --tag rc",
     "lint": "eslint --ignore-pattern 'tsup.config.ts' --ext .ts,.tsx,.js,.jsx,.json .",
     "lint:fix": "eslint --ignore-pattern 'tsup.config.ts' --ext .ts,.tsx,.js,.jsx,.json . --fix"
   },
