@@ -32,9 +32,9 @@
   "scripts": {
     "start": "tsup --watch",
     "build": "tsup",
-    "test": "pnpm run build && jest --testTimeout=500000 --runInBand",
+    "test": "npm run build && jest --testTimeout=500000 --runInBand",
     "prepare": "husky install",
-    "prepublishOnly": "pnpm run build",
+    "prepublishOnly": "npm run build",
     "release": "pnpm build && bumpp --commit --push --tag && pnpm publish",
     "release-beta": "pnpm build && bumpp --commit --push --tag && pnpm publish --tag beta",
     "release-rc": "pnpm build && pnpm publish --tag rc",
