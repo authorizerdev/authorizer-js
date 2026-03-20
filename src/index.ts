@@ -12,25 +12,10 @@ import {
   sha256,
   trimURL,
 } from './utils';
-import type {
-  ApiResponse,
-  AuthToken,
-  AuthorizeResponse,
-  ConfigType,
-  GenericResponse,
-  GetTokenResponse,
-  GrapQlResponseType,
-  MetaData,
-  ResendVerifyEmailInput,
-  User,
-  ValidateJWTTokenResponse,
-  ValidateSessionResponse,
-  ForgotPasswordResponse,
-} from './types';
 
 // re-usable gql response fragment
 const userFragment =
-  'id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at is_multi_factor_auth_enabled app_data';
+  'id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at revoked_timestamp is_multi_factor_auth_enabled app_data';
 const authTokenFragment = `message access_token expires_in refresh_token id_token should_show_email_otp_screen should_show_mobile_otp_screen should_show_totp_screen authenticator_scanner_image authenticator_secret authenticator_recovery_codes user { ${userFragment} }`;
 
 // set fetch based on window object. Cross fetch have issues with umd build
@@ -40,11 +25,11 @@ export * from './types';
 
 export class Authorizer {
   // class variable
-  config: ConfigType;
+  config: Types.ConfigType;
   codeVerifier: string;
 
   // constructor
-  constructor(config: ConfigType) {
+  constructor(config: Types.ConfigType) {
     if (!config) throw new Error('Configuration is required');
 
     this.config = config;
@@ -68,9 +53,10 @@ export class Authorizer {
   }
 
   authorize = async (
-    data: Types.AuthorizeInput,
+    data: Types.AuthorizeRequest,
   ): Promise<
-    ApiResponse<GetTokenResponse> | ApiResponse<AuthorizeResponse>
+    | Types.ApiResponse<Types.GetTokenResponse>
+    | Types.ApiResponse<Types.AuthorizeResponse>
   > => {
     if (!hasWindow())
       return this.errorResponse([
@@ -115,9 +101,10 @@ export class Authorizer {
 
       if (data.response_type === Types.ResponseTypes.Code) {
         // get token and return it
-        const tokenResp: ApiResponse<GetTokenResponse> = await this.getToken({
-          code: iframeRes.code,
-        });
+        const tokenResp: Types.ApiResponse<Types.GetTokenResponse> =
+          await this.getToken({
+            code: iframeRes.code,
+          });
         return tokenResp.errors.length
           ? this.errorResponse(tokenResp.errors)
           : this.okResponse(tokenResp.data);
@@ -138,9 +125,10 @@ export class Authorizer {
     }
   };
 
-  browserLogin = async (): Promise<ApiResponse<AuthToken>> => {
+  browserLogin = async (): Promise<Types.ApiResponse<Types.AuthToken>> => {
     try {
-      const tokenResp: ApiResponse<AuthToken> = await this.getSession();
+      const tokenResp: Types.ApiResponse<Types.AuthToken> =
+        await this.getSession();
       return tokenResp.errors.length
         ? this.errorResponse(tokenResp.errors)
         : this.okResponse(tokenResp.data);
@@ -162,8 +150,8 @@ export class Authorizer {
   };
 
   forgotPassword = async (
-    data: Types.ForgotPasswordInput,
-  ): Promise<ApiResponse<ForgotPasswordResponse>> => {
+    data: Types.ForgotPasswordRequest,
+  ): Promise<Types.ApiResponse<Types.ForgotPasswordResponse>> => {
     if (!data.state) data.state = encode(createRandomString());
 
     if (!data.redirect_uri) data.redirect_uri = this.config.redirectURL;
@@ -171,7 +159,7 @@ export class Authorizer {
     try {
       const forgotPasswordResp = await this.graphqlQuery({
         query:
-          'mutation forgotPassword($data: ForgotPasswordInput!) {	forgot_password(params: $data) { message should_show_mobile_otp_screen } }',
+          'mutation forgotPassword($data: ForgotPasswordRequest!) {	forgot_password(params: $data) { message should_show_mobile_otp_screen } }',
         variables: {
           data,
         },
@@ -184,7 +172,7 @@ export class Authorizer {
     }
   };
 
-  getMetaData = async (): Promise<ApiResponse<MetaData>> => {
+  getMetaData = async (): Promise<Types.ApiResponse<Types.MetaData>> => {
     try {
       const res = await this.graphqlQuery({
         query:
@@ -199,7 +187,9 @@ export class Authorizer {
     }
   };
 
-  getProfile = async (headers?: Types.Headers): Promise<ApiResponse<User>> => {
+  getProfile = async (
+    headers?: Types.Headers,
+  ): Promise<Types.ApiResponse<Types.User>> => {
     try {
       const profileRes = await this.graphqlQuery({
         query: `query {	profile { ${userFragment} } }`,
@@ -217,11 +207,11 @@ export class Authorizer {
   // this is used to verify / get session using cookie by default. If using node.js pass authorization header
   getSession = async (
     headers?: Types.Headers,
-    params?: Types.SessionQueryInput,
-  ): Promise<ApiResponse<AuthToken>> => {
+    params?: Types.SessionQueryRequest,
+  ): Promise<Types.ApiResponse<Types.AuthToken>> => {
     try {
       const res = await this.graphqlQuery({
-        query: `query getSession($params: SessionQueryInput){session(params: $params) { ${authTokenFragment} } }`,
+        query: `query getSession($params: SessionQueryRequest){session(params: $params) { ${authTokenFragment} } }`,
         headers,
         variables: {
           params,
@@ -236,8 +226,8 @@ export class Authorizer {
   };
 
   getToken = async (
-    data: Types.GetTokenInput,
-  ): Promise<ApiResponse<GetTokenResponse>> => {
+    data: Types.GetTokenRequest,
+  ): Promise<Types.ApiResponse<Types.GetTokenResponse>> => {
     if (!data.grant_type) data.grant_type = 'authorization_code';
 
     if (data.grant_type === 'refresh_token' && !data.refresh_token)
@@ -277,11 +267,13 @@ export class Authorizer {
     }
   };
 
-  login = async (data: Types.LoginInput): Promise<ApiResponse<AuthToken>> => {
+  login = async (
+    data: Types.LoginRequest,
+  ): Promise<Types.ApiResponse<Types.AuthToken>> => {
     try {
       const res = await this.graphqlQuery({
         query: `
-					mutation login($data: LoginInput!) { login(params: $data) { ${authTokenFragment}}}
+					mutation login($data: LoginRequest!) { login(params: $data) { ${authTokenFragment}}}
 				`,
         variables: { data },
       });
@@ -296,7 +288,7 @@ export class Authorizer {
 
   logout = async (
     headers?: Types.Headers,
-  ): Promise<ApiResponse<GenericResponse>> => {
+  ): Promise<Types.ApiResponse<Types.GenericResponse>> => {
     try {
       const res = await this.graphqlQuery({
         query: ' mutation { logout { message } } ',
@@ -311,8 +303,8 @@ export class Authorizer {
   };
 
   magicLinkLogin = async (
-    data: Types.MagicLinkLoginInput,
-  ): Promise<ApiResponse<GenericResponse>> => {
+    data: Types.MagicLinkLoginRequest,
+  ): Promise<Types.ApiResponse<Types.GenericResponse>> => {
     try {
       if (!data.state) data.state = encode(createRandomString());
 
@@ -320,7 +312,7 @@ export class Authorizer {
 
       const res = await this.graphqlQuery({
         query: `
-					mutation magicLinkLogin($data: MagicLinkLoginInput!) { magic_link_login(params: $data) { message }}
+					mutation magicLinkLogin($data: MagicLinkLoginRequest!) { magic_link_login(params: $data) { message }}
 				`,
         variables: { data },
       });
@@ -365,8 +357,8 @@ export class Authorizer {
   };
 
   resendOtp = async (
-    data: Types.ResendOtpInput,
-  ): Promise<ApiResponse<GenericResponse>> => {
+    data: Types.ResendOtpRequest,
+  ): Promise<Types.ApiResponse<Types.GenericResponse>> => {
     try {
       const res = await this.graphqlQuery({
         query: `
@@ -384,12 +376,12 @@ export class Authorizer {
   };
 
   resetPassword = async (
-    data: Types.ResetPasswordInput,
-  ): Promise<ApiResponse<GenericResponse>> => {
+    data: Types.ResetPasswordRequest,
+  ): Promise<Types.ApiResponse<Types.GenericResponse>> => {
     try {
       const resetPasswordRes = await this.graphqlQuery({
         query:
-          'mutation resetPassword($data: ResetPasswordInput!) {	reset_password(params: $data) { message } }',
+          'mutation resetPassword($data: ResetPasswordRequest!) {	reset_password(params: $data) { message } }',
         variables: {
           data,
         },
@@ -422,11 +414,13 @@ export class Authorizer {
     return this.okResponse(responseData);
   };
 
-  signup = async (data: Types.SignupInput): Promise<ApiResponse<AuthToken>> => {
+  signup = async (
+    data: Types.SignUpRequest,
+  ): Promise<Types.ApiResponse<Types.AuthToken>> => {
     try {
       const res = await this.graphqlQuery({
         query: `
-					mutation signup($data: SignUpInput!) { signup(params: $data) { ${authTokenFragment}}}
+					mutation signup($data: SignUpRequest!) { signup(params: $data) { ${authTokenFragment}}}
 				`,
         variables: { data },
       });
@@ -440,13 +434,13 @@ export class Authorizer {
   };
 
   updateProfile = async (
-    data: Types.UpdateProfileInput,
+    data: Types.UpdateProfileRequest,
     headers?: Types.Headers,
-  ): Promise<ApiResponse<GenericResponse>> => {
+  ): Promise<Types.ApiResponse<Types.GenericResponse>> => {
     try {
       const updateProfileRes = await this.graphqlQuery({
         query:
-          'mutation updateProfile($data: UpdateProfileInput!) {	update_profile(params: $data) { message } }',
+          'mutation updateProfile($data: UpdateProfileRequest!) {	update_profile(params: $data) { message } }',
         headers,
         variables: {
           data,
@@ -463,7 +457,7 @@ export class Authorizer {
 
   deactivateAccount = async (
     headers?: Types.Headers,
-  ): Promise<ApiResponse<GenericResponse>> => {
+  ): Promise<Types.ApiResponse<Types.GenericResponse>> => {
     try {
       const res = await this.graphqlQuery({
         query: 'mutation deactivateAccount { deactivate_account { message } }',
@@ -478,12 +472,12 @@ export class Authorizer {
   };
 
   validateJWTToken = async (
-    params?: Types.ValidateJWTTokenInput,
-  ): Promise<ApiResponse<ValidateJWTTokenResponse>> => {
+    params?: Types.ValidateJWTTokenRequest,
+  ): Promise<Types.ApiResponse<Types.ValidateJWTTokenResponse>> => {
     try {
       const res = await this.graphqlQuery({
         query:
-          'query validateJWTToken($params: ValidateJWTTokenInput!){validate_jwt_token(params: $params) { is_valid claims } }',
+          'query validateJWTToken($params: ValidateJWTTokenRequest!){validate_jwt_token(params: $params) { is_valid claims } }',
         variables: {
           params,
         },
@@ -498,11 +492,11 @@ export class Authorizer {
   };
 
   validateSession = async (
-    params?: Types.ValidateSessionInput,
-  ): Promise<ApiResponse<ValidateSessionResponse>> => {
+    params?: Types.ValidateSessionRequest,
+  ): Promise<Types.ApiResponse<Types.ValidateSessionResponse>> => {
     try {
       const res = await this.graphqlQuery({
-        query: `query validateSession($params: ValidateSessionInput){validate_session(params: $params) { is_valid user { ${userFragment} } } }`,
+        query: `query validateSession($params: ValidateSessionRequest){validate_session(params: $params) { is_valid user { ${userFragment} } } }`,
         variables: {
           params,
         },
@@ -517,12 +511,12 @@ export class Authorizer {
   };
 
   verifyEmail = async (
-    data: Types.VerifyEmailInput,
-  ): Promise<ApiResponse<AuthToken>> => {
+    data: Types.VerifyEmailRequest,
+  ): Promise<Types.ApiResponse<Types.AuthToken>> => {
     try {
       const res = await this.graphqlQuery({
         query: `
-					mutation verifyEmail($data: VerifyEmailInput!) { verify_email(params: $data) { ${authTokenFragment}}}
+					mutation verifyEmail($data: VerifyEmailRequest!) { verify_email(params: $data) { ${authTokenFragment}}}
 				`,
         variables: { data },
       });
@@ -536,27 +530,27 @@ export class Authorizer {
   };
 
   resendVerifyEmail = async (
-    data: ResendVerifyEmailInput,
-  ): Promise<ApiResponse<GenericResponse>> => {
+    data: Types.ResendVerifyEmailRequest,
+  ): Promise<Types.ApiResponse<Types.GenericResponse>> => {
     try {
       const res = await this.graphqlQuery({
         query: `
-					mutation resendVerifyEmail($data: ResendVerifyEmailInput!) { resend_verify_email(params: $data) { message }}
+					mutation resendVerifyEmail($data: ResendVerifyEmailRequest!) { resend_verify_email(params: $data) { message }}
 				`,
         variables: { data },
       });
 
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.verify_email);
+        : this.okResponse(res.data?.resend_verify_email);
     } catch (err) {
       return this.errorResponse([err]);
     }
   };
 
   verifyOtp = async (
-    data: Types.VerifyOtpInput,
-  ): Promise<ApiResponse<AuthToken>> => {
+    data: Types.VerifyOtpRequest,
+  ): Promise<Types.ApiResponse<Types.AuthToken>> => {
     try {
       const res = await this.graphqlQuery({
         query: `
@@ -574,10 +568,10 @@ export class Authorizer {
   };
 
   // helper to execute graphql queries
-  // takes in any query or mutation string as input
+  // takes in any query or mutation string as value
   graphqlQuery = async (
-    data: Types.GraphqlQueryInput,
-  ): Promise<GrapQlResponseType> => {
+    data: Types.GraphqlQueryRequest,
+  ): Promise<Types.GrapQlResponseType> => {
     const fetcher = getFetcher();
     const res = await fetcher(`${this.config.authorizerURL}/graphql`, {
       method: 'POST',
@@ -601,14 +595,14 @@ export class Authorizer {
     return { data: json.data, errors: [] };
   };
 
-  errorResponse = (errors: Error[]): ApiResponse<any> => {
+  errorResponse = (errors: Error[]): Types.ApiResponse<any> => {
     return {
       data: undefined,
       errors,
     };
   };
 
-  okResponse = (data: any): ApiResponse<any> => {
+  okResponse = (data: any): Types.ApiResponse<any> => {
     return {
       data,
       errors: [],

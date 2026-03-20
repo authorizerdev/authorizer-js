@@ -1,8 +1,10 @@
 import { defineConfig } from 'tsup';
 import pkg from './package.json';
+
 const external = [...Object.keys(pkg.dependencies || {})];
 
 export default defineConfig(() => [
+  // Node.js builds (ESM + CJS)
   {
     entryPoints: ['src/index.ts'],
     outDir: 'lib',
@@ -10,11 +12,13 @@ export default defineConfig(() => [
     format: ['esm', 'cjs'],
     clean: true,
     dts: true,
-    minify: true,
+    minify: false, // Don't minify Node.js builds for better debugging
+    sourcemap: true,
     external,
   },
+  // Browser IIFE build
   {
-    entry: { bundle: 'src/index.ts' },
+    entryPoints: ['src/index.ts'],
     outDir: 'lib',
     format: ['iife'],
     globalName: 'authorizerdev',
@@ -22,11 +26,10 @@ export default defineConfig(() => [
     minify: true,
     platform: 'browser',
     dts: false,
-    name: 'authorizer',
-    // esbuild `globalName` option generates `var authorizerdev = (() => {})()`
-    // and var is not guaranteed to assign to the global `window` object so we make sure to assign it
+    // esbuild's globalName creates `var authorizerdev = ...` which works in browsers
+    // but we ensure it's also on window for compatibility
     footer: {
-      js: 'window.__TAURI__ = authorizerdev',
+      js: 'if (typeof window !== "undefined") { window.authorizerdev = authorizerdev; }',
     },
     outExtension() {
       return {
