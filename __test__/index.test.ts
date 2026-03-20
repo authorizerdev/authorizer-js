@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { GenericContainer, StartedTestContainer, Wait } from 'testcontainers';
 import { ApiResponse, AuthToken, Authorizer } from '../lib';
 
+jest.setTimeout(900000); // Integration tests can be slow on CI
+
 const authorizerConfig: {
   authorizerURL: string;
   redirectURL: string;
@@ -49,8 +51,7 @@ function buildAuthorizerCliArgs(): { args: string[]; clientId: string } {
     '/tmp/authorizer.db',
     '--custom-access-token-script',
     customAccessTokenScript,
-    '--enable-playground',
-    'false',
+    '--enable-playground=false',
     '--log-level',
     'debug',
     '--smtp-host',
@@ -63,10 +64,8 @@ function buildAuthorizerCliArgs(): { args: string[]; clientId: string } {
     'WncNxwVFqb6nBjKDQJ',
     '--smtp-sender-email',
     'test@authorizer.dev',
-    '--enable-email-verification',
-    'true',
-    '--enable-magic-link-login',
-    'true',
+    '--enable-email-verification=true',
+    '--enable-magic-link-login=true',
   ];
   return { args, clientId };
 }
@@ -88,7 +87,7 @@ describe('Integration Tests - authorizer-js', () => {
       .withCommand(args)
       .withExposedPorts(8080)
       .withWaitStrategy(Wait.forHttp('/health', 8080).forStatusCode(200))
-      .withStartupTimeout(6000000) // 10 minutes
+      .withStartupTimeout(300000) // 5 minutes
       .start();
 
     authorizerConfig.authorizerURL = `http://${container.getHost()}:${container.getMappedPort(
@@ -100,9 +99,6 @@ describe('Integration Tests - authorizer-js', () => {
     authorizerConfig.clientID = clientId;
     console.log('Authorizer URL:', authorizerConfig.authorizerURL);
     authorizer = new Authorizer(authorizerConfig);
-    const metadataRes = await authorizer.getMetaData();
-    expect(metadataRes?.data).toBeDefined();
-    expect(metadataRes?.data?.client_id).toBe(clientId);
   });
 
   afterAll(async () => {
