@@ -30,7 +30,8 @@ function buildAuthorizerCliArgs(): { args: string[]; clientId: string } {
   const clientId = randomUUID();
   const clientSecret = randomUUID();
   const jwtSecret = randomUUID();
-  const customAccessTokenScript = 'function(user,tokenPayload){var data = tokenPayload;data.extra = {\'x-extra-id\': user.id};return data;}';
+  const customAccessTokenScript =
+    "function(user,tokenPayload){var data = tokenPayload;data.extra = {'x-extra-id': user.id};return data;}";
 
   const args = [
     '--client-id',
@@ -83,7 +84,7 @@ describe('Integration Tests - authorizer-js', () => {
   beforeAll(async () => {
     const { args, clientId } = buildAuthorizerCliArgs();
 
-    container = await new GenericContainer('lakhansamani/authorizer:latest')
+    container = await new GenericContainer('lakhansamani/authorizer:2.0.0-rc.6')
       .withCommand(args)
       .withExposedPorts(8080)
       .withWaitStrategy(Wait.forHttp('/health', 8080).forStatusCode(200))
