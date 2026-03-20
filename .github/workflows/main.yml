@@ -23,13 +23,13 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18' # Specify your Node.js version here
+          node-version: "18" # Specify your Node.js version here
 
       - name: Set up pnpm
         run: |
           corepack enable
-          corepack prepare pnpm@7.28.0 --activate
+          corepack prepare pnpm --activate
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
       - name: Run integration tests
         run: pnpm test # Make sure this command runs your integration tests
