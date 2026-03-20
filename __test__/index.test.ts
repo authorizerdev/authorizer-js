@@ -30,8 +30,6 @@ function buildAuthorizerCliArgs(): { args: string[]; clientId: string } {
   const clientId = randomUUID();
   const clientSecret = randomUUID();
   const jwtSecret = randomUUID();
-  const customAccessTokenScript =
-    "function(user,tokenPayload){var data = tokenPayload;data.extra = {'x-extra-id': user.id};return data;}";
 
   const args = [
     '--client-id',
@@ -50,8 +48,6 @@ function buildAuthorizerCliArgs(): { args: string[]; clientId: string } {
     'sqlite',
     '--database-url',
     '/tmp/authorizer.db',
-    '--custom-access-token-script',
-    customAccessTokenScript,
     '--enable-playground=false',
     '--log-level',
     'debug',
