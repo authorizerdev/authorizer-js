@@ -28,7 +28,7 @@ function buildAuthorizerCliArgs(): { args: string[]; clientId: string } {
   const clientId = randomUUID();
   const clientSecret = randomUUID();
   const jwtSecret = randomUUID();
-  const customAccessTokenScript = `function(user,tokenPayload){var data = tokenPayload;data.extra = {'x-extra-id': user.id};return data;}`;
+  const customAccessTokenScript = 'function(user,tokenPayload){var data = tokenPayload;data.extra = {\'x-extra-id\': user.id};return data;}';
 
   const args = [
     '--client-id',
