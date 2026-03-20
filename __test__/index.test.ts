@@ -76,18 +76,23 @@ const verificationRequests =
   'query {_verification_requests { verification_requests { id token email expires identifier } } }';
 
 describe('Integration Tests - authorizer-js', () => {
-  let container: StartedTestContainer;
+  let container: StartedTestContainer | undefined;
 
   let authorizer: Authorizer;
 
   beforeAll(async () => {
     const { args, clientId } = buildAuthorizerCliArgs();
 
-    container = await new GenericContainer('lakhansamani/authorizer:2.0.0-rc.6')
+    container = await new GenericContainer('lakhansamani/authorizer:latest')
       .withCommand(args)
       .withExposedPorts(8080)
       .withWaitStrategy(Wait.forHttp('/health', 8080).forStatusCode(200))
-      .withStartupTimeout(300000) // 5 minutes
+      .withStartupTimeout(900000) // 15 minutes (CI can be slow)
+      // Surface container stdout/stderr to help diagnose CI startup failures.
+      .withLogConsumer((chunk) => {
+        // Avoid changing log format; just mirror what container prints.
+        process.stdout.write(chunk.toString());
+      })
       .start();
 
     authorizerConfig.authorizerURL = `http://${container.getHost()}:${container.getMappedPort(
@@ -102,7 +107,7 @@ describe('Integration Tests - authorizer-js', () => {
   });
 
   afterAll(async () => {
-    await container.stop();
+    if (container) await container.stop();
   });
 
   it('should signup with email verification enabled', async () => {
