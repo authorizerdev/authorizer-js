@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { GenericContainer, StartedTestContainer, Wait } from 'testcontainers';
 import { ApiResponse, AuthToken, Authorizer } from '../lib';
 
-jest.setTimeout(900000); // Integration tests can be slow on CI
+jest.setTimeout(1200000); // Integration tests can be slow on CI (20 minutes)
 
 const authorizerConfig: {
   authorizerURL: string;
@@ -31,7 +31,7 @@ function buildAuthorizerCliArgs(): { args: string[]; clientId: string } {
   const clientSecret = randomUUID();
   const jwtSecret = randomUUID();
   const customAccessTokenScript =
-    'function(user,tokenPayload){var data = tokenPayload;data.extra = {\'x-extra-id\': user.id};return data;}';
+    "function(user,tokenPayload){var data = tokenPayload;data.extra = {'x-extra-id': user.id};return data;}";
 
   const args = [
     '--client-id',
