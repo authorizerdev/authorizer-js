@@ -124,6 +124,7 @@ export const executeIframe = (
     };
 
     const timeoutSetTimeoutId = setTimeout(() => {
+      reject(new Error('Authorization timeout'));
       removeIframe();
     }, timeoutInSeconds * 1000);
 
