@@ -153,9 +153,10 @@ export const executeIframe = (
       if (eventSource)
         (eventSource as any).close();
 
-      e.data.response.error
-        ? reject(e.data.response)
-        : resolve(e.data.response);
+      if (e.data.response.error)
+        reject(e.data.response);
+      else
+        resolve(e.data.response);
 
       clearTimeout(timeoutSetTimeoutId);
       window.removeEventListener('message', iframeEventHandler, false);
