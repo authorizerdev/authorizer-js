@@ -7,3 +7,6 @@ lib/*
 package-lock.json
 .idea
 .history
+.env
+.env.*
+.pnpm-store

@@ -21,8 +21,40 @@ const authTokenFragment = `message access_token expires_in refresh_token id_toke
 // set fetch based on window object. Cross fetch have issues with umd build
 const getFetcher = () => (hasWindow() ? window.fetch : crossFetch);
 
+function toErrorList(errors: unknown): Error[] {
+  if (Array.isArray(errors)) {
+    return errors.map((item) => {
+      if (item instanceof Error) return item;
+      if (item && typeof item === 'object' && 'message' in item)
+        return new Error(String((item as { message: unknown }).message));
+      return new Error(String(item));
+    });
+  }
+  if (errors instanceof Error) return [errors];
+  if (errors !== null && typeof errors === 'object') {
+    const o = errors as Record<string, unknown>;
+    if (typeof o.error_description === 'string')
+      return [new Error(o.error_description)];
+    if (typeof o.error === 'string') {
+      const desc =
+        typeof o.error_description === 'string'
+          ? `: ${o.error_description}`
+          : '';
+      return [new Error(`${o.error}${desc}`)];
+    }
+    if (typeof o.message === 'string') return [new Error(o.message)];
+  }
+  if (errors === undefined || errors === null)
+    return [new Error('Unknown error')];
+  return [new Error(String(errors))];
+}
+
 export * from './types';
 
+/**
+ * Client for the Authorizer API. All network calls go to `config.authorizerURL`
+ * with cookies included where the runtime allows; only configure URLs you trust.
+ */
 export class Authorizer {
   // class variable
   config: Types.ConfigType;
@@ -33,23 +65,20 @@ export class Authorizer {
     if (!config) throw new Error('Configuration is required');
 
     this.config = config;
-    if (!config.authorizerURL && !config.authorizerURL.trim())
-      throw new Error('Invalid authorizerURL');
+    if (!config.authorizerURL?.trim()) throw new Error('Invalid authorizerURL');
 
-    if (config.authorizerURL)
-      this.config.authorizerURL = trimURL(config.authorizerURL);
+    this.config.authorizerURL = trimURL(config.authorizerURL);
 
-    if (!config.redirectURL && !config.redirectURL.trim())
-      throw new Error('Invalid redirectURL');
-    else this.config.redirectURL = trimURL(config.redirectURL);
+    if (!config.redirectURL?.trim()) throw new Error('Invalid redirectURL');
+    this.config.redirectURL = trimURL(config.redirectURL);
+    this.config.clientID = (config?.clientID || '').trim();
 
     this.config.extraHeaders = {
       ...(config.extraHeaders || {}),
-      'x-authorizer-url': this.config.authorizerURL,
-      'x-authorizer-client-id': this.config.clientID || '',
+      'x-authorizer-url': config.authorizerURL,
+      'x-authorizer-client-id': config.clientID || '',
       'Content-Type': 'application/json',
     };
-    this.config.clientID = (config?.clientID || '').trim();
   }
 
   authorize = async (
@@ -81,6 +110,7 @@ export class Authorizer {
       const sha = await sha256(this.codeVerifier);
       const codeChallenge = bufferToBase64UrlEncoded(sha);
       requestData.code_challenge = codeChallenge;
+      requestData.code_challenge_method = 'S256';
     }
 
     const authorizeURL = `${
@@ -116,7 +146,11 @@ export class Authorizer {
       if (err.error) {
         window.location.replace(
           `${this.config.authorizerURL}/app?state=${encode(
-            JSON.stringify({ clientID: this.config.clientID, redirectURL: this.config.redirectURL, authorizerURL: this.config.authorizerURL }),
+            JSON.stringify({
+              clientID: this.config.clientID,
+              redirectURL: this.config.redirectURL,
+              authorizerURL: this.config.authorizerURL,
+            }),
           )}&redirect_uri=${encodeURIComponent(this.config.redirectURL || '')}`,
         );
       }
@@ -142,7 +176,11 @@ export class Authorizer {
 
       window.location.replace(
         `${this.config.authorizerURL}/app?state=${encode(
-          JSON.stringify({ clientID: this.config.clientID, redirectURL: this.config.redirectURL, authorizerURL: this.config.authorizerURL }),
+          JSON.stringify({
+            clientID: this.config.clientID,
+            redirectURL: this.config.redirectURL,
+            authorizerURL: this.config.authorizerURL,
+          }),
         )}&redirect_uri=${encodeURIComponent(this.config.redirectURL || '')}`,
       );
       return this.errorResponse(err);
@@ -166,7 +204,7 @@ export class Authorizer {
       });
       return forgotPasswordResp?.errors?.length
         ? this.errorResponse(forgotPasswordResp.errors)
-        : this.okResponse(forgotPasswordResp?.data.forgot_password);
+        : this.okResponse(forgotPasswordResp?.data?.forgot_password);
     } catch (error) {
       return this.errorResponse([error]);
     }
@@ -230,7 +268,7 @@ export class Authorizer {
   ): Promise<Types.ApiResponse<Types.GetTokenResponse>> => {
     if (!data.grant_type) data.grant_type = 'authorization_code';
 
-    if (data.grant_type === 'refresh_token' && !data.refresh_token)
+    if (data.grant_type === 'refresh_token' && !data.refresh_token?.trim())
       return this.errorResponse([new Error('Invalid refresh_token')]);
 
     if (data.grant_type === 'authorization_code' && !this.codeVerifier)
@@ -255,11 +293,33 @@ export class Authorizer {
         credentials: 'include',
       });
 
-      const json = await res.json();
-      if (res.status >= 400)
+      const text = await res.text();
+      let json: {
+        error?: string;
+        error_description?: string;
+      } & Record<string, unknown> = {};
+      if (text) {
+        try {
+          json = JSON.parse(text);
+        } catch {
+          return this.errorResponse([
+            new Error(
+              res.ok
+                ? 'Invalid JSON from token endpoint'
+                : `HTTP ${res.status}`,
+            ),
+          ]);
+        }
+      }
+      if (!res.ok) {
         return this.errorResponse([
-          new Error(json.error_description || json.error),
+          new Error(
+            String(
+              json.error_description || json.error || `HTTP ${res.status}`,
+            ),
+          ),
         ]);
+      }
 
       return this.okResponse(json);
     } catch (err) {
@@ -282,7 +342,7 @@ export class Authorizer {
         ? this.errorResponse(res.errors)
         : this.okResponse(res.data?.login);
     } catch (err) {
-      return this.errorResponse([new Error(err)]);
+      return this.errorResponse(err);
     }
   };
 
@@ -296,7 +356,7 @@ export class Authorizer {
       });
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.response);
+        : this.okResponse(res.data?.logout);
     } catch (err) {
       return this.errorResponse([err]);
     }
@@ -336,12 +396,10 @@ export class Authorizer {
       urlState = encode(createRandomString());
     }
 
-    // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
-    if (!Object.values(Types.OAuthProviders).includes(oauthProvider)) {
+    const oauthProviderIds = Object.values(Types.OAuthProviders) as string[];
+    if (!oauthProviderIds.includes(oauthProvider)) {
       throw new Error(
-        `only following oauth providers are supported: ${Object.values(
-          oauthProvider,
-        ).toString()}`,
+        `only following oauth providers are supported: ${oauthProviderIds.join(', ')}`,
       );
     }
     if (!hasWindow())
@@ -351,7 +409,7 @@ export class Authorizer {
 
     window.location.replace(
       `${this.config.authorizerURL}/oauth_login/${oauthProvider}?redirect_uri=${encodeURIComponent(
-        redirect_uri || this.config.redirectURL || ''
+        redirect_uri || this.config.redirectURL || '',
       )}&state=${encodeURIComponent(urlState)}`,
     );
   };
@@ -395,23 +453,58 @@ export class Authorizer {
   };
 
   revokeToken = async (data: { refresh_token: string }) => {
-    if (!data.refresh_token && !data.refresh_token.trim())
+    if (!data.refresh_token?.trim())
       return this.errorResponse([new Error('Invalid refresh_token')]);
 
-    const fetcher = getFetcher();
-    const res = await fetcher(`${this.config.authorizerURL}/oauth/revoke`, {
-      method: 'POST',
-      headers: {
-        ...this.config.extraHeaders,
-      },
-      body: JSON.stringify({
-        refresh_token: data.refresh_token,
-        client_id: this.config.clientID,
-      }),
-    });
+    try {
+      const fetcher = getFetcher();
+      const res = await fetcher(`${this.config.authorizerURL}/oauth/revoke`, {
+        method: 'POST',
+        headers: {
+          ...this.config.extraHeaders,
+        },
+        body: JSON.stringify({
+          refresh_token: data.refresh_token,
+          client_id: this.config.clientID,
+        }),
+      });
 
-    const responseData = await res.json();
-    return this.okResponse(responseData);
+      const text = await res.text();
+      let responseData: Record<string, unknown> = {};
+      if (text) {
+        try {
+          responseData = JSON.parse(text) as Record<string, unknown>;
+        } catch {
+          return this.errorResponse([
+            new Error(
+              res.ok
+                ? 'Invalid JSON from revoke endpoint'
+                : `HTTP ${res.status}`,
+            ),
+          ]);
+        }
+      }
+
+      if (!res.ok) {
+        const errBody = responseData as {
+          error?: string;
+          error_description?: string;
+        };
+        return this.errorResponse([
+          new Error(
+            String(
+              errBody.error_description ||
+                errBody.error ||
+                `HTTP ${res.status}`,
+            ),
+          ),
+        ]);
+      }
+
+      return this.okResponse(responseData);
+    } catch (err) {
+      return this.errorResponse(err);
+    }
   };
 
   signup = async (
@@ -586,19 +679,48 @@ export class Authorizer {
       credentials: 'include',
     });
 
-    const json = await res.json();
+    const text = await res.text();
+    let json: { data?: unknown; errors?: unknown[] } = {};
+    if (text) {
+      try {
+        json = JSON.parse(text);
+      } catch {
+        return {
+          data: undefined,
+          errors: [
+            new Error(
+              res.ok
+                ? 'Invalid JSON from GraphQL endpoint'
+                : `HTTP ${res.status}`,
+            ),
+          ],
+        };
+      }
+    } else if (!res.ok) {
+      return {
+        data: undefined,
+        errors: [new Error(`HTTP ${res.status}`)],
+      };
+    }
 
     if (json?.errors?.length) {
-      return { data: undefined, errors: json.errors };
+      return { data: undefined, errors: toErrorList(json.errors) };
+    }
+
+    if (!res.ok) {
+      return {
+        data: undefined,
+        errors: [new Error(`HTTP ${res.status}`)],
+      };
     }
 
     return { data: json.data, errors: [] };
   };
 
-  errorResponse = (errors: Error[]): Types.ApiResponse<any> => {
+  errorResponse = (errors: unknown): Types.ApiResponse<any> => {
     return {
       data: undefined,
-      errors,
+      errors: toErrorList(errors),
     };
   };
 

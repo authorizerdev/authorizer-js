@@ -53,7 +53,11 @@ export const createQueryParams = (params: any) => {
 };
 
 export const sha256 = async (s: string) => {
-  const digestOp: any = getCryptoSubtle().digest(
+  const subtle = getCryptoSubtle();
+  if (!subtle)
+    throw new Error('Web Crypto API is not available');
+
+  const digestOp: any = subtle.digest(
     { name: 'SHA-256' },
     new TextEncoder().encode(s),
   );
@@ -105,12 +109,22 @@ export const bufferToBase64UrlEncoded = (input: number[] | Uint8Array) => {
   );
 };
 
+const originFromAuthorizerUrl = (authorizerUrl: string): string => {
+  try {
+    return new URL(authorizerUrl).origin;
+  }
+  catch {
+    return authorizerUrl;
+  }
+};
+
 export const executeIframe = (
   authorizeUrl: string,
   eventOrigin: string,
   timeoutInSeconds: number = DEFAULT_AUTHORIZE_TIMEOUT_IN_SECONDS,
 ) => {
   return new Promise<AuthorizeResponse>((resolve, reject) => {
+    const expectedOrigin = originFromAuthorizerUrl(eventOrigin);
     const iframe = window.document.createElement('iframe');
     iframe.setAttribute('id', 'authorizer-iframe');
     iframe.setAttribute('width', '0');
@@ -129,7 +143,7 @@ export const executeIframe = (
     }, timeoutInSeconds * 1000);
 
     const iframeEventHandler: (e: MessageEvent) => void = function (e: MessageEvent) {
-      if (e.origin !== eventOrigin)
+      if (e.origin !== expectedOrigin)
         return;
       if (!e.data || !e.data.response)
         return;

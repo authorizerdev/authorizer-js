@@ -6,6 +6,12 @@ export interface ApiResponse<T> {
   errors: Error[];
   data: T | undefined;
 }
+/**
+ * SDK configuration. Requests use `credentials: 'include'`, so cookies for the
+ * Authorizer instance are sent to `authorizerURL`. That URL must be the exact,
+ * trusted origin of your Authorizer deployment (correct scheme, host, and port).
+ * A mistaken or attacker-controlled URL can leak session credentials.
+ */
 export interface ConfigType {
   authorizerURL: string;
   redirectURL: string;
