@@ -116,8 +116,8 @@ export class Authorizer {
       if (err.error) {
         window.location.replace(
           `${this.config.authorizerURL}/app?state=${encode(
-            JSON.stringify(this.config),
-          )}&redirect_uri=${this.config.redirectURL}`,
+            JSON.stringify({ clientID: this.config.clientID, redirectURL: this.config.redirectURL, authorizerURL: this.config.authorizerURL }),
+          )}&redirect_uri=${encodeURIComponent(this.config.redirectURL || '')}`,
         );
       }
 
@@ -142,8 +142,8 @@ export class Authorizer {
 
       window.location.replace(
         `${this.config.authorizerURL}/app?state=${encode(
-          JSON.stringify(this.config),
-        )}&redirect_uri=${this.config.redirectURL}`,
+          JSON.stringify({ clientID: this.config.clientID, redirectURL: this.config.redirectURL, authorizerURL: this.config.authorizerURL }),
+        )}&redirect_uri=${encodeURIComponent(this.config.redirectURL || '')}`,
       );
       return this.errorResponse(err);
     }
@@ -350,9 +350,9 @@ export class Authorizer {
     if (roles && roles.length) urlState += `&roles=${roles.join(',')}`;
 
     window.location.replace(
-      `${this.config.authorizerURL}/oauth_login/${oauthProvider}?redirect_uri=${
-        redirect_uri || this.config.redirectURL
-      }&state=${urlState}`,
+      `${this.config.authorizerURL}/oauth_login/${oauthProvider}?redirect_uri=${encodeURIComponent(
+        redirect_uri || this.config.redirectURL || ''
+      )}&state=${encodeURIComponent(urlState)}`,
     );
   };
 
