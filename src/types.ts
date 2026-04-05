@@ -387,6 +387,8 @@ export interface GraphqlQueryRequest {
   query: string;
   variables?: Record<string, any>;
   headers?: Headers;
+  /** When set, sent as the GraphQL `operationName` field (helps servers identify the operation for logging and metrics). */
+  operationName?: string;
 }
 
 // Deprecated types (for backward compatibility)

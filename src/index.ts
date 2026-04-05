@@ -201,6 +201,7 @@ export class Authorizer {
         variables: {
           data,
         },
+        operationName: 'forgotPassword',
       });
       return forgotPasswordResp?.errors?.length
         ? this.errorResponse(forgotPasswordResp.errors)
@@ -214,7 +215,8 @@ export class Authorizer {
     try {
       const res = await this.graphqlQuery({
         query:
-          'query { meta { version client_id is_google_login_enabled is_facebook_login_enabled is_github_login_enabled is_linkedin_login_enabled is_apple_login_enabled is_twitter_login_enabled is_microsoft_login_enabled is_twitch_login_enabled is_roblox_login_enabled is_email_verification_enabled is_basic_authentication_enabled is_magic_link_login_enabled is_sign_up_enabled is_strong_password_enabled is_multi_factor_auth_enabled is_mobile_basic_authentication_enabled is_phone_verification_enabled } }',
+          'query meta { meta { version client_id is_google_login_enabled is_facebook_login_enabled is_github_login_enabled is_linkedin_login_enabled is_apple_login_enabled is_twitter_login_enabled is_microsoft_login_enabled is_twitch_login_enabled is_roblox_login_enabled is_email_verification_enabled is_basic_authentication_enabled is_magic_link_login_enabled is_sign_up_enabled is_strong_password_enabled is_multi_factor_auth_enabled is_mobile_basic_authentication_enabled is_phone_verification_enabled } }',
+        operationName: 'meta',
       });
 
       return res?.errors?.length
@@ -230,8 +232,9 @@ export class Authorizer {
   ): Promise<Types.ApiResponse<Types.User>> => {
     try {
       const profileRes = await this.graphqlQuery({
-        query: `query {	profile { ${userFragment} } }`,
+        query: `query profile {	profile { ${userFragment} } }`,
         headers,
+        operationName: 'profile',
       });
 
       return profileRes?.errors?.length
@@ -254,6 +257,7 @@ export class Authorizer {
         variables: {
           params,
         },
+        operationName: 'getSession',
       });
       return res?.errors?.length
         ? this.errorResponse(res.errors)
@@ -336,6 +340,7 @@ export class Authorizer {
 					mutation login($data: LoginRequest!) { login(params: $data) { ${authTokenFragment}}}
 				`,
         variables: { data },
+        operationName: 'login',
       });
 
       return res?.errors?.length
@@ -351,8 +356,9 @@ export class Authorizer {
   ): Promise<Types.ApiResponse<Types.GenericResponse>> => {
     try {
       const res = await this.graphqlQuery({
-        query: ' mutation { logout { message } } ',
+        query: 'mutation logout { logout { message } }',
         headers,
+        operationName: 'logout',
       });
       return res?.errors?.length
         ? this.errorResponse(res.errors)
@@ -375,6 +381,7 @@ export class Authorizer {
 					mutation magicLinkLogin($data: MagicLinkLoginRequest!) { magic_link_login(params: $data) { message }}
 				`,
         variables: { data },
+        operationName: 'magicLinkLogin',
       });
 
       return res?.errors?.length
@@ -423,6 +430,7 @@ export class Authorizer {
 					mutation resendOtp($data: ResendOTPRequest!) { resend_otp(params: $data) { message }}
 				`,
         variables: { data },
+        operationName: 'resendOtp',
       });
 
       return res?.errors?.length
@@ -443,6 +451,7 @@ export class Authorizer {
         variables: {
           data,
         },
+        operationName: 'resetPassword',
       });
       return resetPasswordRes?.errors?.length
         ? this.errorResponse(resetPasswordRes.errors)
@@ -516,6 +525,7 @@ export class Authorizer {
 					mutation signup($data: SignUpRequest!) { signup(params: $data) { ${authTokenFragment}}}
 				`,
         variables: { data },
+        operationName: 'signup',
       });
 
       return res?.errors?.length
@@ -538,6 +548,7 @@ export class Authorizer {
         variables: {
           data,
         },
+        operationName: 'updateProfile',
       });
 
       return updateProfileRes?.errors?.length
@@ -555,6 +566,7 @@ export class Authorizer {
       const res = await this.graphqlQuery({
         query: 'mutation deactivateAccount { deactivate_account { message } }',
         headers,
+        operationName: 'deactivateAccount',
       });
       return res?.errors?.length
         ? this.errorResponse(res.errors)
@@ -574,6 +586,7 @@ export class Authorizer {
         variables: {
           params,
         },
+        operationName: 'validateJWTToken',
       });
 
       return res?.errors?.length
@@ -593,6 +606,7 @@ export class Authorizer {
         variables: {
           params,
         },
+        operationName: 'validateSession',
       });
 
       return res?.errors?.length
@@ -612,6 +626,7 @@ export class Authorizer {
 					mutation verifyEmail($data: VerifyEmailRequest!) { verify_email(params: $data) { ${authTokenFragment}}}
 				`,
         variables: { data },
+        operationName: 'verifyEmail',
       });
 
       return res?.errors?.length
@@ -631,6 +646,7 @@ export class Authorizer {
 					mutation resendVerifyEmail($data: ResendVerifyEmailRequest!) { resend_verify_email(params: $data) { message }}
 				`,
         variables: { data },
+        operationName: 'resendVerifyEmail',
       });
 
       return res?.errors?.length
@@ -650,6 +666,7 @@ export class Authorizer {
 					mutation verifyOtp($data: VerifyOTPRequest!) { verify_otp(params: $data) { ${authTokenFragment}}}
 				`,
         variables: { data },
+        operationName: 'verifyOtp',
       });
 
       return res?.errors?.length
@@ -666,12 +683,16 @@ export class Authorizer {
     data: Types.GraphqlQueryRequest,
   ): Promise<Types.GrapQlResponseType> => {
     const fetcher = getFetcher();
+    const body: Record<string, unknown> = {
+      query: data.query,
+      variables: data.variables || {},
+    };
+    if (data.operationName) {
+      body.operationName = data.operationName;
+    }
     const res = await fetcher(`${this.config.authorizerURL}/graphql`, {
       method: 'POST',
-      body: JSON.stringify({
-        query: data.query,
-        variables: data.variables || {},
-      }),
+      body: JSON.stringify(body),
       headers: {
         ...this.config.extraHeaders,
         ...(data.headers || {}),
