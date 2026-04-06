@@ -70,7 +70,7 @@ function buildAuthorizerCliArgs(): { args: string[]; clientId: string } {
 // const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const verificationRequests =
-  'query {_verification_requests { verification_requests { id token email expires identifier } } }';
+  'query _verification_requests { _verification_requests { verification_requests { id token email expires identifier } } }';
 
 describe('Integration Tests - authorizer-js', () => {
   let container: StartedTestContainer | undefined;
@@ -125,6 +125,7 @@ describe('Integration Tests - authorizer-js', () => {
       headers: {
         'x-authorizer-admin-secret': authorizerConfig.adminSecret,
       },
+      operationName: '_verification_requests',
     });
     const requests =
       verificationRequestsRes?.data?._verification_requests
@@ -258,6 +259,7 @@ describe('Integration Tests - authorizer-js', () => {
         headers: {
           'x-authorizer-admin-secret': authorizerConfig.adminSecret,
         },
+        operationName: '_verification_requests',
       });
       const requests =
         verificationRequestsRes?.data?._verification_requests

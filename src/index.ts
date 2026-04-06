@@ -197,11 +197,11 @@ export class Authorizer {
     try {
       const forgotPasswordResp = await this.graphqlQuery({
         query:
-          'mutation forgotPassword($data: ForgotPasswordRequest!) {	forgot_password(params: $data) { message should_show_mobile_otp_screen } }',
+          'mutation forgot_password($data: ForgotPasswordRequest!) {	forgot_password(params: $data) { message should_show_mobile_otp_screen } }',
         variables: {
           data,
         },
-        operationName: 'forgotPassword',
+        operationName: 'forgot_password',
       });
       return forgotPasswordResp?.errors?.length
         ? this.errorResponse(forgotPasswordResp.errors)
@@ -252,12 +252,12 @@ export class Authorizer {
   ): Promise<Types.ApiResponse<Types.AuthToken>> => {
     try {
       const res = await this.graphqlQuery({
-        query: `query getSession($params: SessionQueryRequest){session(params: $params) { ${authTokenFragment} } }`,
+        query: `query session($params: SessionQueryRequest){session(params: $params) { ${authTokenFragment} } }`,
         headers,
         variables: {
           params,
         },
-        operationName: 'getSession',
+        operationName: 'session',
       });
       return res?.errors?.length
         ? this.errorResponse(res.errors)
@@ -378,10 +378,10 @@ export class Authorizer {
 
       const res = await this.graphqlQuery({
         query: `
-					mutation magicLinkLogin($data: MagicLinkLoginRequest!) { magic_link_login(params: $data) { message }}
+					mutation magic_link_login($data: MagicLinkLoginRequest!) { magic_link_login(params: $data) { message }}
 				`,
         variables: { data },
-        operationName: 'magicLinkLogin',
+        operationName: 'magic_link_login',
       });
 
       return res?.errors?.length
@@ -427,10 +427,10 @@ export class Authorizer {
     try {
       const res = await this.graphqlQuery({
         query: `
-					mutation resendOtp($data: ResendOTPRequest!) { resend_otp(params: $data) { message }}
+					mutation resend_otp($data: ResendOTPRequest!) { resend_otp(params: $data) { message }}
 				`,
         variables: { data },
-        operationName: 'resendOtp',
+        operationName: 'resend_otp',
       });
 
       return res?.errors?.length
@@ -447,11 +447,11 @@ export class Authorizer {
     try {
       const resetPasswordRes = await this.graphqlQuery({
         query:
-          'mutation resetPassword($data: ResetPasswordRequest!) {	reset_password(params: $data) { message } }',
+          'mutation reset_password($data: ResetPasswordRequest!) {	reset_password(params: $data) { message } }',
         variables: {
           data,
         },
-        operationName: 'resetPassword',
+        operationName: 'reset_password',
       });
       return resetPasswordRes?.errors?.length
         ? this.errorResponse(resetPasswordRes.errors)
@@ -543,12 +543,12 @@ export class Authorizer {
     try {
       const updateProfileRes = await this.graphqlQuery({
         query:
-          'mutation updateProfile($data: UpdateProfileRequest!) {	update_profile(params: $data) { message } }',
+          'mutation update_profile($data: UpdateProfileRequest!) {	update_profile(params: $data) { message } }',
         headers,
         variables: {
           data,
         },
-        operationName: 'updateProfile',
+        operationName: 'update_profile',
       });
 
       return updateProfileRes?.errors?.length
@@ -564,9 +564,9 @@ export class Authorizer {
   ): Promise<Types.ApiResponse<Types.GenericResponse>> => {
     try {
       const res = await this.graphqlQuery({
-        query: 'mutation deactivateAccount { deactivate_account { message } }',
+        query: 'mutation deactivate_account { deactivate_account { message } }',
         headers,
-        operationName: 'deactivateAccount',
+        operationName: 'deactivate_account',
       });
       return res?.errors?.length
         ? this.errorResponse(res.errors)
@@ -582,11 +582,11 @@ export class Authorizer {
     try {
       const res = await this.graphqlQuery({
         query:
-          'query validateJWTToken($params: ValidateJWTTokenRequest!){validate_jwt_token(params: $params) { is_valid claims } }',
+          'query validate_jwt_token($params: ValidateJWTTokenRequest!){validate_jwt_token(params: $params) { is_valid claims } }',
         variables: {
           params,
         },
-        operationName: 'validateJWTToken',
+        operationName: 'validate_jwt_token',
       });
 
       return res?.errors?.length
@@ -602,11 +602,11 @@ export class Authorizer {
   ): Promise<Types.ApiResponse<Types.ValidateSessionResponse>> => {
     try {
       const res = await this.graphqlQuery({
-        query: `query validateSession($params: ValidateSessionRequest){validate_session(params: $params) { is_valid user { ${userFragment} } } }`,
+        query: `query validate_session($params: ValidateSessionRequest){validate_session(params: $params) { is_valid user { ${userFragment} } } }`,
         variables: {
           params,
         },
-        operationName: 'validateSession',
+        operationName: 'validate_session',
       });
 
       return res?.errors?.length
@@ -623,10 +623,10 @@ export class Authorizer {
     try {
       const res = await this.graphqlQuery({
         query: `
-					mutation verifyEmail($data: VerifyEmailRequest!) { verify_email(params: $data) { ${authTokenFragment}}}
+					mutation verify_email($data: VerifyEmailRequest!) { verify_email(params: $data) { ${authTokenFragment}}}
 				`,
         variables: { data },
-        operationName: 'verifyEmail',
+        operationName: 'verify_email',
       });
 
       return res?.errors?.length
@@ -643,10 +643,10 @@ export class Authorizer {
     try {
       const res = await this.graphqlQuery({
         query: `
-					mutation resendVerifyEmail($data: ResendVerifyEmailRequest!) { resend_verify_email(params: $data) { message }}
+					mutation resend_verify_email($data: ResendVerifyEmailRequest!) { resend_verify_email(params: $data) { message }}
 				`,
         variables: { data },
-        operationName: 'resendVerifyEmail',
+        operationName: 'resend_verify_email',
       });
 
       return res?.errors?.length
@@ -663,10 +663,10 @@ export class Authorizer {
     try {
       const res = await this.graphqlQuery({
         query: `
-					mutation verifyOtp($data: VerifyOTPRequest!) { verify_otp(params: $data) { ${authTokenFragment}}}
+					mutation verify_otp($data: VerifyOTPRequest!) { verify_otp(params: $data) { ${authTokenFragment}}}
 				`,
         variables: { data },
-        operationName: 'verifyOtp',
+        operationName: 'verify_otp',
       });
 
       return res?.errors?.length

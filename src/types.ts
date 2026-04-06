@@ -387,7 +387,7 @@ export interface GraphqlQueryRequest {
   query: string;
   variables?: Record<string, any>;
   headers?: Headers;
-  /** When set, sent as the GraphQL `operationName` field (helps servers identify the operation for logging and metrics). */
+  /** When set, sent as the GraphQL `operationName` field; should match the named operation in `query` (schema field names, e.g. `forgot_password`). */
   operationName?: string;
 }
 
