@@ -181,6 +181,31 @@ describe('Integration Tests - authorizer-js', () => {
     expect(validateRes?.data?.is_valid).toEqual(true);
   });
 
+  it('should mark token invalid when required_permissions are missing', async () => {
+    expect(loginRes?.data?.access_token).toBeDefined();
+    expect(loginRes?.data?.access_token).not.toBeNull();
+    // A new user lacks the documents:read permission, so asserting it via
+    // required_permissions (AND semantics) must mark the token as not valid.
+    const validateRes = await authorizer.validateJWTToken({
+      token_type: 'access_token',
+      token: loginRes?.data?.access_token || '',
+      required_permissions: [{ resource: 'documents', scope: 'read' }],
+    });
+    expect(validateRes?.errors).toHaveLength(0);
+    expect(validateRes?.data?.is_valid).toEqual(false);
+  });
+
+  it('should fetch permissions for the authenticated user', async () => {
+    expect(loginRes?.data?.access_token).toBeDefined();
+    expect(loginRes?.data?.access_token).not.toBeNull();
+    const permissionsRes = await authorizer.getPermissions({
+      Authorization: `Bearer ${loginRes?.data?.access_token}`,
+    });
+    expect(permissionsRes?.errors).toHaveLength(0);
+    // A freshly signed up user has no fine-grained permissions assigned.
+    expect(permissionsRes?.data).toEqual([]);
+  });
+
   it('should update profile successfully', async () => {
     expect(loginRes?.data?.access_token).toBeDefined();
     expect(loginRes?.data?.access_token).not.toBeNull();

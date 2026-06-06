@@ -245,6 +245,27 @@ export class Authorizer {
     }
   };
 
+  // fetch the fine-grained resource:scope permissions granted to the
+  // authenticated principal. Uses the session cookie by default; when running
+  // in node.js pass the authorization header.
+  getPermissions = async (
+    headers?: Types.Headers,
+  ): Promise<Types.ApiResponse<Types.Permission[]>> => {
+    try {
+      const res = await this.graphqlQuery({
+        query: 'query permissions { permissions { resource scope } }',
+        headers,
+        operationName: 'permissions',
+      });
+
+      return res?.errors?.length
+        ? this.errorResponse(res.errors)
+        : this.okResponse(res.data?.permissions);
+    } catch (error) {
+      return this.errorResponse([error]);
+    }
+  };
+
   // this is used to verify / get session using cookie by default. If using node.js pass authorization header
   getSession = async (
     headers?: Types.Headers,

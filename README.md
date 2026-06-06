@@ -131,6 +131,36 @@ async function main() {
 }
 ```
 
+## Fine-grained authorization (FGA)
+
+Authorizer supports resource:scope based fine-grained permissions. The SDK exposes them in two ways.
+
+**1. Assert required permissions while validating** — pass `required_permissions` to `getSession`, `validateJWTToken` or `validateSession`. They are evaluated with AND semantics: every entry must be granted, otherwise the result is unauthorized.
+
+```js
+const { data } = await authRef.validateJWTToken({
+  token_type: 'access_token',
+  token,
+  required_permissions: [
+    { resource: 'documents', scope: 'read' },
+    { resource: 'documents', scope: 'write' },
+  ],
+});
+
+if (!data?.is_valid) {
+  // unauthorized
+}
+```
+
+**2. Fetch the principal's granted permissions** — `getPermissions` returns the resource:scope permissions for the authenticated principal. It uses the session cookie by default; in node.js pass the authorization header.
+
+```js
+const { data: permissions } = await authRef.getPermissions({
+  Authorization: `Bearer ${token}`,
+});
+// permissions => [{ resource: 'documents', scope: 'read' }, ...]
+```
+
 ## Local Development Setup
 
 ### Prerequisites

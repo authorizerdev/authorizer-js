@@ -285,10 +285,27 @@ export interface DeleteUserRequest {
   email: string;
 }
 
+// Fine-grained authorization (FGA) types
+// PermissionInput is a resource:scope pair asserted as a required permission.
+// Required permissions are evaluated with AND semantics — every entry must be
+// granted, otherwise the principal is treated as unauthorized.
+export interface PermissionInput {
+  resource: string;
+  scope: string;
+}
+
+// Permission is a resource:scope permission granted to a principal,
+// returned by the permissions query.
+export interface Permission {
+  resource: string;
+  scope: string;
+}
+
 // SessionQueryRequest
 export interface SessionQueryRequest {
   roles?: string[] | null;
   scope?: string[] | null;
+  required_permissions?: PermissionInput[] | null;
 }
 
 // Keep SessionQueryInput as alias for backward compatibility
@@ -299,6 +316,7 @@ export interface ValidateJWTTokenRequest {
   token_type: string;
   token: string;
   roles?: string[] | null;
+  required_permissions?: PermissionInput[] | null;
 }
 
 // Keep ValidateJWTTokenInput as alias for backward compatibility
@@ -314,6 +332,7 @@ export interface ValidateJWTTokenResponse {
 export interface ValidateSessionRequest {
   cookie: string;
   roles?: string[] | null;
+  required_permissions?: PermissionInput[] | null;
 }
 
 // Keep ValidateSessionInput as alias for backward compatibility
