@@ -194,12 +194,12 @@ describe('Integration Tests - authorizer-js', () => {
   // ---- Fine-grained authorization (FGA) ----
   //
   // The embedded OpenFGA engine auto-enables when the main database is
-  // SQL-compatible (this container runs sqlite), so the fga_* surface is live
-  // out of the box on FGA-capable servers. Older server images predate the
-  // fga_* GraphQL fields entirely; the probe in the setup test detects that
-  // and the FGA assertions no-op with a warning instead of failing — they
-  // light up automatically once AUTHORIZER_IMAGE points at an FGA-capable
-  // build.
+  // SQL-compatible (this container runs sqlite), so the permission-check
+  // surface is live out of the box on FGA-capable servers. Older server
+  // images predate the check_permissions / list_permissions GraphQL fields
+  // entirely; the probe in the setup test detects that and the FGA assertions
+  // no-op with a warning instead of failing — they light up automatically
+  // once AUTHORIZER_IMAGE points at an FGA-capable build.
   //
   // Model/tuple authoring is an admin concern and deliberately NOT part of
   // the SDK surface; the setup below uses the raw `graphqlQuery` escape hatch
@@ -218,19 +218,19 @@ type document
 
   const fgaSkipWarning = () =>
     console.warn(
-      'Skipping FGA assertions: server image has no fga_* GraphQL surface. Set AUTHORIZER_IMAGE to an FGA-capable build to run them.',
+      'Skipping FGA assertions: server image has no check_permissions GraphQL surface. Set AUTHORIZER_IMAGE to an FGA-capable build to run them.',
     );
 
   it('should install an FGA model and grant a tuple (admin setup)', async () => {
     expect(loginRes?.data?.access_token).toBeDefined();
     expect(loginRes?.data?.access_token).not.toBeNull();
 
-    // Probe: a server without FGA fails GraphQL validation on the fga_check
-    // field ("Cannot query field"); any other outcome (data or an engine /
-    // auth error) proves the surface exists.
+    // Probe: a server without FGA fails GraphQL validation on the
+    // check_permissions field ("Cannot query field"); any other outcome (data
+    // or an engine / auth error) proves the surface exists.
     const probe = await authorizer.graphqlQuery({
       query:
-        'query fgaProbe { fga_check(params: { relation: "viewer", object: "document:probe" }) { allowed } }',
+        'query fgaProbe { check_permissions(params: { checks: [{ relation: "viewer", object: "document:probe" }] }) { results { allowed } } }',
       headers: { Authorization: `Bearer ${loginRes?.data?.access_token}` },
       operationName: 'fgaProbe',
     });
@@ -287,54 +287,64 @@ type document
     expect(tuplesRes?.errors).toHaveLength(0);
   });
 
-  it('should allow fgaCheck for a granted relation and deny otherwise', async () => {
+  it('should allow checkPermissions for a granted relation and deny otherwise', async () => {
     if (!fgaSupported) return fgaSkipWarning();
     const authHeaders = {
       Authorization: `Bearer ${loginRes?.data?.access_token}`,
     };
 
     // can_view derives from the granted viewer tuple.
-    const allowedRes = await authorizer.fgaCheck(
-      { relation: 'can_view', object: 'document:fga-doc-1' },
+    const allowedRes = await authorizer.checkPermissions(
+      { checks: [{ relation: 'can_view', object: 'document:fga-doc-1' }] },
       authHeaders,
     );
     expect(allowedRes?.errors).toHaveLength(0);
-    expect(allowedRes?.data?.allowed).toEqual(true);
+    expect(allowedRes?.data?.results).toHaveLength(1);
+    expect(allowedRes?.data?.results?.[0]).toEqual({
+      relation: 'can_view',
+      object: 'document:fga-doc-1',
+      allowed: true,
+    });
 
     // Nothing grants doc-2 — a clean deny (allowed=false), not an error.
-    const deniedRes = await authorizer.fgaCheck(
-      { relation: 'can_view', object: 'document:fga-doc-2' },
+    const deniedRes = await authorizer.checkPermissions(
+      { checks: [{ relation: 'can_view', object: 'document:fga-doc-2' }] },
       authHeaders,
     );
     expect(deniedRes?.errors).toHaveLength(0);
-    expect(deniedRes?.data?.allowed).toEqual(false);
+    expect(deniedRes?.data?.results).toHaveLength(1);
+    expect(deniedRes?.data?.results?.[0]?.allowed).toEqual(false);
   });
 
-  it('should honor contextual tuples in fgaCheck', async () => {
+  it('should honor contextual tuples in checkPermissions', async () => {
     if (!fgaSupported) return fgaSkipWarning();
     // The contextual tuple grants viewer on doc-2 for this single evaluation
     // only; nothing is persisted.
-    const res = await authorizer.fgaCheck(
+    const res = await authorizer.checkPermissions(
       {
-        relation: 'can_view',
-        object: 'document:fga-doc-2',
-        contextual_tuples: [
+        checks: [
           {
-            user: `user:${testConfig.userId}`,
-            relation: 'viewer',
+            relation: 'can_view',
             object: 'document:fga-doc-2',
+            contextual_tuples: [
+              {
+                user: `user:${testConfig.userId}`,
+                relation: 'viewer',
+                object: 'document:fga-doc-2',
+              },
+            ],
           },
         ],
       },
       { Authorization: `Bearer ${loginRes?.data?.access_token}` },
     );
     expect(res?.errors).toHaveLength(0);
-    expect(res?.data?.allowed).toEqual(true);
+    expect(res?.data?.results?.[0]?.allowed).toEqual(true);
   });
 
-  it('should return positional results from fgaBatchCheck', async () => {
+  it('should return positional results from a batched checkPermissions', async () => {
     if (!fgaSupported) return fgaSkipWarning();
-    const res = await authorizer.fgaBatchCheck(
+    const res = await authorizer.checkPermissions(
       {
         checks: [
           { relation: 'can_view', object: 'document:fga-doc-1' },
@@ -345,13 +355,22 @@ type document
     );
     expect(res?.errors).toHaveLength(0);
     expect(res?.data?.results).toHaveLength(2);
-    expect(res?.data?.results?.[0]?.allowed).toEqual(true);
-    expect(res?.data?.results?.[1]?.allowed).toEqual(false);
+    // Results are positional and echo the checked pair.
+    expect(res?.data?.results?.[0]).toEqual({
+      relation: 'can_view',
+      object: 'document:fga-doc-1',
+      allowed: true,
+    });
+    expect(res?.data?.results?.[1]).toEqual({
+      relation: 'can_view',
+      object: 'document:fga-doc-2',
+      allowed: false,
+    });
   });
 
-  it('should list accessible objects via fgaListObjects', async () => {
+  it('should list accessible objects via listPermissions', async () => {
     if (!fgaSupported) return fgaSkipWarning();
-    const res = await authorizer.fgaListObjects(
+    const res = await authorizer.listPermissions(
       { relation: 'can_view', object_type: 'document' },
       { Authorization: `Bearer ${loginRes?.data?.access_token}` },
     );

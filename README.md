@@ -142,40 +142,49 @@ Authoring the model and tuples is an admin task — do it once in the dashboard 
 **Authorization**, or via the `_fga_*` admin GraphQL API. The SDK exposes only the
 read-side checks an application needs at request time. For every call the subject
 defaults to the authenticated caller and is pinned server-side from the request
-(session cookie by default; pass the authorization header in node.js).
+(session cookie by default; pass the authorization header in node.js). The optional
+`user` field (`"type:id"`, or a bare id treated as `"user:<id>"`) lets you check on
+behalf of someone else, but the server honors it only for super-admin callers or when
+it equals the caller's own token subject — anything else is rejected, never silently
+ignored.
 
-**1. Check a single permission** — `fgaCheck` answers "does the caller have `relation`
-on `object`?".
+**1. Check permissions** — `checkPermissions` answers "does the subject have
+`relation` on `object`?" for one or more pairs in a single round trip. `results`
+come back in the same order as the supplied `checks`, each echoing its
+relation/object pair.
 
 ```js
-const { data } = await authRef.fgaCheck(
-  { relation: 'can_view', object: 'document:1' },
+const { data } = await authRef.checkPermissions(
+  { checks: [{ relation: 'can_view', object: 'document:1' }] },
   { Authorization: `Bearer ${token}` }, // omit in the browser to use the cookie
 );
 
-if (data?.allowed) {
+if (data?.results?.[0]?.allowed) {
   // caller may view document:1
 }
 ```
 
-**2. Check many at once** — `fgaBatchCheck` evaluates several pairs in one round trip;
-`results` come back in the same order as the supplied `checks`.
+Batch several checks at once:
 
 ```js
-const { data } = await authRef.fgaBatchCheck({
+const { data } = await authRef.checkPermissions({
   checks: [
     { relation: 'can_view', object: 'document:1' },
     { relation: 'can_edit', object: 'document:1' },
   ],
 });
-// data?.results => [{ allowed: true }, { allowed: false }]
+// data?.results =>
+//   [
+//     { relation: 'can_view', object: 'document:1', allowed: true },
+//     { relation: 'can_edit', object: 'document:1', allowed: false },
+//   ]
 ```
 
-**3. List accessible objects** — `fgaListObjects` returns the ids of every object of a
-type the caller relates to (handy for filtering a list to what the user can see).
+**2. List accessible objects** — `listPermissions` returns the ids of every object of
+a type the subject relates to (handy for filtering a list to what the user can see).
 
 ```js
-const { data } = await authRef.fgaListObjects({
+const { data } = await authRef.listPermissions({
   relation: 'can_view',
   object_type: 'document',
 });

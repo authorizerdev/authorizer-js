@@ -245,71 +245,59 @@ export class Authorizer {
     }
   };
 
-  // fgaCheck answers "does the caller have `relation` on `object`?" using the
-  // embedded OpenFGA engine. The subject is pinned server-side from the request
-  // (session cookie by default; pass the authorization header in node.js).
-  fgaCheck = async (
-    params: Types.FgaCheckInput,
+  // checkPermissions evaluates one or more permission checks ("does the
+  // subject have `relation` on `object`?") in a single round trip using the
+  // embedded OpenFGA engine. Results come back in the same order as the
+  // supplied `checks`, each echoing its relation/object pair.
+  //
+  // The subject defaults to the authenticated caller and is pinned server-side
+  // from the request (session cookie by default; pass the authorization header
+  // in node.js). The optional `params.user` ("type:id", or a bare id treated
+  // as "user:<id>") is honored only for super-admin callers or when it equals
+  // the caller's own token subject; anything else is rejected by the server.
+  checkPermissions = async (
+    params: Types.CheckPermissionsInput,
     headers?: Types.Headers,
-  ): Promise<Types.ApiResponse<Types.FgaCheckResponse>> => {
+  ): Promise<Types.ApiResponse<Types.CheckPermissionsResponse>> => {
     try {
       const res = await this.graphqlQuery({
         query:
-          'query fgaCheck($params: FgaCheckInput!){ fga_check(params: $params) { allowed } }',
+          'query checkPermissions($params: CheckPermissionsInput!){ check_permissions(params: $params) { results { relation object allowed } } }',
         headers,
         variables: { params },
-        operationName: 'fgaCheck',
+        operationName: 'checkPermissions',
       });
 
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.fga_check);
+        : this.okResponse(res.data?.check_permissions);
     } catch (error) {
       return this.errorResponse([error]);
     }
   };
 
-  // fgaBatchCheck evaluates several relation/object pairs in one round trip.
-  // Results are returned in the same order as the supplied `checks`.
-  fgaBatchCheck = async (
-    params: Types.FgaBatchCheckInput,
+  // listPermissions returns the fully-qualified ids of objects of
+  // `object_type` the subject holds `relation` on (handy for filtering a list
+  // to what the user can see). Subject resolution follows the same rules as
+  // checkPermissions: it defaults to the authenticated caller, and the
+  // optional `params.user` override is honored only for super-admin callers
+  // or when it equals the caller's own token subject.
+  listPermissions = async (
+    params: Types.ListPermissionsInput,
     headers?: Types.Headers,
-  ): Promise<Types.ApiResponse<Types.FgaBatchCheckResponse>> => {
+  ): Promise<Types.ApiResponse<Types.ListPermissionsResponse>> => {
     try {
       const res = await this.graphqlQuery({
         query:
-          'query fgaBatchCheck($params: FgaBatchCheckInput!){ fga_batch_check(params: $params) { results { allowed } } }',
+          'query listPermissions($params: ListPermissionsInput!){ list_permissions(params: $params) { objects } }',
         headers,
         variables: { params },
-        operationName: 'fgaBatchCheck',
+        operationName: 'listPermissions',
       });
 
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.fga_batch_check);
-    } catch (error) {
-      return this.errorResponse([error]);
-    }
-  };
-
-  // fgaListObjects returns the fully-qualified ids of objects of `object_type`
-  // the caller relates to via `relation`.
-  fgaListObjects = async (
-    params: Types.FgaListObjectsInput,
-    headers?: Types.Headers,
-  ): Promise<Types.ApiResponse<Types.FgaListObjectsResponse>> => {
-    try {
-      const res = await this.graphqlQuery({
-        query:
-          'query fgaListObjects($params: FgaListObjectsInput!){ fga_list_objects(params: $params) { objects } }',
-        headers,
-        variables: { params },
-        operationName: 'fgaListObjects',
-      });
-
-      return res?.errors?.length
-        ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.fga_list_objects);
+        : this.okResponse(res.data?.list_permissions);
     } catch (error) {
       return this.errorResponse([error]);
     }

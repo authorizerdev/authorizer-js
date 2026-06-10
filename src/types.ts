@@ -293,7 +293,9 @@ export interface DeleteUserRequest {
 //
 // For every operation the subject defaults to the authenticated caller and is
 // pinned server-side from the request (session cookie or bearer token). The
-// optional `user` override is honored only for super-admin callers.
+// optional `user` override ("type:id", or a bare id treated as "user:<id>")
+// is honored only when the caller is a super-admin or when it equals the
+// caller's own token subject; anything else is rejected by the server.
 
 // FgaTupleInput is a single relationship tuple (user is related to object via
 // relation), used to pass contextual tuples evaluated for one check only and
@@ -304,41 +306,52 @@ export interface FgaTupleInput {
   object: string;
 }
 
-// FgaCheckInput asks "is the caller related to `object` via `relation`?".
-export interface FgaCheckInput {
+// PermissionCheckInput is one permission to evaluate: "does the subject have
+// `relation` on `object`?". Contextual tuples are evaluated for this check
+// only and never persisted.
+export interface PermissionCheckInput {
   relation: string;
   object: string;
   contextual_tuples?: FgaTupleInput[] | null;
+}
+
+// CheckPermissionsInput evaluates one or more permission checks in a single
+// call. The subject defaults to the authenticated caller (JWT / session
+// cookie). The optional `user` ("type:id", or a bare id treated as
+// "user:<id>") is honored only when the caller is a super-admin OR it equals
+// the caller's own token subject; anything else is rejected by the server —
+// never silently ignored.
+export interface CheckPermissionsInput {
+  checks: PermissionCheckInput[];
   user?: string | null;
 }
 
-// FgaCheckResponse is the result of a single relationship check.
-export interface FgaCheckResponse {
+// PermissionCheckResult is the outcome of one permission check, echoing the
+// checked pair so batch results are self-describing (and positionally aligned
+// with the supplied `checks`).
+export interface PermissionCheckResult {
+  relation: string;
+  object: string;
   allowed: boolean;
 }
 
-// FgaBatchCheckInput evaluates multiple relation/object pairs in one call.
-export interface FgaBatchCheckInput {
-  checks: FgaCheckInput[];
+// CheckPermissionsResponse carries one result per supplied check, in order.
+export interface CheckPermissionsResponse {
+  results: PermissionCheckResult[];
 }
 
-// FgaBatchCheckResponse holds the results of a batch check, positionally
-// aligned with the `checks` supplied in the request.
-export interface FgaBatchCheckResponse {
-  results: FgaCheckResponse[];
-}
-
-// FgaListObjectsInput enumerates objects of `object_type` the caller relates to
-// via `relation`.
-export interface FgaListObjectsInput {
+// ListPermissionsInput enumerates the objects of `object_type` the subject
+// holds `relation` on. Subject resolution (the optional `user` override)
+// follows the same rules as CheckPermissionsInput.user.
+export interface ListPermissionsInput {
   relation: string;
   object_type: string;
   user?: string | null;
 }
 
-// FgaListObjectsResponse lists fully-qualified object ids (e.g. "document:1")
-// the caller relates to.
-export interface FgaListObjectsResponse {
+// ListPermissionsResponse lists fully-qualified object ids (e.g. "document:1")
+// the subject holds the queried permission on.
+export interface ListPermissionsResponse {
   objects: string[];
 }
 
