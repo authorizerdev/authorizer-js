@@ -285,27 +285,67 @@ export interface DeleteUserRequest {
   email: string;
 }
 
-// Fine-grained authorization (FGA) types
-// PermissionInput is a resource:scope pair asserted as a required permission.
-// Required permissions are evaluated with AND semantics — every entry must be
-// granted, otherwise the principal is treated as unauthorized.
-export interface PermissionInput {
-  resource: string;
-  scope: string;
+// Fine-grained authorization (FGA) types — the client-facing surface of
+// Authorizer's embedded OpenFGA engine. Only the read-side operations a relying
+// party needs are exposed: checking access and listing accessible objects.
+// Authoring the authorization model and relationship tuples is an admin concern
+// handled from the dashboard / `_fga_*` admin API, and is not part of this SDK.
+//
+// For every operation the subject defaults to the authenticated caller and is
+// pinned server-side from the request (session cookie or bearer token). The
+// optional `user` override is honored only for super-admin callers.
+
+// FgaTupleInput is a single relationship tuple (user is related to object via
+// relation), used to pass contextual tuples evaluated for one check only and
+// never persisted.
+export interface FgaTupleInput {
+  user: string;
+  relation: string;
+  object: string;
 }
 
-// Permission is a resource:scope permission granted to a principal,
-// returned by the permissions query.
-export interface Permission {
-  resource: string;
-  scope: string;
+// FgaCheckInput asks "is the caller related to `object` via `relation`?".
+export interface FgaCheckInput {
+  relation: string;
+  object: string;
+  contextual_tuples?: FgaTupleInput[] | null;
+  user?: string | null;
+}
+
+// FgaCheckResponse is the result of a single relationship check.
+export interface FgaCheckResponse {
+  allowed: boolean;
+}
+
+// FgaBatchCheckInput evaluates multiple relation/object pairs in one call.
+export interface FgaBatchCheckInput {
+  checks: FgaCheckInput[];
+}
+
+// FgaBatchCheckResponse holds the results of a batch check, positionally
+// aligned with the `checks` supplied in the request.
+export interface FgaBatchCheckResponse {
+  results: FgaCheckResponse[];
+}
+
+// FgaListObjectsInput enumerates objects of `object_type` the caller relates to
+// via `relation`.
+export interface FgaListObjectsInput {
+  relation: string;
+  object_type: string;
+  user?: string | null;
+}
+
+// FgaListObjectsResponse lists fully-qualified object ids (e.g. "document:1")
+// the caller relates to.
+export interface FgaListObjectsResponse {
+  objects: string[];
 }
 
 // SessionQueryRequest
 export interface SessionQueryRequest {
   roles?: string[] | null;
   scope?: string[] | null;
-  required_permissions?: PermissionInput[] | null;
 }
 
 // Keep SessionQueryInput as alias for backward compatibility
@@ -316,7 +356,6 @@ export interface ValidateJWTTokenRequest {
   token_type: string;
   token: string;
   roles?: string[] | null;
-  required_permissions?: PermissionInput[] | null;
 }
 
 // Keep ValidateJWTTokenInput as alias for backward compatibility
@@ -332,7 +371,6 @@ export interface ValidateJWTTokenResponse {
 export interface ValidateSessionRequest {
   cookie: string;
   roles?: string[] | null;
-  required_permissions?: PermissionInput[] | null;
 }
 
 // Keep ValidateSessionInput as alias for backward compatibility

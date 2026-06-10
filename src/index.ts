@@ -245,22 +245,71 @@ export class Authorizer {
     }
   };
 
-  // fetch the fine-grained resource:scope permissions granted to the
-  // authenticated principal. Uses the session cookie by default; when running
-  // in node.js pass the authorization header.
-  getPermissions = async (
+  // fgaCheck answers "does the caller have `relation` on `object`?" using the
+  // embedded OpenFGA engine. The subject is pinned server-side from the request
+  // (session cookie by default; pass the authorization header in node.js).
+  fgaCheck = async (
+    params: Types.FgaCheckInput,
     headers?: Types.Headers,
-  ): Promise<Types.ApiResponse<Types.Permission[]>> => {
+  ): Promise<Types.ApiResponse<Types.FgaCheckResponse>> => {
     try {
       const res = await this.graphqlQuery({
-        query: 'query permissions { permissions { resource scope } }',
+        query:
+          'query fgaCheck($params: FgaCheckInput!){ fga_check(params: $params) { allowed } }',
         headers,
-        operationName: 'permissions',
+        variables: { params },
+        operationName: 'fgaCheck',
       });
 
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.permissions);
+        : this.okResponse(res.data?.fga_check);
+    } catch (error) {
+      return this.errorResponse([error]);
+    }
+  };
+
+  // fgaBatchCheck evaluates several relation/object pairs in one round trip.
+  // Results are returned in the same order as the supplied `checks`.
+  fgaBatchCheck = async (
+    params: Types.FgaBatchCheckInput,
+    headers?: Types.Headers,
+  ): Promise<Types.ApiResponse<Types.FgaBatchCheckResponse>> => {
+    try {
+      const res = await this.graphqlQuery({
+        query:
+          'query fgaBatchCheck($params: FgaBatchCheckInput!){ fga_batch_check(params: $params) { results { allowed } } }',
+        headers,
+        variables: { params },
+        operationName: 'fgaBatchCheck',
+      });
+
+      return res?.errors?.length
+        ? this.errorResponse(res.errors)
+        : this.okResponse(res.data?.fga_batch_check);
+    } catch (error) {
+      return this.errorResponse([error]);
+    }
+  };
+
+  // fgaListObjects returns the fully-qualified ids of objects of `object_type`
+  // the caller relates to via `relation`.
+  fgaListObjects = async (
+    params: Types.FgaListObjectsInput,
+    headers?: Types.Headers,
+  ): Promise<Types.ApiResponse<Types.FgaListObjectsResponse>> => {
+    try {
+      const res = await this.graphqlQuery({
+        query:
+          'query fgaListObjects($params: FgaListObjectsInput!){ fga_list_objects(params: $params) { objects } }',
+        headers,
+        variables: { params },
+        operationName: 'fgaListObjects',
+      });
+
+      return res?.errors?.length
+        ? this.errorResponse(res.errors)
+        : this.okResponse(res.data?.fga_list_objects);
     } catch (error) {
       return this.errorResponse([error]);
     }

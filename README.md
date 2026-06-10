@@ -133,32 +133,53 @@ async function main() {
 
 ## Fine-grained authorization (FGA)
 
-Authorizer supports resource:scope based fine-grained permissions. The SDK exposes them in two ways.
+Authorizer ships an embedded [OpenFGA](https://openfga.dev) engine for relationship-based
+access control (ReBAC). You model your domain as object **types** with **relations**
+(`viewer`, `editor`, `owner`…), grant access by writing **relationship tuples**
+(`user:alice` is `viewer` of `document:1`), and ask the engine whether access is allowed.
 
-**1. Assert required permissions while validating** — pass `required_permissions` to `getSession`, `validateJWTToken` or `validateSession`. They are evaluated with AND semantics: every entry must be granted, otherwise the result is unauthorized.
+Authoring the model and tuples is an admin task — do it once in the dashboard under
+**Authorization**, or via the `_fga_*` admin GraphQL API. The SDK exposes only the
+read-side checks an application needs at request time. For every call the subject
+defaults to the authenticated caller and is pinned server-side from the request
+(session cookie by default; pass the authorization header in node.js).
+
+**1. Check a single permission** — `fgaCheck` answers "does the caller have `relation`
+on `object`?".
 
 ```js
-const { data } = await authRef.validateJWTToken({
-  token_type: 'access_token',
-  token,
-  required_permissions: [
-    { resource: 'documents', scope: 'read' },
-    { resource: 'documents', scope: 'write' },
-  ],
-});
+const { data } = await authRef.fgaCheck(
+  { relation: 'can_view', object: 'document:1' },
+  { Authorization: `Bearer ${token}` }, // omit in the browser to use the cookie
+);
 
-if (!data?.is_valid) {
-  // unauthorized
+if (data?.allowed) {
+  // caller may view document:1
 }
 ```
 
-**2. Fetch the principal's granted permissions** — `getPermissions` returns the resource:scope permissions for the authenticated principal. It uses the session cookie by default; in node.js pass the authorization header.
+**2. Check many at once** — `fgaBatchCheck` evaluates several pairs in one round trip;
+`results` come back in the same order as the supplied `checks`.
 
 ```js
-const { data: permissions } = await authRef.getPermissions({
-  Authorization: `Bearer ${token}`,
+const { data } = await authRef.fgaBatchCheck({
+  checks: [
+    { relation: 'can_view', object: 'document:1' },
+    { relation: 'can_edit', object: 'document:1' },
+  ],
 });
-// permissions => [{ resource: 'documents', scope: 'read' }, ...]
+// data?.results => [{ allowed: true }, { allowed: false }]
+```
+
+**3. List accessible objects** — `fgaListObjects` returns the ids of every object of a
+type the caller relates to (handy for filtering a list to what the user can see).
+
+```js
+const { data } = await authRef.fgaListObjects({
+  relation: 'can_view',
+  object_type: 'document',
+});
+// data?.objects => ['document:1', 'document:7', ...]
 ```
 
 ## Local Development Setup
