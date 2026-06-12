@@ -285,6 +285,76 @@ export interface DeleteUserRequest {
   email: string;
 }
 
+// Fine-grained authorization (FGA) types — the client-facing surface of
+// Authorizer's embedded OpenFGA engine. Only the read-side operations a relying
+// party needs are exposed: checking access and listing accessible objects.
+// Authoring the authorization model and relationship tuples is an admin concern
+// handled from the dashboard / `_fga_*` admin API, and is not part of this SDK.
+//
+// For every operation the subject defaults to the authenticated caller and is
+// pinned server-side from the request (session cookie or bearer token). The
+// optional `user` override ("type:id", or a bare id treated as "user:<id>")
+// is honored only when the caller is a super-admin or when it equals the
+// caller's own token subject; anything else is rejected by the server.
+
+// FgaTupleInput is a single relationship tuple (user is related to object via
+// relation), used to pass contextual tuples evaluated for one check only and
+// never persisted.
+export interface FgaTupleInput {
+  user: string;
+  relation: string;
+  object: string;
+}
+
+// PermissionCheckInput is one permission to evaluate: "does the subject have
+// `relation` on `object`?". Contextual tuples are evaluated for this check
+// only and never persisted.
+export interface PermissionCheckInput {
+  relation: string;
+  object: string;
+  contextual_tuples?: FgaTupleInput[] | null;
+}
+
+// CheckPermissionsInput evaluates one or more permission checks in a single
+// call. The subject defaults to the authenticated caller (JWT / session
+// cookie). The optional `user` ("type:id", or a bare id treated as
+// "user:<id>") is honored only when the caller is a super-admin OR it equals
+// the caller's own token subject; anything else is rejected by the server —
+// never silently ignored.
+export interface CheckPermissionsInput {
+  checks: PermissionCheckInput[];
+  user?: string | null;
+}
+
+// PermissionCheckResult is the outcome of one permission check, echoing the
+// checked pair so batch results are self-describing (and positionally aligned
+// with the supplied `checks`).
+export interface PermissionCheckResult {
+  relation: string;
+  object: string;
+  allowed: boolean;
+}
+
+// CheckPermissionsResponse carries one result per supplied check, in order.
+export interface CheckPermissionsResponse {
+  results: PermissionCheckResult[];
+}
+
+// ListPermissionsInput enumerates the objects of `object_type` the subject
+// holds `relation` on. Subject resolution (the optional `user` override)
+// follows the same rules as CheckPermissionsInput.user.
+export interface ListPermissionsInput {
+  relation: string;
+  object_type: string;
+  user?: string | null;
+}
+
+// ListPermissionsResponse lists fully-qualified object ids (e.g. "document:1")
+// the subject holds the queried permission on.
+export interface ListPermissionsResponse {
+  objects: string[];
+}
+
 // SessionQueryRequest
 export interface SessionQueryRequest {
   roles?: string[] | null;

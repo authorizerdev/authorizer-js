@@ -10,3 +10,5 @@ package-lock.json
 .env
 .env.*
 .pnpm-store
+# Local planning artifacts (not for publication)
+docs/superpowers/
