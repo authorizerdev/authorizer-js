@@ -17,7 +17,17 @@ export interface ConfigType {
   redirectURL: string;
   clientID?: string;
   extraHeaders?: Record<string, string>;
+  /**
+   * Wire protocol for the client's public API calls. Defaults to `'graphql'`
+   * (POST /graphql, fully backward compatible). `'rest'` maps each method to
+   * its public `POST/GET /v1/<snake>` endpoint. `'grpc'` is NOT supported in
+   * JS (browsers cannot speak raw gRPC) — passing it throws.
+   */
+  protocol?: Protocol;
 }
+
+// Protocol selects the wire transport. JS supports graphql + rest only.
+export type Protocol = 'graphql' | 'rest';
 
 // Pagination
 export interface Pagination {
@@ -477,3 +487,295 @@ export type MetaDataResponse = Meta;
 
 // Keep MetaData as alias for backward compatibility
 export type MetaData = Meta;
+
+// ============================================================================
+// Admin API types (AuthorizerAdmin).
+//
+// These mirror the AuthorizerAdminService proto / `_`-prefixed GraphQL admin
+// surface. Field names stay snake_case to match the rest of this SDK and the
+// server's GraphQL/REST payloads. Every admin call authenticates with the
+// `x-authorizer-admin-secret` header.
+// ============================================================================
+
+/**
+ * AuthorizerAdmin configuration. Like {@link ConfigType}, requests target
+ * `authorizerURL` (the exact, trusted origin of your Authorizer deployment).
+ * The `adminSecret` is sent on every call via `x-authorizer-admin-secret`, so
+ * only ever construct this in a trusted server-side context — never ship the
+ * admin secret to a browser.
+ */
+export interface AdminConfigType {
+  authorizerURL: string;
+  adminSecret: string;
+  extraHeaders?: Record<string, string>;
+  /** `'graphql'` (default) or `'rest'`. `'grpc'` is not supported in JS. */
+  protocol?: Protocol;
+}
+
+// PaginationRequest is the page/limit input shared by all paginated admin lists.
+export interface PaginationRequest {
+  limit?: number | null;
+  page?: number | null;
+}
+
+// AdminLoginRequest authenticates the admin and establishes a session cookie.
+export interface AdminLoginRequest {
+  admin_secret: string;
+}
+
+// AdminMeta is admin-only configuration metadata (configured roles).
+export interface AdminMeta {
+  roles: string[];
+  default_roles: string[];
+  protected_roles: string[];
+}
+
+// PaginatedRequest wraps the pagination input for list queries.
+export interface PaginatedRequest {
+  pagination?: PaginationRequest | null;
+}
+
+// GetUserRequest fetches a single user by id or email (at least one required).
+export interface GetUserRequest {
+  id?: string | null;
+  email?: string | null;
+}
+
+// UpdateAccessRequest targets a single user id for revoke / enable access.
+export interface UpdateAccessRequest {
+  user_id: string;
+}
+
+// InviteMemberRequest invites a list of emails (requires a configured email service).
+export interface InviteMemberRequest {
+  emails: string[];
+  redirect_uri?: string | null;
+}
+
+// Webhook mirrors the server Webhook model.
+export interface Webhook {
+  id: string;
+  event_name: string | null;
+  event_description: string | null;
+  endpoint: string | null;
+  enabled: boolean | null;
+  headers: Record<string, any> | null;
+  created_at: number | null;
+  updated_at: number | null;
+}
+
+// Webhooks is a paginated list of webhooks.
+export interface Webhooks {
+  pagination: Pagination;
+  webhooks: Webhook[];
+}
+
+// WebhookLog mirrors the server WebhookLog model.
+export interface WebhookLog {
+  id: string;
+  http_status: number | null;
+  response: string | null;
+  request: string | null;
+  webhook_id: string | null;
+  created_at: number | null;
+  updated_at: number | null;
+}
+
+// WebhookLogs is a paginated list of webhook delivery logs.
+export interface WebhookLogs {
+  pagination: Pagination;
+  webhook_logs: WebhookLog[];
+}
+
+// AddWebhookRequest registers a new webhook.
+export interface AddWebhookRequest {
+  event_name: string;
+  event_description?: string | null;
+  endpoint: string;
+  enabled: boolean;
+  headers?: Record<string, any> | null;
+}
+
+// UpdateWebhookRequest updates an existing webhook.
+export interface UpdateWebhookRequest {
+  id: string;
+  event_name?: string | null;
+  event_description?: string | null;
+  endpoint?: string | null;
+  enabled?: boolean | null;
+  headers?: Record<string, any> | null;
+}
+
+// WebhookRequest targets a single webhook by id (get / delete).
+export interface WebhookRequest {
+  id: string;
+}
+
+// ListWebhookLogRequest is a paginated, optionally-filtered webhook-log read.
+export interface ListWebhookLogRequest {
+  pagination?: PaginationRequest | null;
+  webhook_id?: string | null;
+}
+
+// TestEndpointRequest sends a synthetic event payload to an endpoint.
+export interface TestEndpointRequest {
+  endpoint: string;
+  event_name: string;
+  event_description?: string | null;
+  headers?: Record<string, any> | null;
+}
+
+// TestEndpointResponse carries the endpoint's HTTP status + body.
+export interface TestEndpointResponse {
+  http_status: number | null;
+  response: string | null;
+}
+
+// EmailTemplate mirrors the server EmailTemplate model.
+export interface EmailTemplate {
+  id: string;
+  event_name: string;
+  template: string;
+  design: string;
+  subject: string;
+  created_at: number | null;
+  updated_at: number | null;
+}
+
+// EmailTemplates is a paginated list of email templates.
+export interface EmailTemplates {
+  pagination: Pagination;
+  email_templates: EmailTemplate[];
+}
+
+// AddEmailTemplateRequest creates a new email template.
+export interface AddEmailTemplateRequest {
+  event_name: string;
+  subject: string;
+  template: string;
+  design?: string | null;
+}
+
+// UpdateEmailTemplateRequest updates an existing email template.
+export interface UpdateEmailTemplateRequest {
+  id: string;
+  event_name?: string | null;
+  template?: string | null;
+  subject?: string | null;
+  design?: string | null;
+}
+
+// DeleteEmailTemplateRequest targets a single email template id.
+export interface DeleteEmailTemplateRequest {
+  id: string;
+}
+
+// AuditLog mirrors the server AuditLog model.
+export interface AuditLog {
+  id: string;
+  actor_id: string | null;
+  actor_type: string | null;
+  actor_email: string | null;
+  action: string | null;
+  resource_type: string | null;
+  resource_id: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  metadata: string | null;
+  created_at: number | null;
+}
+
+// AuditLogs is a paginated list of audit log entries.
+export interface AuditLogs {
+  pagination: Pagination;
+  audit_logs: AuditLog[];
+}
+
+// ListAuditLogRequest is a paginated, optionally-filtered audit-log read.
+export interface ListAuditLogRequest {
+  pagination?: PaginationRequest | null;
+  action?: string | null;
+  actor_id?: string | null;
+  resource_type?: string | null;
+  resource_id?: string | null;
+  from_timestamp?: number | null;
+  to_timestamp?: number | null;
+}
+
+// FgaModel is a fine-grained authorization model (id + DSL form).
+export interface FgaModel {
+  id: string;
+  dsl: string;
+}
+
+// FgaTuple is one persisted relationship tuple.
+export interface FgaTuple {
+  user: string;
+  relation: string;
+  object: string;
+}
+
+// FgaTuples is a page of tuples plus a continuation token (empty when exhausted).
+export interface FgaTuples {
+  tuples: FgaTuple[];
+  continuation_token: string | null;
+}
+
+// FgaWriteModelInput installs a new authorization model from its DSL form.
+export interface FgaWriteModelInput {
+  dsl: string;
+}
+
+// FgaWriteTuplesInput is used for both writing and deleting tuples.
+export interface FgaWriteTuplesInput {
+  tuples: FgaTupleInput[];
+}
+
+// FgaReadTuplesInput is a paginated, optionally-filtered tuple read.
+export interface FgaReadTuplesInput {
+  user?: string | null;
+  relation?: string | null;
+  object?: string | null;
+  page_size?: number | null;
+  continuation_token?: string | null;
+}
+
+// FgaListUsersInput asks "which users of user_type have relation on object?".
+export interface FgaListUsersInput {
+  object: string;
+  relation: string;
+  user_type: string;
+}
+
+// FgaListUsersResponse lists fully-qualified user ids.
+export interface FgaListUsersResponse {
+  users: string[];
+}
+
+// FgaExpandInput asks for the relationship/userset tree of (relation, object).
+export interface FgaExpandInput {
+  relation: string;
+  object: string;
+}
+
+// FgaExpandResponse is the OpenFGA relationship/userset tree as a JSON string.
+export interface FgaExpandResponse {
+  tree: string;
+}
+
+// GenerateJWTKeysRequest requests a fresh key pair / secret of the given type.
+export interface GenerateJWTKeysRequest {
+  type: string;
+}
+
+// GenerateJWTKeysResponse carries the generated secret / key pair.
+export interface GenerateJWTKeysResponse {
+  secret: string | null;
+  public_key: string | null;
+  private_key: string | null;
+}
+
+// AdminSignupRequest sets the admin secret on a fresh deployment (gql-only).
+export interface AdminSignupRequest {
+  admin_secret: string;
+}

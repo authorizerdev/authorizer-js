@@ -4,6 +4,7 @@ import { DEFAULT_AUTHORIZE_TIMEOUT_IN_SECONDS } from './constants';
 import * as Types from './types';
 import {
   bufferToBase64UrlEncoded,
+  coerceInt64Fields,
   createQueryParams,
   createRandomString,
   encode,
@@ -50,6 +51,7 @@ function toErrorList(errors: unknown): Error[] {
 }
 
 export * from './types';
+export { AuthorizerAdmin } from './admin';
 
 /**
  * Client for the Authorizer API. All network calls go to `config.authorizerURL`
@@ -72,6 +74,12 @@ export class Authorizer {
     if (!config.redirectURL?.trim()) throw new Error('Invalid redirectURL');
     this.config.redirectURL = trimURL(config.redirectURL);
     this.config.clientID = (config?.clientID || '').trim();
+
+    if ((config.protocol as string) === 'grpc')
+      throw new Error(
+        'protocol \'grpc\' is not supported in authorizer-js (browsers cannot speak raw gRPC); use \'graphql\' or \'rest\'',
+      );
+    this.config.protocol = config.protocol || 'graphql';
 
     this.config.extraHeaders = {
       ...(config.extraHeaders || {}),
@@ -195,17 +203,21 @@ export class Authorizer {
     if (!data.redirect_uri) data.redirect_uri = this.config.redirectURL;
 
     try {
-      const forgotPasswordResp = await this.graphqlQuery({
-        query:
-          'mutation forgot_password($data: ForgotPasswordRequest!) {	forgot_password(params: $data) { message should_show_mobile_otp_screen } }',
-        variables: {
-          data,
+      const forgotPasswordResp = await this.dispatch(
+        'forgotPassword',
+        ['graphql', 'rest'],
+        {
+          query:
+            'mutation forgot_password($data: ForgotPasswordRequest!) {	forgot_password(params: $data) { message should_show_mobile_otp_screen } }',
+          operationName: 'forgot_password',
+          op: 'forgot_password',
         },
-        operationName: 'forgot_password',
-      });
+        { method: 'POST', path: '/v1/forgot_password', body: data },
+        { data },
+      );
       return forgotPasswordResp?.errors?.length
         ? this.errorResponse(forgotPasswordResp.errors)
-        : this.okResponse(forgotPasswordResp?.data?.forgot_password);
+        : this.okResponse(forgotPasswordResp?.data);
     } catch (error) {
       return this.errorResponse([error]);
     }
@@ -213,15 +225,21 @@ export class Authorizer {
 
   getMetaData = async (): Promise<Types.ApiResponse<Types.MetaData>> => {
     try {
-      const res = await this.graphqlQuery({
-        query:
-          'query meta { meta { version client_id is_google_login_enabled is_facebook_login_enabled is_github_login_enabled is_linkedin_login_enabled is_apple_login_enabled is_twitter_login_enabled is_microsoft_login_enabled is_twitch_login_enabled is_roblox_login_enabled is_email_verification_enabled is_basic_authentication_enabled is_magic_link_login_enabled is_sign_up_enabled is_strong_password_enabled is_multi_factor_auth_enabled is_mobile_basic_authentication_enabled is_phone_verification_enabled } }',
-        operationName: 'meta',
-      });
+      const res = await this.dispatch(
+        'getMetaData',
+        ['graphql', 'rest'],
+        {
+          query:
+            'query meta { meta { version client_id is_google_login_enabled is_facebook_login_enabled is_github_login_enabled is_linkedin_login_enabled is_apple_login_enabled is_discord_login_enabled is_twitter_login_enabled is_microsoft_login_enabled is_twitch_login_enabled is_roblox_login_enabled is_email_verification_enabled is_basic_authentication_enabled is_magic_link_login_enabled is_sign_up_enabled is_strong_password_enabled is_multi_factor_auth_enabled is_mobile_basic_authentication_enabled is_phone_verification_enabled } }',
+          operationName: 'meta',
+          op: 'meta',
+        },
+        { method: 'GET', path: '/v1/meta' },
+      );
 
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data.meta);
+        : this.okResponse(res.data);
     } catch (error) {
       return this.errorResponse([error]);
     }
@@ -231,15 +249,22 @@ export class Authorizer {
     headers?: Types.Headers,
   ): Promise<Types.ApiResponse<Types.User>> => {
     try {
-      const profileRes = await this.graphqlQuery({
-        query: `query profile {	profile { ${userFragment} } }`,
+      const profileRes = await this.dispatch(
+        'getProfile',
+        ['graphql', 'rest'],
+        {
+          query: `query profile {	profile { ${userFragment} } }`,
+          operationName: 'profile',
+          op: 'profile',
+        },
+        { method: 'GET', path: '/v1/profile' },
+        undefined,
         headers,
-        operationName: 'profile',
-      });
+      );
 
       return profileRes?.errors?.length
         ? this.errorResponse(profileRes.errors)
-        : this.okResponse(profileRes.data.profile);
+        : this.okResponse(profileRes.data);
     } catch (error) {
       return this.errorResponse([error]);
     }
@@ -260,17 +285,23 @@ export class Authorizer {
     headers?: Types.Headers,
   ): Promise<Types.ApiResponse<Types.CheckPermissionsResponse>> => {
     try {
-      const res = await this.graphqlQuery({
-        query:
-          'query checkPermissions($params: CheckPermissionsInput!){ check_permissions(params: $params) { results { relation object allowed } } }',
+      const res = await this.dispatch(
+        'checkPermissions',
+        ['graphql', 'rest'],
+        {
+          query:
+            'query checkPermissions($params: CheckPermissionsInput!){ check_permissions(params: $params) { results { relation object allowed } } }',
+          operationName: 'checkPermissions',
+          op: 'check_permissions',
+        },
+        { method: 'POST', path: '/v1/check_permissions', body: params },
+        { params },
         headers,
-        variables: { params },
-        operationName: 'checkPermissions',
-      });
+      );
 
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.check_permissions);
+        : this.okResponse(res.data);
     } catch (error) {
       return this.errorResponse([error]);
     }
@@ -287,17 +318,23 @@ export class Authorizer {
     headers?: Types.Headers,
   ): Promise<Types.ApiResponse<Types.ListPermissionsResponse>> => {
     try {
-      const res = await this.graphqlQuery({
-        query:
-          'query listPermissions($params: ListPermissionsInput!){ list_permissions(params: $params) { objects } }',
+      const res = await this.dispatch(
+        'listPermissions',
+        ['graphql', 'rest'],
+        {
+          query:
+            'query listPermissions($params: ListPermissionsInput!){ list_permissions(params: $params) { objects } }',
+          operationName: 'listPermissions',
+          op: 'list_permissions',
+        },
+        { method: 'POST', path: '/v1/list_permissions', body: params },
+        { params },
         headers,
-        variables: { params },
-        operationName: 'listPermissions',
-      });
+      );
 
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.list_permissions);
+        : this.okResponse(res.data);
     } catch (error) {
       return this.errorResponse([error]);
     }
@@ -309,17 +346,25 @@ export class Authorizer {
     params?: Types.SessionQueryRequest,
   ): Promise<Types.ApiResponse<Types.AuthToken>> => {
     try {
-      const res = await this.graphqlQuery({
-        query: `query session($params: SessionQueryRequest){session(params: $params) { ${authTokenFragment} } }`,
-        headers,
-        variables: {
-          params,
+      const res = await this.dispatch(
+        'getSession',
+        ['graphql', 'rest'],
+        {
+          query: `query session($params: SessionQueryRequest){session(params: $params) { ${authTokenFragment} } }`,
+          operationName: 'session',
+          op: 'session',
         },
-        operationName: 'session',
-      });
+        {
+          method: 'POST',
+          path: '/v1/session',
+          body: params || {},
+        },
+        { params },
+        headers,
+      );
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.session);
+        : this.okResponse(res.data);
     } catch (err) {
       return this.errorResponse(err);
     }
@@ -393,17 +438,21 @@ export class Authorizer {
     data: Types.LoginRequest,
   ): Promise<Types.ApiResponse<Types.AuthToken>> => {
     try {
-      const res = await this.graphqlQuery({
-        query: `
-					mutation login($data: LoginRequest!) { login(params: $data) { ${authTokenFragment}}}
-				`,
-        variables: { data },
-        operationName: 'login',
-      });
+      const res = await this.dispatch(
+        'login',
+        ['graphql', 'rest'],
+        {
+          query: `mutation login($data: LoginRequest!) { login(params: $data) { ${authTokenFragment}}}`,
+          operationName: 'login',
+          op: 'login',
+        },
+        { method: 'POST', path: '/v1/login', body: data },
+        { data },
+      );
 
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.login);
+        : this.okResponse(res.data);
     } catch (err) {
       return this.errorResponse(err);
     }
@@ -413,14 +462,21 @@ export class Authorizer {
     headers?: Types.Headers,
   ): Promise<Types.ApiResponse<Types.GenericResponse>> => {
     try {
-      const res = await this.graphqlQuery({
-        query: 'mutation logout { logout { message } }',
+      const res = await this.dispatch(
+        'logout',
+        ['graphql', 'rest'],
+        {
+          query: 'mutation logout { logout { message } }',
+          operationName: 'logout',
+          op: 'logout',
+        },
+        { method: 'POST', path: '/v1/logout' },
+        undefined,
         headers,
-        operationName: 'logout',
-      });
+      );
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.logout);
+        : this.okResponse(res.data);
     } catch (err) {
       return this.errorResponse([err]);
     }
@@ -434,17 +490,21 @@ export class Authorizer {
 
       if (!data.redirect_uri) data.redirect_uri = this.config.redirectURL;
 
-      const res = await this.graphqlQuery({
-        query: `
-					mutation magic_link_login($data: MagicLinkLoginRequest!) { magic_link_login(params: $data) { message }}
-				`,
-        variables: { data },
-        operationName: 'magic_link_login',
-      });
+      const res = await this.dispatch(
+        'magicLinkLogin',
+        ['graphql', 'rest'],
+        {
+          query: 'mutation magic_link_login($data: MagicLinkLoginRequest!) { magic_link_login(params: $data) { message }}',
+          operationName: 'magic_link_login',
+          op: 'magic_link_login',
+        },
+        { method: 'POST', path: '/v1/magic_link_login', body: data },
+        { data },
+      );
 
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.magic_link_login);
+        : this.okResponse(res.data);
     } catch (err) {
       return this.errorResponse([err]);
     }
@@ -483,17 +543,21 @@ export class Authorizer {
     data: Types.ResendOtpRequest,
   ): Promise<Types.ApiResponse<Types.GenericResponse>> => {
     try {
-      const res = await this.graphqlQuery({
-        query: `
-					mutation resend_otp($data: ResendOTPRequest!) { resend_otp(params: $data) { message }}
-				`,
-        variables: { data },
-        operationName: 'resend_otp',
-      });
+      const res = await this.dispatch(
+        'resendOtp',
+        ['graphql', 'rest'],
+        {
+          query: 'mutation resend_otp($data: ResendOTPRequest!) { resend_otp(params: $data) { message }}',
+          operationName: 'resend_otp',
+          op: 'resend_otp',
+        },
+        { method: 'POST', path: '/v1/resend_otp', body: data },
+        { data },
+      );
 
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.resend_otp);
+        : this.okResponse(res.data);
     } catch (err) {
       return this.errorResponse([err]);
     }
@@ -503,17 +567,21 @@ export class Authorizer {
     data: Types.ResetPasswordRequest,
   ): Promise<Types.ApiResponse<Types.GenericResponse>> => {
     try {
-      const resetPasswordRes = await this.graphqlQuery({
-        query:
-          'mutation reset_password($data: ResetPasswordRequest!) {	reset_password(params: $data) { message } }',
-        variables: {
-          data,
+      const resetPasswordRes = await this.dispatch(
+        'resetPassword',
+        ['graphql', 'rest'],
+        {
+          query:
+            'mutation reset_password($data: ResetPasswordRequest!) {	reset_password(params: $data) { message } }',
+          operationName: 'reset_password',
+          op: 'reset_password',
         },
-        operationName: 'reset_password',
-      });
+        { method: 'POST', path: '/v1/reset_password', body: data },
+        { data },
+      );
       return resetPasswordRes?.errors?.length
         ? this.errorResponse(resetPasswordRes.errors)
-        : this.okResponse(resetPasswordRes.data?.reset_password);
+        : this.okResponse(resetPasswordRes.data);
     } catch (error) {
       return this.errorResponse([error]);
     }
@@ -578,17 +646,21 @@ export class Authorizer {
     data: Types.SignUpRequest,
   ): Promise<Types.ApiResponse<Types.AuthToken>> => {
     try {
-      const res = await this.graphqlQuery({
-        query: `
-					mutation signup($data: SignUpRequest!) { signup(params: $data) { ${authTokenFragment}}}
-				`,
-        variables: { data },
-        operationName: 'signup',
-      });
+      const res = await this.dispatch(
+        'signup',
+        ['graphql', 'rest'],
+        {
+          query: `mutation signup($data: SignUpRequest!) { signup(params: $data) { ${authTokenFragment}}}`,
+          operationName: 'signup',
+          op: 'signup',
+        },
+        { method: 'POST', path: '/v1/signup', body: data },
+        { data },
+      );
 
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.signup);
+        : this.okResponse(res.data);
     } catch (err) {
       return this.errorResponse([err]);
     }
@@ -599,19 +671,23 @@ export class Authorizer {
     headers?: Types.Headers,
   ): Promise<Types.ApiResponse<Types.GenericResponse>> => {
     try {
-      const updateProfileRes = await this.graphqlQuery({
-        query:
-          'mutation update_profile($data: UpdateProfileRequest!) {	update_profile(params: $data) { message } }',
-        headers,
-        variables: {
-          data,
+      const updateProfileRes = await this.dispatch(
+        'updateProfile',
+        ['graphql', 'rest'],
+        {
+          query:
+            'mutation update_profile($data: UpdateProfileRequest!) {	update_profile(params: $data) { message } }',
+          operationName: 'update_profile',
+          op: 'update_profile',
         },
-        operationName: 'update_profile',
-      });
+        { method: 'POST', path: '/v1/update_profile', body: data },
+        { data },
+        headers,
+      );
 
       return updateProfileRes?.errors?.length
         ? this.errorResponse(updateProfileRes.errors)
-        : this.okResponse(updateProfileRes.data?.update_profile);
+        : this.okResponse(updateProfileRes.data);
     } catch (error) {
       return this.errorResponse([error]);
     }
@@ -621,14 +697,22 @@ export class Authorizer {
     headers?: Types.Headers,
   ): Promise<Types.ApiResponse<Types.GenericResponse>> => {
     try {
-      const res = await this.graphqlQuery({
-        query: 'mutation deactivate_account { deactivate_account { message } }',
+      const res = await this.dispatch(
+        'deactivateAccount',
+        ['graphql', 'rest'],
+        {
+          query:
+            'mutation deactivate_account { deactivate_account { message } }',
+          operationName: 'deactivate_account',
+          op: 'deactivate_account',
+        },
+        { method: 'POST', path: '/v1/deactivate_account' },
+        undefined,
         headers,
-        operationName: 'deactivate_account',
-      });
+      );
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.deactivate_account);
+        : this.okResponse(res.data);
     } catch (error) {
       return this.errorResponse([error]);
     }
@@ -638,18 +722,22 @@ export class Authorizer {
     params?: Types.ValidateJWTTokenRequest,
   ): Promise<Types.ApiResponse<Types.ValidateJWTTokenResponse>> => {
     try {
-      const res = await this.graphqlQuery({
-        query:
-          'query validate_jwt_token($params: ValidateJWTTokenRequest!){validate_jwt_token(params: $params) { is_valid claims } }',
-        variables: {
-          params,
+      const res = await this.dispatch(
+        'validateJWTToken',
+        ['graphql', 'rest'],
+        {
+          query:
+            'query validate_jwt_token($params: ValidateJWTTokenRequest!){validate_jwt_token(params: $params) { is_valid claims } }',
+          operationName: 'validate_jwt_token',
+          op: 'validate_jwt_token',
         },
-        operationName: 'validate_jwt_token',
-      });
+        { method: 'POST', path: '/v1/validate_jwt_token', body: params },
+        { params },
+      );
 
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.validate_jwt_token);
+        : this.okResponse(res.data);
     } catch (error) {
       return this.errorResponse([error]);
     }
@@ -659,17 +747,21 @@ export class Authorizer {
     params?: Types.ValidateSessionRequest,
   ): Promise<Types.ApiResponse<Types.ValidateSessionResponse>> => {
     try {
-      const res = await this.graphqlQuery({
-        query: `query validate_session($params: ValidateSessionRequest){validate_session(params: $params) { is_valid user { ${userFragment} } } }`,
-        variables: {
-          params,
+      const res = await this.dispatch(
+        'validateSession',
+        ['graphql', 'rest'],
+        {
+          query: `query validate_session($params: ValidateSessionRequest){validate_session(params: $params) { is_valid user { ${userFragment} } } }`,
+          operationName: 'validate_session',
+          op: 'validate_session',
         },
-        operationName: 'validate_session',
-      });
+        { method: 'POST', path: '/v1/validate_session', body: params },
+        { params },
+      );
 
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.validate_session);
+        : this.okResponse(res.data);
     } catch (error) {
       return this.errorResponse([error]);
     }
@@ -679,17 +771,21 @@ export class Authorizer {
     data: Types.VerifyEmailRequest,
   ): Promise<Types.ApiResponse<Types.AuthToken>> => {
     try {
-      const res = await this.graphqlQuery({
-        query: `
-					mutation verify_email($data: VerifyEmailRequest!) { verify_email(params: $data) { ${authTokenFragment}}}
-				`,
-        variables: { data },
-        operationName: 'verify_email',
-      });
+      const res = await this.dispatch(
+        'verifyEmail',
+        ['graphql', 'rest'],
+        {
+          query: `mutation verify_email($data: VerifyEmailRequest!) { verify_email(params: $data) { ${authTokenFragment}}}`,
+          operationName: 'verify_email',
+          op: 'verify_email',
+        },
+        { method: 'POST', path: '/v1/verify_email', body: data },
+        { data },
+      );
 
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.verify_email);
+        : this.okResponse(res.data);
     } catch (err) {
       return this.errorResponse([err]);
     }
@@ -699,17 +795,21 @@ export class Authorizer {
     data: Types.ResendVerifyEmailRequest,
   ): Promise<Types.ApiResponse<Types.GenericResponse>> => {
     try {
-      const res = await this.graphqlQuery({
-        query: `
-					mutation resend_verify_email($data: ResendVerifyEmailRequest!) { resend_verify_email(params: $data) { message }}
-				`,
-        variables: { data },
-        operationName: 'resend_verify_email',
-      });
+      const res = await this.dispatch(
+        'resendVerifyEmail',
+        ['graphql', 'rest'],
+        {
+          query: 'mutation resend_verify_email($data: ResendVerifyEmailRequest!) { resend_verify_email(params: $data) { message }}',
+          operationName: 'resend_verify_email',
+          op: 'resend_verify_email',
+        },
+        { method: 'POST', path: '/v1/resend_verify_email', body: data },
+        { data },
+      );
 
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.resend_verify_email);
+        : this.okResponse(res.data);
     } catch (err) {
       return this.errorResponse([err]);
     }
@@ -719,17 +819,21 @@ export class Authorizer {
     data: Types.VerifyOtpRequest,
   ): Promise<Types.ApiResponse<Types.AuthToken>> => {
     try {
-      const res = await this.graphqlQuery({
-        query: `
-					mutation verify_otp($data: VerifyOTPRequest!) { verify_otp(params: $data) { ${authTokenFragment}}}
-				`,
-        variables: { data },
-        operationName: 'verify_otp',
-      });
+      const res = await this.dispatch(
+        'verifyOtp',
+        ['graphql', 'rest'],
+        {
+          query: `mutation verify_otp($data: VerifyOTPRequest!) { verify_otp(params: $data) { ${authTokenFragment}}}`,
+          operationName: 'verify_otp',
+          op: 'verify_otp',
+        },
+        { method: 'POST', path: '/v1/verify_otp', body: data },
+        { data },
+      );
 
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.verify_otp);
+        : this.okResponse(res.data);
     } catch (err) {
       return this.errorResponse([err]);
     }
@@ -794,6 +898,114 @@ export class Authorizer {
     }
 
     return { data: json.data, errors: [] };
+  };
+
+  // dispatch runs a public method over the configured protocol and returns the
+  // same flat payload regardless of protocol. As of server 2.3.0-rc.9 (PR #635)
+  // every public RPC works over both graphql and rest and the response envelope
+  // is flat and byte-identical between them (snake_case): graphql reads
+  // `data[gql.op]` (e.g. `data.signup` = AuthResponse), and rest returns the
+  // same bare message as the body — no wrapper unwrapping. `rest.unwrap` remains
+  // for the rare endpoint that still wraps. Each method passes the protocols it
+  // supports; calling over an unsupported one raises a clear error early.
+  dispatch = async (
+    name: string,
+    protocols: Types.Protocol[],
+    gql: { query: string; operationName: string; op: string },
+    rest: {
+      method: 'GET' | 'POST';
+      path: string;
+      body?: Record<string, any>;
+      unwrap?: string;
+    },
+    variables?: Record<string, any>,
+    headers?: Types.Headers,
+  ): Promise<Types.GrapQlResponseType> => {
+    const protocol = this.config.protocol as Types.Protocol;
+    if (!protocols.includes(protocol)) {
+      return {
+        data: undefined,
+        errors: [
+          new Error(
+            `${name} is not available over ${protocol}; supported: ${protocols.join(', ')}`,
+          ),
+        ],
+      };
+    }
+    if (protocol === 'rest') {
+      const res = await this.restQuery(
+        rest.method,
+        rest.path,
+        rest.body,
+        headers,
+      );
+      if (res.errors.length) return res;
+      const data = rest.unwrap ? res.data?.[rest.unwrap] : res.data;
+      return { data, errors: [] };
+    }
+    const res = await this.graphqlQuery({
+      query: gql.query,
+      variables,
+      headers,
+      operationName: gql.operationName,
+    });
+    if (res.errors.length) return res;
+    return { data: res.data?.[gql.op], errors: [] };
+  };
+
+  // helper to execute a public REST call (POST/GET /v1/<snake>). Reuses the
+  // same fetch / credentials / Origin handling as graphqlQuery. Returns the
+  // parsed JSON body (the proto-gateway response shape) under `data`.
+  restQuery = async (
+    method: 'GET' | 'POST',
+    path: string,
+    body?: Record<string, unknown>,
+    headers?: Types.Headers,
+  ): Promise<Types.GrapQlResponseType> => {
+    const fetcher = getFetcher();
+    const res = await fetcher(`${this.config.authorizerURL}${path}`, {
+      method,
+      ...(method === 'POST' ? { body: JSON.stringify(body || {}) } : {}),
+      headers: {
+        ...this.config.extraHeaders,
+        ...(headers || {}),
+      },
+      credentials: 'include',
+    });
+
+    const text = await res.text();
+    let json: { error?: string; message?: string } & Record<string, unknown> =
+      {};
+    if (text) {
+      try {
+        json = JSON.parse(text);
+      } catch {
+        return {
+          data: undefined,
+          errors: [
+            new Error(
+              res.ok ? 'Invalid JSON from REST endpoint' : `HTTP ${res.status}`,
+            ),
+          ],
+        };
+      }
+    } else if (!res.ok) {
+      return { data: undefined, errors: [new Error(`HTTP ${res.status}`)] };
+    }
+
+    if (!res.ok) {
+      // gRPC-gateway errors come back as { code, message, details }.
+      return {
+        data: undefined,
+        errors: [
+          new Error(String(json.message || json.error || `HTTP ${res.status}`)),
+        ],
+      };
+    }
+
+    // proto-gateway serializes int64 fields as strings; coerce to numbers so the
+    // rest path returns the same number-typed shape as the graphql path.
+    return { data: coerceInt64Fields(json), errors: [] };
   };
 
   errorResponse = (errors: unknown): Types.ApiResponse<any> => {

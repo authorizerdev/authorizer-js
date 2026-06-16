@@ -6,6 +6,49 @@ import { AuthorizeResponse } from './types';
 
 export const hasWindow = (): boolean => typeof window !== 'undefined';
 
+// proto-gateway REST (protojson) serializes int64/uint64 fields as JSON STRINGS
+// (e.g. created_at "1781590366", pagination limit "10"), while the GraphQL path
+// returns them as numbers. These field names are the int64-typed fields across
+// the public + admin SDK surface; we coerce them back to numbers on REST
+// responses so both protocols return identically-shaped, number-typed objects.
+const INT64_FIELDS = new Set([
+  'created_at',
+  'updated_at',
+  'revoked_timestamp',
+  'expires_in',
+  'expires',
+  'limit',
+  'page',
+  'offset',
+  'total',
+  'from_timestamp',
+  'to_timestamp',
+]);
+
+// coerceInt64Fields walks a parsed REST response and converts known int64
+// fields from numeric strings to numbers in place, recursing through nested
+// objects and arrays. Non-numeric strings and other types are left untouched.
+export const coerceInt64Fields = (value: any): any => {
+  if (Array.isArray(value)) {
+    value.forEach(coerceInt64Fields);
+    return value;
+  }
+  if (value && typeof value === 'object') {
+    for (const key of Object.keys(value)) {
+      const v = value[key];
+      if (
+        INT64_FIELDS.has(key) &&
+        typeof v === 'string' &&
+        v !== '' &&
+        !Number.isNaN(Number(v))
+      )
+        value[key] = Number(v);
+      else if (v && typeof v === 'object') coerceInt64Fields(v);
+    }
+  }
+  return value;
+};
+
 export const trimURL = (url: string): string => {
   let trimmedData = url.trim();
   const lastChar = trimmedData[trimmedData.length - 1];
