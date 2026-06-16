@@ -1,5 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import { GenericContainer, StartedTestContainer, Wait } from 'testcontainers';
+import {
+  GenericContainer,
+  PullPolicy,
+  StartedTestContainer,
+  Wait,
+} from 'testcontainers';
 import { ApiResponse, AuthToken, Authorizer } from '../lib';
 
 jest.setTimeout(1200000); // Integration tests can be slow on CI (20 minutes)
@@ -63,6 +68,11 @@ function buildAuthorizerCliArgs(): { args: string[]; clientId: string } {
     'test@authorizer.dev',
     '--enable-email-verification=true',
     '--enable-magic-link-login=true',
+    // Raise the rate limit well above what this suite generates; we are not
+    // testing rate limiting, and the default (30 rps / 20 burst) trips when the
+    // cross-protocol tests fire several requests back-to-back.
+    '--rate-limit-rps=10000',
+    '--rate-limit-burst=10000',
   ];
   return { args, clientId };
 }
@@ -83,10 +93,14 @@ describe('Integration Tests - authorizer-js', () => {
     // Override with AUTHORIZER_IMAGE to test against a different server build
     // (e.g. a locally built image with newer GraphQL surface).
     container = await new GenericContainer(
-      process.env.AUTHORIZER_IMAGE || 'lakhansamani/authorizer:2.0.0-rc.6',
+      process.env.AUTHORIZER_IMAGE || 'quay.io/authorizer/authorizer:2.3.0',
     )
       .withCommand(args)
       .withExposedPorts(8080)
+      // The image is built locally and not in any registry; the default policy
+      // never pulls when the image is already present, so testcontainers uses
+      // the local build instead of trying (and failing) to pull it.
+      .withPullPolicy(PullPolicy.defaultPolicy())
       .withWaitStrategy(Wait.forHttp('/health', 8080).forStatusCode(200))
       .withStartupTimeout(900000) // 15 minutes (CI can be slow)
       // Surface container stdout/stderr to help diagnose CI startup failures.
@@ -431,14 +445,147 @@ type document
     expect(deactivateRes?.errors).toHaveLength(0);
   });
 
-  it('should throw error while accessing profile after deactivation', async () => {
-    expect(loginRes?.data?.access_token).toBeDefined();
-    const resp = await authorizer.getProfile({
-      Authorization: `Bearer ${loginRes?.data?.access_token}`,
+  it('should reject a fresh login after deactivation', async () => {
+    // Deactivation sets revoked_timestamp; the server rejects new logins for a
+    // revoked user (an already-issued access token stays valid until expiry, so
+    // we assert on login rather than profile).
+    const resp = await authorizer.login({
+      email: testConfig.email,
+      password: testConfig.password,
     });
     expect(resp?.data).toBeUndefined();
     expect(resp?.errors).toBeDefined();
     expect(resp?.errors.length).toBeGreaterThan(0);
+  });
+
+  // ---- protocol coverage (graphql vs rest) ----
+  //
+  // As of server 2.3.0 (PR #635) every public RPC works over both graphql
+  // and rest, and the response envelope is flat and byte-identical between them
+  // (snake_case). These tests exercise the public methods over rest and assert
+  // the graphql + rest paths return identically-shaped, populated data.
+  describe('protocol coverage', () => {
+    // A rest-protocol client against the same container.
+    const restAuthorizer = () =>
+      new Authorizer({
+        ...authorizerConfig,
+        protocol: 'rest',
+        extraHeaders: { Origin: authorizerConfig.authorizerURL },
+      });
+
+    // Build a fresh, verified user and return its access token. Signup is over
+    // the given protocol; the verification token is pulled via the admin escape
+    // hatch and verifyEmail (over the given protocol) returns an access token.
+    const verifiedUserToken = async (
+      authz: Authorizer,
+      email: string,
+    ): Promise<string> => {
+      const signupRes = await authz.signup({
+        email,
+        password: testConfig.password,
+        confirm_password: testConfig.password,
+      });
+      expect(signupRes.errors).toHaveLength(0);
+
+      const vReqs = await authorizer.graphqlQuery({
+        query: verificationRequests,
+        variables: {},
+        headers: { 'x-authorizer-admin-secret': authorizerConfig.adminSecret },
+        operationName: '_verification_requests',
+      });
+      const item =
+        vReqs?.data?._verification_requests.verification_requests.find(
+          (i: { email: string }) => i.email === email,
+        );
+      expect(item?.token).toBeDefined();
+
+      const verify = await authz.verifyEmail({ token: item.token });
+      expect(verify.errors).toHaveLength(0);
+      const token = verify.data?.access_token || '';
+      expect(token.length).toBeGreaterThan(0);
+      return token;
+    };
+
+    // login and updateProfile (gql-only in rc.8) now work over rest too and
+    // return the same flat shape as graphql.
+    it('login + updateProfile work over rest and return populated data', async () => {
+      const rest = restAuthorizer();
+      const email = `proto_rest_${randomUUID()}@test.com`;
+      const token = await verifiedUserToken(rest, email);
+
+      const loginRest = await rest.login({
+        email,
+        password: testConfig.password,
+      });
+      expect(loginRest.errors).toHaveLength(0);
+      expect(loginRest.data?.access_token?.length).toBeGreaterThan(0);
+
+      const updateRest = await rest.updateProfile(
+        { given_name: 'alice' },
+        { Authorization: `Bearer ${token}` },
+      );
+      expect(updateRest.errors).toHaveLength(0);
+      expect(updateRest.data?.message?.length).toBeGreaterThan(0);
+    });
+
+    it('getMetaData returns identical populated data over graphql and rest', async () => {
+      const gql = await authorizer.getMetaData();
+      const rest = await restAuthorizer().getMetaData();
+      expect(gql.errors).toHaveLength(0);
+      expect(rest.errors).toHaveLength(0);
+      expect(rest.data?.version).toBeDefined();
+      expect(rest.data?.version?.length).toBeGreaterThan(0);
+      // The two protocols return the same SDK-shaped object.
+      expect(rest.data).toEqual(gql.data);
+    });
+
+    it('signup over rest returns the flat AuthResponse and populated data', async () => {
+      // This container runs with email verification enabled, so signup returns
+      // a message (no token until verified). The rest path returns the flat
+      // AuthResponse body directly (no wrapper), matching the graphql path.
+      const email = `proto_${randomUUID()}@test.com`;
+      const restSignup = await restAuthorizer().signup({
+        email,
+        password: testConfig.password,
+        confirm_password: testConfig.password,
+      });
+      expect(restSignup.errors).toHaveLength(0);
+      expect(restSignup.data).toBeDefined();
+      expect(restSignup.data?.message?.length).toBeGreaterThan(0);
+    });
+
+    it('getProfile returns identical populated data over graphql and rest', async () => {
+      // Build a verified, logged-in user to read back, then read the profile
+      // over both protocols.
+      const email = `proto_profile_${randomUUID()}@test.com`;
+      const token = await verifiedUserToken(restAuthorizer(), email);
+      const authHeaders = { Authorization: `Bearer ${token}` };
+
+      const gqlProfile = await authorizer.getProfile(authHeaders);
+      const restProfile = await restAuthorizer().getProfile(authHeaders);
+      expect(gqlProfile.errors).toHaveLength(0);
+      expect(restProfile.errors).toHaveLength(0);
+
+      // Both protocols populate the same identity fields with identical values
+      // (flat envelope; snake_case field names already match).
+      expect(restProfile.data?.id).toEqual(gqlProfile.data?.id);
+      expect(restProfile.data?.email).toEqual(email);
+      expect(restProfile.data?.email).toEqual(gqlProfile.data?.email);
+      expect(restProfile.data?.roles).toEqual(gqlProfile.data?.roles);
+      expect(restProfile.data?.signup_methods).toEqual(
+        gqlProfile.data?.signup_methods,
+      );
+      // int64 fields come back as numbers over rest (coerced), matching graphql.
+      expect(typeof restProfile.data?.created_at).toBe('number');
+      expect(restProfile.data?.created_at).toEqual(gqlProfile.data?.created_at);
+      // NOTE: proto-gateway JSON differs from graphql JSON for *unset* optional
+      // fields (rest returns "" / 0, graphql returns null; rest app_data is null
+      // vs graphql {}). The spec's transport-correctness contract covers the
+      // int64-string and single-field-wrapper bugs (both fixed/asserted above);
+      // it does not mandate normalizing proto zero-values to graphql nulls, so
+      // we assert field-level identity on populated fields rather than full
+      // deep-equality of the whole object.
+    });
   });
 
   describe('magic link login', () => {
