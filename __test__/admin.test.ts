@@ -73,7 +73,7 @@ describe('Integration Tests - AuthorizerAdmin (graphql + rest)', () => {
     const { args } = buildAuthorizerCliArgs();
 
     container = await new GenericContainer(
-      process.env.AUTHORIZER_IMAGE || 'lakhansamani/authorizer:2.3.0',
+      process.env.AUTHORIZER_IMAGE || 'quay.io/authorizer/authorizer:2.3.0',
     )
       .withCommand(args)
       .withExposedPorts(8080)
