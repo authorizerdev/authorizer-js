@@ -93,7 +93,7 @@ describe('Integration Tests - authorizer-js', () => {
     // Override with AUTHORIZER_IMAGE to test against a different server build
     // (e.g. a locally built image with newer GraphQL surface).
     container = await new GenericContainer(
-      process.env.AUTHORIZER_IMAGE || 'lakhansamani/authorizer:2.3.0-rc.9',
+      process.env.AUTHORIZER_IMAGE || 'lakhansamani/authorizer:2.3.0',
     )
       .withCommand(args)
       .withExposedPorts(8080)
@@ -460,7 +460,7 @@ type document
 
   // ---- protocol coverage (graphql vs rest) ----
   //
-  // As of server 2.3.0-rc.9 (PR #635) every public RPC works over both graphql
+  // As of server 2.3.0 (PR #635) every public RPC works over both graphql
   // and rest, and the response envelope is flat and byte-identical between them
   // (snake_case). These tests exercise the public methods over rest and assert
   // the graphql + rest paths return identically-shaped, populated data.
@@ -493,9 +493,10 @@ type document
         headers: { 'x-authorizer-admin-secret': authorizerConfig.adminSecret },
         operationName: '_verification_requests',
       });
-      const item = vReqs?.data?._verification_requests.verification_requests.find(
-        (i: { email: string }) => i.email === email,
-      );
+      const item =
+        vReqs?.data?._verification_requests.verification_requests.find(
+          (i: { email: string }) => i.email === email,
+        );
       expect(item?.token).toBeDefined();
 
       const verify = await authz.verifyEmail({ token: item.token });
@@ -512,7 +513,10 @@ type document
       const email = `proto_rest_${randomUUID()}@test.com`;
       const token = await verifiedUserToken(rest, email);
 
-      const loginRest = await rest.login({ email, password: testConfig.password });
+      const loginRest = await rest.login({
+        email,
+        password: testConfig.password,
+      });
       expect(loginRest.errors).toHaveLength(0);
       expect(loginRest.data?.access_token?.length).toBeGreaterThan(0);
 

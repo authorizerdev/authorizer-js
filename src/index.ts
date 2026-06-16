@@ -77,7 +77,7 @@ export class Authorizer {
 
     if ((config.protocol as string) === 'grpc')
       throw new Error(
-        'protocol \'grpc\' is not supported in authorizer-js (browsers cannot speak raw gRPC); use \'graphql\' or \'rest\'',
+        "protocol 'grpc' is not supported in authorizer-js (browsers cannot speak raw gRPC); use 'graphql' or 'rest'",
       );
     this.config.protocol = config.protocol || 'graphql';
 
@@ -494,7 +494,8 @@ export class Authorizer {
         'magicLinkLogin',
         ['graphql', 'rest'],
         {
-          query: 'mutation magic_link_login($data: MagicLinkLoginRequest!) { magic_link_login(params: $data) { message }}',
+          query:
+            'mutation magic_link_login($data: MagicLinkLoginRequest!) { magic_link_login(params: $data) { message }}',
           operationName: 'magic_link_login',
           op: 'magic_link_login',
         },
@@ -547,7 +548,8 @@ export class Authorizer {
         'resendOtp',
         ['graphql', 'rest'],
         {
-          query: 'mutation resend_otp($data: ResendOTPRequest!) { resend_otp(params: $data) { message }}',
+          query:
+            'mutation resend_otp($data: ResendOTPRequest!) { resend_otp(params: $data) { message }}',
           operationName: 'resend_otp',
           op: 'resend_otp',
         },
@@ -799,7 +801,8 @@ export class Authorizer {
         'resendVerifyEmail',
         ['graphql', 'rest'],
         {
-          query: 'mutation resend_verify_email($data: ResendVerifyEmailRequest!) { resend_verify_email(params: $data) { message }}',
+          query:
+            'mutation resend_verify_email($data: ResendVerifyEmailRequest!) { resend_verify_email(params: $data) { message }}',
           operationName: 'resend_verify_email',
           op: 'resend_verify_email',
         },
@@ -901,7 +904,7 @@ export class Authorizer {
   };
 
   // dispatch runs a public method over the configured protocol and returns the
-  // same flat payload regardless of protocol. As of server 2.3.0-rc.9 (PR #635)
+  // same flat payload regardless of protocol. As of server 2.3.0 (PR #635)
   // every public RPC works over both graphql and rest and the response envelope
   // is flat and byte-identical between them (snake_case): graphql reads
   // `data[gql.op]` (e.g. `data.signup` = AuthResponse), and rest returns the

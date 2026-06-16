@@ -73,7 +73,7 @@ describe('Integration Tests - AuthorizerAdmin (graphql + rest)', () => {
     const { args } = buildAuthorizerCliArgs();
 
     container = await new GenericContainer(
-      process.env.AUTHORIZER_IMAGE || 'lakhansamani/authorizer:2.3.0-rc.9',
+      process.env.AUTHORIZER_IMAGE || 'lakhansamani/authorizer:2.3.0',
     )
       .withCommand(args)
       .withExposedPorts(8080)
@@ -117,7 +117,9 @@ describe('Integration Tests - AuthorizerAdmin (graphql + rest)', () => {
     const res = await admin.adminMeta();
     expect(res.data).toBeUndefined();
     expect(res.errors.length).toBeGreaterThan(0);
-    expect(res.errors[0].message).toMatch(/AdminMeta is not available over graphql/);
+    expect(res.errors[0].message).toMatch(
+      /AdminMeta is not available over graphql/,
+    );
   });
 
   it('rejects graphql-only methods over rest with a clear error', async () => {
@@ -180,10 +182,7 @@ describe('Integration Tests - AuthorizerAdmin (graphql + rest)', () => {
       // distinct one per protocol so the two protocol runs don't collide on the
       // unique event_name constraint. The server stores it as `<event>-<ts>`,
       // so match by prefix when locating the created row.
-      const event =
-        protocol === 'graphql'
-          ? 'user.login'
-          : 'user.signup';
+      const event = protocol === 'graphql' ? 'user.login' : 'user.signup';
       const addRes = await a.addWebhook({
         event_name: event,
         endpoint: 'https://example.com/webhook',
@@ -212,9 +211,7 @@ describe('Integration Tests - AuthorizerAdmin (graphql + rest)', () => {
       const a = admin();
       // email_template event_name is unique; use a distinct event per protocol.
       const event =
-        protocol === 'graphql'
-          ? 'basic_auth_signup'
-          : 'magic_link_login';
+        protocol === 'graphql' ? 'basic_auth_signup' : 'magic_link_login';
       const addRes = await a.addEmailTemplate({
         event_name: event,
         subject: 'Welcome',
@@ -257,7 +254,9 @@ type document
     it('fgaWriteModel installs a model (graphql)', async () => {
       const res = await adminFor('graphql').fgaWriteModel({ dsl: fgaModelDsl });
       if (
-        res.errors.some((e) => /Cannot query field|FailedPrecondition|fga/i.test(e.message))
+        res.errors.some((e) =>
+          /Cannot query field|FailedPrecondition|fga/i.test(e.message),
+        )
       ) {
         fgaSupported = false;
         return;
