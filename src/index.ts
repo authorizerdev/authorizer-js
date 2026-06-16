@@ -77,7 +77,7 @@ export class Authorizer {
 
     if ((config.protocol as string) === 'grpc')
       throw new Error(
-        "protocol 'grpc' is not supported in authorizer-js (browsers cannot speak raw gRPC); use 'graphql' or 'rest'",
+        'protocol \'grpc\' is not supported in authorizer-js (browsers cannot speak raw gRPC); use \'graphql\' or \'rest\'',
       );
     this.config.protocol = config.protocol || 'graphql';
 
