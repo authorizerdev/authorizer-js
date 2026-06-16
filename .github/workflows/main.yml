@@ -26,9 +26,7 @@ jobs:
           node-version: "20" # testcontainers (FGA integration tests) needs Node >= 20 (global File)
 
       - name: Set up pnpm
-        run: |
-          corepack enable
-          corepack prepare pnpm --activate
+        run: npm install -g pnpm@8
       - name: Install dependencies
         run: pnpm install
       - name: Run integration tests
