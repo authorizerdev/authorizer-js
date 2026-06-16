@@ -23,7 +23,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: "20" # testcontainers (FGA integration tests) needs Node >= 20 (global File)
+          node-version: "22"
 
       - name: Set up pnpm
         run: npm install -g pnpm@8

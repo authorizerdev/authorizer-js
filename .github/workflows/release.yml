@@ -15,8 +15,24 @@ jobs:
 
       - uses: actions/setup-node@v3
         with:
-          node-version: 18.x
+          node-version: 22.x
+          registry-url: 'https://registry.npmjs.org'
 
-      - run: npx changelogithub
+      - name: Set up pnpm
+        run: npm install -g pnpm@8
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm build
+
+      - name: Publish to npm
+        run: pnpm publish --no-git-checks --access public
         env:
-          GITHUB_TOKEN: ${{secrets.REPOCHANGELOG_TOKEN}}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub changelog
+        run: npx changelogithub
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPOCHANGELOG_TOKEN }}
