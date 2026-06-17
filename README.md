@@ -1,59 +1,119 @@
 # Authorizer.js
 
-[`@authorizerdev/authorizer-js`](https://www.npmjs.com/package/@authorizerdev/authorizer-js) is universal javaScript SDK for Authorizer API.
+[`@authorizerdev/authorizer-js`](https://www.npmjs.com/package/@authorizerdev/authorizer-js) is the universal JavaScript/TypeScript SDK for the Authorizer API. Current version: **3.2.1**.
+
 It supports:
 
 - [UMD (Universal Module Definition)](https://github.com/umdjs/umd) build for browsers
-- [CommonJS(cjs)](https://flaviocopes.com/commonjs/) build for NodeJS version that don't support ES Modules
-- [ESM (ES Modules)](https://hacks.mozilla.org/2018/03/es-modules-a-cartoon-deep-dive/) build for modern javascript standard, i.e. ES Modules
+- [CommonJS (cjs)](https://flaviocopes.com/commonjs/) build for Node.js environments that do not support ES Modules
+- [ESM (ES Modules)](https://hacks.mozilla.org/2018/03/es-modules-a-cartoon-deep-dive/) build for modern JavaScript
 
-# Migration Guide from 1.x -> 2.x
+## Migration Guide
 
-`2.x` version of `@authorizerdev/authorizer-js` has a uniform response structure that will help your applications to get right error codes and success response. Methods here have `{data, errors}` as response objects for methods of this library.
+### 2.x -> 3.x
 
-For `1.x` version of this library you can get only data in response and error would be thrown so you had to handle that in catch.
+`3.x` introduces a `Protocol` type (`'graphql' | 'rest'`) and an optional `protocol` field on the constructor. The response shape is unchanged from 2.x — all methods return `{ data: T | undefined, errors: Error[] }`.
+
+The config type is now exported as `ConfigType`.
+
+### 1.x -> 2.x
+
+`2.x` introduced the uniform `{ data, errors }` response shape. In `1.x` methods returned data directly and threw on error.
 
 ---
 
-All the above versions require `Authorizer` instance to be instantiated and used. Instance constructor requires an object with the following keys
+## Constructor
 
-| Key             | Description                                                                  |
-| --------------- | ---------------------------------------------------------------------------- |
-| `authorizerURL` | Authorizer server endpoint                                                   |
-| `redirectURL`   | URL to which you would like to redirect the user in case of successful login |
+```ts
+import { Authorizer } from '@authorizerdev/authorizer-js';
 
-**Example**
-
-```js
 const authRef = new Authorizer({
-  authorizerURL: 'https://app.herokuapp.com',
+  authorizerURL: 'https://your-instance.example.com',
   redirectURL: window.location.origin,
+  clientID: 'YOUR_CLIENT_ID',
+  // optional — 'graphql' (default) or 'rest'
+  protocol: 'graphql',
 });
 ```
 
-## IIFE
+| Key             | Required | Description                                               |
+| --------------- | -------- | --------------------------------------------------------- |
+| `authorizerURL` | Yes      | Base URL of your Authorizer instance                      |
+| `redirectURL`   | Yes      | URL to redirect to after a successful login               |
+| `clientID`      | Yes      | Client ID from the Authorizer dashboard                   |
+| `protocol`      | No       | Transport protocol: `'graphql'` (default) or `'rest'`     |
 
-- Step 1: Load Javascript using CDN
+The `protocol` option controls which transport the SDK uses. `'graphql'` sends requests to the `/graphql` endpoint; `'rest'` uses the REST API (`/api/*`). Both expose the same feature set.
 
-```html
-<script src="https://unpkg.com/@authorizerdev/authorizer-js/lib/authorizer.min.js"></script>
+---
+
+## Install
+
+### npm / yarn
+
+```sh
+npm i --save @authorizerdev/authorizer-js
+# or
+yarn add @authorizerdev/authorizer-js
 ```
 
-- Step 2: Use the library to instantiate `Authorizer` instance and access [various methods](/authorizer-js/functions)
+### CDN (IIFE / UMD)
 
 ```html
+<script src="https://unpkg.com/@authorizerdev/authorizer-js@3.2.1/lib/authorizer.min.js"></script>
+```
+
+---
+
+## CommonJS
+
+```js
+const { Authorizer } = require('@authorizerdev/authorizer-js');
+
+const authRef = new Authorizer({
+  authorizerURL: 'https://your-instance.example.com',
+  redirectURL: 'https://your-app.example.com',
+  clientID: 'YOUR_CLIENT_ID',
+});
+
+async function main() {
+  const { data, errors } = await authRef.login({
+    email: 'user@example.com',
+    password: 'Abc@123',
+  });
+  if (errors.length) console.error(errors);
+  else console.log(data.access_token);
+}
+```
+
+## ES Modules
+
+```js
+import { Authorizer } from '@authorizerdev/authorizer-js';
+
+const authRef = new Authorizer({
+  authorizerURL: 'https://your-instance.example.com',
+  redirectURL: 'https://your-app.example.com',
+  clientID: 'YOUR_CLIENT_ID',
+});
+
+async function main() {
+  const { data, errors } = await authRef.login({
+    email: 'user@example.com',
+    password: 'Abc@123',
+  });
+}
+```
+
+## IIFE (Browser)
+
+```html
+<script src="https://unpkg.com/@authorizerdev/authorizer-js@3.2.1/lib/authorizer.min.js"></script>
 <script type="text/javascript">
   const authorizerRef = new authorizerdev.Authorizer({
-    authorizerURL: `AUTHORIZER_URL`,
+    authorizerURL: 'AUTHORIZER_URL',
     redirectURL: window.location.origin,
-    clientID: 'YOUR_CLIENT_ID', // can be obtained from authorizer dashboard
-  });
-
-  // use the button selector as per your application
-  const logoutBtn = document.getElementById('logout');
-  logoutBtn.addEventListener('click', async function () {
-    await authorizerRef.logout();
-    window.location.href = '/';
+    clientID: 'YOUR_CLIENT_ID',
   });
 
   async function onLoad() {
@@ -62,96 +122,25 @@ const authRef = new Authorizer({
       use_refresh_token: false,
     });
     if (data && data.access_token) {
-      // get user profile using the access token
-      const { data: user, errors } = await authorizerRef.getProfile({
-        Authorization: `Bearer ${res.access_token}`,
+      const { data: user } = await authorizerRef.getProfile({
+        Authorization: `Bearer ${data.access_token}`,
       });
-
-      // 	logoutSection.classList.toggle('hide');
-      // 	userSection.innerHTML = `Welcome, ${user.email}`;
+      console.log(user.email);
     }
   }
   onLoad();
 </script>
 ```
 
-## CommonJS
-
-- Step 1: Install dependencies
-
-```sh
-npm i --save @authorizerdev/authorizer-js
-OR
-yarn add @authorizerdev/authoirzer-js
-```
-
-- Step 2: Import and initialize the authorizer instance
-
-```js
-const { Authorizer } = require('@authorizerdev/authoirzer-js');
-
-const authRef = new Authorizer({
-  authorizerURL: 'https://app.heroku.com',
-  redirectURL: 'http://app.heroku.com/app',
-});
-
-async function main() {
-  await authRef.login({
-    email: 'foo@bar.com',
-    password: 'test',
-  });
-}
-```
-
-## ES Modules
-
-- Step 1: Install dependencies
-
-```sh
-npm i --save @authorizerdev/authorizer-js
-OR
-yarn add @authorizerdev/authorizer-js
-```
-
-- Step 2: Import and initialize the authorizer instance
-
-```js
-import { Authorizer } from '@authorizerdev/authorizer-js';
-
-const authRef = new Authorizer({
-  authorizerURL: 'https://app.heroku.com',
-  redirectURL: 'http://app.heroku.com/app',
-});
-
-async function main() {
-  await authRef.login({
-    email: 'foo@bar.com',
-    password: 'test',
-  });
-}
-```
+---
 
 ## Fine-grained authorization (FGA)
 
-Authorizer ships an embedded [OpenFGA](https://openfga.dev) engine for relationship-based
-access control (ReBAC). You model your domain as object **types** with **relations**
-(`viewer`, `editor`, `owner`…), grant access by writing **relationship tuples**
-(`user:alice` is `viewer` of `document:1`), and ask the engine whether access is allowed.
+Authorizer ships an embedded [OpenFGA](https://openfga.dev) engine for relationship-based access control (ReBAC). You model your domain as object **types** with **relations** (`viewer`, `editor`, `owner`…), grant access by writing **relationship tuples** (`user:alice` is `viewer` of `document:1`), and ask the engine whether access is allowed.
 
-Authoring the model and tuples is an admin task — do it once in the dashboard under
-**Authorization**, or via the `_fga_*` admin GraphQL API. The SDK exposes only the
-read-side checks an application needs at request time. For every call the subject
-defaults to the authenticated caller and is pinned server-side from the request
-(session cookie by default; pass the authorization header in node.js). The optional
-`user` field (`"type:id"`, or a bare id treated as `"user:<id>"`) lets you check on
-behalf of someone else, but the server honors it only for super-admin callers or when
-it equals the caller's own token subject — anything else is rejected, never silently
-ignored.
+Authoring the model and tuples is an admin task — do it once in the dashboard under **Authorization**, or via the `_fga_*` admin GraphQL API. The SDK exposes only the read-side checks an application needs at request time. For every call the subject defaults to the authenticated caller and is pinned server-side from the request (session cookie by default; pass the authorization header in Node.js). The optional `user` field (`"type:id"`, or a bare id treated as `"user:<id>"`) lets you check on behalf of someone else, but the server honors it only for super-admin callers or when it equals the caller's own token subject.
 
-**1. Check permissions** — `checkPermissions` answers "does the subject have
-`relation` on `object`?" for one or more pairs in a single round trip. `results`
-come back in the same order as the supplied `checks`, each echoing its
-relation/object pair.
+**Check permissions** — answers "does the subject have `relation` on `object`?" for one or more pairs in a single round trip.
 
 ```js
 const { data } = await authRef.checkPermissions(
@@ -180,8 +169,7 @@ const { data } = await authRef.checkPermissions({
 //   ]
 ```
 
-**2. List accessible objects** — `listPermissions` returns the ids of every object of
-a type the subject relates to (handy for filtering a list to what the user can see).
+**List accessible objects** — returns the ids of every object of a type the subject relates to.
 
 ```js
 const { data } = await authRef.listPermissions({
@@ -191,20 +179,31 @@ const { data } = await authRef.listPermissions({
 // data?.objects => ['document:1', 'document:7', ...]
 ```
 
-## Local Development Setup
+---
+
+## Local Development
 
 ### Prerequisites
 
-- [Pnpm](https://pnpm.io/installation)
-- [NodeJS](https://nodejs.org/en/download/)
+- [pnpm](https://pnpm.io/installation)
+- [Node.js](https://nodejs.org/en/download/)
 
 ### Setup
 
-- Clone the repository
-- Install dependencies using `pnpm install`
-- Run `pnpm build` to build the library
-- Run `pnpm test` to run the tests
+```sh
+git clone https://github.com/authorizerdev/authorizer-js
+cd authorizer-js
+pnpm install
+pnpm build
+pnpm test
+```
 
-### Release
+---
 
-- Run `pnpm release` to release a new version of the library
+## Release
+
+1. Bump the version in `package.json`.
+2. Tag the commit: `git tag v<version>`
+3. Push with tags: `git push origin main --tags`
+
+The GitHub Actions release workflow handles npm publish and GitHub Release creation automatically.
