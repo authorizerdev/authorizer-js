@@ -437,11 +437,15 @@ export class Authorizer {
 
     try {
       const fetcher = getFetcher();
+      // RFC 6749 token requests MUST be form-encoded. The server binds most
+      // params from JSON too, but reads `resource` (RFC 8707) only from the
+      // POST form — a JSON body would silently break token exchange.
       const res = await fetcher(`${this.config.authorizerURL}/oauth/token`, {
         method: 'POST',
-        body: JSON.stringify(requestData),
+        body: new URLSearchParams(requestData).toString(),
         headers: {
           ...this.config.extraHeaders,
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
         credentials: 'include',
       });

@@ -29,7 +29,14 @@ function mockJsonResponse(body: unknown, ok = true, status = 200) {
 
 function lastRequest(): { url: string; init: RequestInit; body: any } {
   const [url, init] = fetchMock.mock.calls[fetchMock.mock.calls.length - 1];
-  return { url, init, body: JSON.parse(init.body as string) };
+  const raw = init.body as string;
+  const contentType = (init.headers as Record<string, string>)['Content-Type'];
+  // /oauth/token requests are form-encoded (RFC 6749); everything else is JSON
+  const body =
+    contentType === 'application/x-www-form-urlencoded'
+      ? Object.fromEntries(new URLSearchParams(raw))
+      : JSON.parse(raw);
+  return { url, init, body };
 }
 
 beforeEach(() => fetchMock.mockReset());
@@ -56,8 +63,12 @@ describe('getToken machine grants', () => {
     expect(res.errors).toHaveLength(0);
     expect(res.data?.access_token).toBe('at');
 
-    const { url, body } = lastRequest();
+    const { url, init, body } = lastRequest();
     expect(url).toBe('http://localhost:8080/oauth/token');
+    // must be form-encoded: the server reads `resource` only from the POST form
+    expect((init.headers as Record<string, string>)['Content-Type']).toBe(
+      'application/x-www-form-urlencoded',
+    );
     expect(body).toEqual({
       client_id: 'test-client-id',
       grant_type: GRANT_TYPE_CLIENT_CREDENTIALS,
