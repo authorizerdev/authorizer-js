@@ -1,6 +1,9 @@
 // Note: write gql query in single line to reduce bundle size
 import crossFetch from 'cross-fetch';
-import { DEFAULT_AUTHORIZE_TIMEOUT_IN_SECONDS } from './constants';
+import {
+  DEFAULT_AUTHORIZE_TIMEOUT_IN_SECONDS,
+  GRANT_TYPE_TOKEN_EXCHANGE,
+} from './constants';
 import * as Types from './types';
 import {
   bufferToBase64UrlEncoded,
@@ -52,6 +55,15 @@ function toErrorList(errors: unknown): Error[] {
 
 export * from './types';
 export { AuthorizerAdmin } from './admin';
+export {
+  CLIENT_ASSERTION_TYPE_JWT_BEARER,
+  GRANT_TYPE_AUTHORIZATION_CODE,
+  GRANT_TYPE_CLIENT_CREDENTIALS,
+  GRANT_TYPE_REFRESH_TOKEN,
+  GRANT_TYPE_TOKEN_EXCHANGE,
+  TOKEN_TYPE_ACCESS_TOKEN,
+  TOKEN_TYPE_JWT,
+} from './constants';
 
 /**
  * Client for the Authorizer API. All network calls go to `config.authorizerURL`
@@ -370,6 +382,17 @@ export class Authorizer {
     }
   };
 
+  /**
+   * Exchange credentials for tokens at `/oauth/token`.
+   *
+   * Supported grants: `authorization_code` (default), `refresh_token`,
+   * `client_credentials` (RFC 6749 §4.4) and RFC 8693 token exchange
+   * (`urn:ietf:params:oauth:grant-type:token-exchange`).
+   *
+   * WARNING: `client_credentials` and token exchange are machine/service
+   * flows for trusted server-side code ONLY. Never ship `client_secret`,
+   * `client_assertion`, or subject/actor tokens in a browser bundle.
+   */
   getToken = async (
     data: Types.GetTokenRequest,
   ): Promise<Types.ApiResponse<Types.GetTokenResponse>> => {
@@ -381,13 +404,36 @@ export class Authorizer {
     if (data.grant_type === 'authorization_code' && !this.codeVerifier)
       return this.errorResponse([new Error('Invalid code verifier')]);
 
-    const requestData = {
-      client_id: this.config.clientID,
-      code: data.code || '',
-      code_verifier: this.codeVerifier || '',
-      grant_type: data.grant_type || '',
-      refresh_token: data.refresh_token || '',
+    if (
+      data.grant_type === GRANT_TYPE_TOKEN_EXCHANGE &&
+      !data.subject_token?.trim()
+    )
+      return this.errorResponse([new Error('Invalid subject_token')]);
+
+    const requestData: Record<string, string> = {
+      client_id: this.config.clientID || '',
+      grant_type: data.grant_type,
     };
+    if (data.grant_type === 'authorization_code') {
+      requestData.code = data.code || '';
+      requestData.code_verifier = this.codeVerifier || '';
+    }
+    // only include optional params that are actually set
+    const optionalParams = [
+      'refresh_token',
+      'client_secret',
+      'scope',
+      'client_assertion',
+      'client_assertion_type',
+      'subject_token',
+      'subject_token_type',
+      'actor_token',
+      'actor_token_type',
+      'resource',
+    ] as const;
+    for (const key of optionalParams) {
+      if (data[key]) requestData[key] = data[key];
+    }
 
     try {
       const fetcher = getFetcher();

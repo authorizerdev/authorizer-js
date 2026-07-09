@@ -448,6 +448,29 @@ export interface GetTokenRequest {
   code?: string;
   grant_type?: string;
   refresh_token?: string;
+  // --- client_credentials (RFC 6749 §4.4) — SERVER-SIDE ONLY ---
+  // client_secret authenticates the service account. NEVER ship it in a
+  // browser bundle.
+  client_secret?: string;
+  // scope is the space-delimited OAuth2 scope parameter (RFC 6749 §3.3);
+  // omitted = the service account's full allowed scope set.
+  scope?: string;
+  // client_assertion / client_assertion_type carry the RFC 7523 JWT-bearer
+  // client credential — the secretless workload-identity path (K8s SA
+  // tokens, SPIFFE JWT-SVIDs, cloud OIDC tokens).
+  client_assertion?: string;
+  client_assertion_type?: string;
+  // --- RFC 8693 token exchange (delegation) — SERVER-SIDE ONLY ---
+  // subject_token carries the authority being exercised (the user's token);
+  // actor_token carries the acting agent's token (its presence selects the
+  // delegation profile). See TOKEN_TYPE_* constants for the *_token_type URNs.
+  subject_token?: string;
+  subject_token_type?: string;
+  actor_token?: string;
+  actor_token_type?: string;
+  // resource is the RFC 8707 resource indicator the issued token is
+  // audience-bound to.
+  resource?: string;
 }
 
 // Keep GetTokenInput as alias for backward compatibility
@@ -456,8 +479,15 @@ export type GetTokenInput = GetTokenRequest;
 export interface GetTokenResponse {
   access_token: string;
   expires_in: number;
-  id_token: string;
+  // id_token is only issued on user grants (authorization_code /
+  // refresh_token) — absent for client_credentials and token exchange.
+  id_token?: string;
   refresh_token?: string;
+  token_type?: string;
+  // scope / issued_token_type are returned by the client_credentials and
+  // token-exchange grants (RFC 6749 §5.1 / RFC 8693 §2.2).
+  scope?: string;
+  issued_token_type?: string;
 }
 
 // GraphQL query request
@@ -778,4 +808,358 @@ export interface GenerateJWTKeysResponse {
 // AdminSignupRequest sets the admin secret on a fresh deployment (gql-only).
 export interface AdminSignupRequest {
   admin_secret: string;
+}
+
+// ============================================================================
+// Machine-agent-identity admin types: OAuth clients (service accounts),
+// trusted issuers, organizations, org SSO connections, and SCIM endpoints.
+// ============================================================================
+
+// Client is a registered OAuth client / service account. client_secret is
+// NEVER part of this shape — it is returned exactly once in
+// CreateClientResponse (creation and rotation) and never again.
+export interface Client {
+  id: string;
+  name: string;
+  description: string | null;
+  allowed_scopes: string[];
+  is_active: boolean;
+  created_at: number | null;
+  updated_at: number | null;
+}
+
+// CreateClientResponse carries the client plus its secret. The secret is
+// returned ONCE at creation and ONCE at rotation; store it securely.
+export interface CreateClientResponse {
+  client: Client;
+  client_secret: string;
+}
+
+// Clients is a paginated list of OAuth clients.
+export interface Clients {
+  pagination: Pagination;
+  clients: Client[];
+}
+
+// CreateClientRequest registers a new OAuth client / service account.
+export interface CreateClientRequest {
+  name: string;
+  description?: string | null;
+  // allowed_scopes must contain at least one non-empty scope after trimming.
+  allowed_scopes: string[];
+}
+
+// UpdateClientRequest updates an existing client. allowed_scopes, when
+// supplied, replaces the scope set.
+export interface UpdateClientRequest {
+  id: string;
+  name?: string | null;
+  description?: string | null;
+  allowed_scopes?: string[] | null;
+  is_active?: boolean | null;
+}
+
+// ClientRequest targets a single client by id (get / delete / rotate secret).
+export interface ClientRequest {
+  id: string;
+}
+
+// ListClientsRequest is a paginated client list read.
+export interface ListClientsRequest {
+  pagination?: PaginationRequest | null;
+}
+
+// TrustedIssuer is an external token issuer trusted for secretless
+// (client_assertion) authentication of a service account.
+export interface TrustedIssuer {
+  id: string;
+  service_account_id: string;
+  name: string;
+  issuer_url: string;
+  key_source_type: string;
+  jwks_url: string | null;
+  expected_aud: string;
+  subject_claim: string;
+  // allowed_subjects: comma-separated exact subject allow-list. Empty = deny-all.
+  allowed_subjects: string | null;
+  issuer_type: string;
+  is_active: boolean;
+  spiffe_refresh_hint_seconds: number | null;
+  created_at: number | null;
+  updated_at: number | null;
+}
+
+// TrustedIssuers is a paginated list of trusted issuers.
+export interface TrustedIssuers {
+  pagination: Pagination;
+  trusted_issuers: TrustedIssuer[];
+}
+
+// AddTrustedIssuerRequest registers a trusted issuer for a service account.
+export interface AddTrustedIssuerRequest {
+  service_account_id: string;
+  name: string;
+  issuer_url: string;
+  // key_source_type: "oidc_discovery" | "static_jwks_url" | "spiffe_bundle_endpoint"
+  key_source_type: string;
+  jwks_url?: string | null;
+  expected_aud: string;
+  // subject_claim defaults to "sub" if omitted.
+  subject_claim?: string | null;
+  // allowed_subjects: comma-separated exact subject allow-list. Empty/omitted
+  // = deny-all — a row with no configured subjects authenticates nobody.
+  allowed_subjects?: string | null;
+  // issuer_type: "kubernetes_sa" | "spiffe_jwt" | "oidc" | "cloud_oidc"
+  issuer_type: string;
+  spiffe_refresh_hint_seconds?: number | null;
+}
+
+// UpdateTrustedIssuerRequest updates an existing trusted issuer.
+export interface UpdateTrustedIssuerRequest {
+  id: string;
+  name?: string | null;
+  jwks_url?: string | null;
+  expected_aud?: string | null;
+  allowed_subjects?: string | null;
+  is_active?: boolean | null;
+  spiffe_refresh_hint_seconds?: number | null;
+}
+
+// TrustedIssuerRequest targets a single trusted issuer by id (get / delete).
+export interface TrustedIssuerRequest {
+  id: string;
+}
+
+// ListTrustedIssuersRequest is a paginated, optionally service-account-scoped
+// trusted issuer list read.
+export interface ListTrustedIssuersRequest {
+  service_account_id?: string | null;
+  pagination?: PaginationRequest | null;
+}
+
+// Organization is a tenant grouping of users.
+export interface Organization {
+  id: string;
+  // name is a unique, URL-safe slug identifying the organization.
+  name: string;
+  display_name: string | null;
+  enabled: boolean;
+  created_at: number | null;
+  updated_at: number | null;
+}
+
+// Organizations is a paginated list of organizations.
+export interface Organizations {
+  pagination: Pagination;
+  organizations: Organization[];
+}
+
+// CreateOrganizationRequest creates a new organization.
+export interface CreateOrganizationRequest {
+  // name must be a unique, URL-safe slug.
+  name: string;
+  display_name?: string | null;
+}
+
+// UpdateOrganizationRequest updates an existing organization.
+export interface UpdateOrganizationRequest {
+  id: string;
+  name?: string | null;
+  display_name?: string | null;
+  enabled?: boolean | null;
+}
+
+// OrganizationRequest targets a single organization by id (get / delete).
+export interface OrganizationRequest {
+  id: string;
+}
+
+// ListOrganizationsRequest is a paginated organization list read.
+export interface ListOrganizationsRequest {
+  pagination?: PaginationRequest | null;
+}
+
+// OrgMember is a user's membership in an organization.
+export interface OrgMember {
+  id: string;
+  org_id: string;
+  user_id: string;
+  // roles is the set of per-organization roles granted to this member.
+  roles: string[];
+  created_at: number | null;
+  updated_at: number | null;
+}
+
+// OrgMembers is a paginated list of organization members.
+export interface OrgMembers {
+  pagination: Pagination;
+  org_members: OrgMember[];
+}
+
+// AddOrgMemberRequest adds a user to an organization.
+export interface AddOrgMemberRequest {
+  org_id: string;
+  user_id: string;
+  // roles defaults to an empty set when omitted.
+  roles?: string[] | null;
+}
+
+// RemoveOrgMemberRequest removes a user from an organization.
+export interface RemoveOrgMemberRequest {
+  org_id: string;
+  user_id: string;
+}
+
+// ListOrgMembersRequest is a paginated member list read for one organization.
+export interface ListOrgMembersRequest {
+  org_id: string;
+  pagination?: PaginationRequest | null;
+}
+
+// OrgOIDCConnection is a per-organization upstream OIDC IdP that Authorizer
+// brokers as a Relying Party. The upstream client_secret is NEVER projected.
+export interface OrgOIDCConnection {
+  id: string;
+  org_id: string;
+  name: string;
+  issuer_url: string;
+  // sso_client_id: the client_id Authorizer uses AT the upstream IdP.
+  sso_client_id: string;
+  scopes: string | null;
+  redirect_uri: string | null;
+  is_active: boolean;
+  created_at: number | null;
+  updated_at: number | null;
+}
+
+// CreateOrgOIDCConnectionRequest creates a per-org upstream OIDC connection.
+export interface CreateOrgOIDCConnectionRequest {
+  org_id: string;
+  name: string;
+  // issuer_url: the upstream IdP issuer (its OIDC discovery base).
+  issuer_url: string;
+  // client_id / client_secret: the credentials Authorizer holds AT the
+  // upstream IdP. The secret is stored encrypted and never returned.
+  client_id: string;
+  client_secret: string;
+  // scopes: space-separated. Defaults to "openid profile email" when omitted.
+  scopes?: string | null;
+  // redirect_uri registered at the upstream IdP. Derived from the request
+  // host when omitted.
+  redirect_uri?: string | null;
+}
+
+// UpdateOrgOIDCConnectionRequest updates a per-org upstream OIDC connection.
+export interface UpdateOrgOIDCConnectionRequest {
+  id: string;
+  name?: string | null;
+  issuer_url?: string | null;
+  client_id?: string | null;
+  // Supplying client_secret rotates it; omitting leaves the stored secret intact.
+  client_secret?: string | null;
+  scopes?: string | null;
+  redirect_uri?: string | null;
+  is_active?: boolean | null;
+}
+
+// OrgOIDCConnectionRequest looks up a connection by id OR by org_id
+// (supply exactly one).
+export interface OrgOIDCConnectionRequest {
+  id?: string | null;
+  org_id?: string | null;
+}
+
+// OrgSAMLConnection is a per-organization upstream SAML 2.0 IdP for which
+// Authorizer acts as the Service Provider. The IdP signing certificate is
+// accepted on write but never projected back.
+export interface OrgSAMLConnection {
+  id: string;
+  org_id: string;
+  name: string;
+  // idp_entity_id: the upstream IdP entity ID (the assertion Issuer).
+  idp_entity_id: string;
+  // idp_sso_url: the IdP Single Sign-On endpoint the AuthnRequest is sent to.
+  idp_sso_url: string | null;
+  // sp_entity_id / acs_url: the SP identity Authorizer advertises for this
+  // org. Empty means "derived from the request host".
+  sp_entity_id: string | null;
+  acs_url: string | null;
+  // attribute_mapping: JSON mapping profile fields to SAML attribute names.
+  attribute_mapping: string | null;
+  // allow_idp_initiated: whether IdP-initiated SSO is permitted.
+  allow_idp_initiated: boolean;
+  is_active: boolean;
+  created_at: number | null;
+  updated_at: number | null;
+}
+
+// CreateOrgSAMLConnectionRequest creates a per-org upstream SAML connection.
+export interface CreateOrgSAMLConnectionRequest {
+  org_id: string;
+  name: string;
+  // idp_entity_id: the upstream IdP entity ID (matched against the assertion
+  // Issuer). Globally unique across all trusted issuers.
+  idp_entity_id: string;
+  // idp_sso_url: the IdP Single Sign-On endpoint (HTTP-Redirect binding).
+  idp_sso_url: string;
+  // idp_certificate: the IdP X.509 signing certificate (PEM). Assertion
+  // signatures are validated ONLY against this certificate.
+  idp_certificate: string;
+  // sp_entity_id / acs_url: override the host-derived SP identity. Optional.
+  sp_entity_id?: string | null;
+  acs_url?: string | null;
+  // attribute_mapping: JSON, e.g. {"email":"email","given_name":"firstName"}.
+  attribute_mapping?: string | null;
+  // allow_idp_initiated: default false (SP-initiated only).
+  allow_idp_initiated?: boolean | null;
+}
+
+// UpdateOrgSAMLConnectionRequest updates a per-org upstream SAML connection.
+export interface UpdateOrgSAMLConnectionRequest {
+  id: string;
+  name?: string | null;
+  idp_entity_id?: string | null;
+  idp_sso_url?: string | null;
+  // Supplying idp_certificate replaces it; omitting leaves the stored cert intact.
+  idp_certificate?: string | null;
+  sp_entity_id?: string | null;
+  acs_url?: string | null;
+  attribute_mapping?: string | null;
+  allow_idp_initiated?: boolean | null;
+  is_active?: boolean | null;
+}
+
+// OrgSAMLConnectionRequest looks up a connection by id OR by org_id
+// (supply exactly one).
+export interface OrgSAMLConnectionRequest {
+  id?: string | null;
+  org_id?: string | null;
+}
+
+// ScimEndpoint is the per-org inbound SCIM 2.0 connection credential. The
+// bearer token is NEVER part of this shape — it is returned exactly once in
+// CreateScimEndpointResponse (creation and rotation) and never again.
+export interface ScimEndpoint {
+  id: string;
+  org_id: string;
+  enabled: boolean;
+  created_at: number | null;
+  updated_at: number | null;
+}
+
+// CreateScimEndpointResponse carries the endpoint plus its bearer token. The
+// token is returned ONCE at creation and ONCE at rotation; store it securely.
+export interface CreateScimEndpointResponse {
+  scim_endpoint: ScimEndpoint;
+  token: string;
+}
+
+// CreateScimEndpointRequest / ScimEndpointRequest are keyed by org_id — one
+// SCIM endpoint per org.
+export interface CreateScimEndpointRequest {
+  org_id: string;
+}
+
+export interface ScimEndpointRequest {
+  org_id: string;
 }

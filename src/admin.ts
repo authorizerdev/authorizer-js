@@ -18,6 +18,18 @@ const emailTemplateFragment =
   'id event_name template design subject created_at updated_at';
 const auditLogFragment =
   'id actor_id actor_type actor_email action resource_type resource_id ip_address user_agent metadata created_at';
+const clientFragment =
+  'id name description allowed_scopes is_active created_at updated_at';
+const trustedIssuerFragment =
+  'id service_account_id name issuer_url key_source_type jwks_url expected_aud subject_claim allowed_subjects issuer_type is_active spiffe_refresh_hint_seconds created_at updated_at';
+const organizationFragment =
+  'id name display_name enabled created_at updated_at';
+const orgMemberFragment = 'id org_id user_id roles created_at updated_at';
+const orgOIDCConnectionFragment =
+  'id org_id name issuer_url sso_client_id scopes redirect_uri is_active created_at updated_at';
+const orgSAMLConnectionFragment =
+  'id org_id name idp_entity_id idp_sso_url sp_entity_id acs_url attribute_mapping allow_idp_initiated is_active created_at updated_at';
+const scimEndpointFragment = 'id org_id enabled created_at updated_at';
 
 function toErrorList(errors: unknown): Error[] {
   if (Array.isArray(errors)) {
@@ -780,6 +792,559 @@ export class AuthorizerAdmin {
       ['rest'],
       null,
       { method: 'POST', path: '/v1/admin/fga/reset' },
+    );
+
+  // ---- OAuth clients (service accounts) ----
+
+  // createClient registers a new OAuth client / service account. The returned
+  // client_secret is shown ONCE and can never be retrieved again.
+  createClient = (
+    params: Types.CreateClientRequest,
+  ): Promise<Types.ApiResponse<Types.CreateClientResponse>> =>
+    this.dispatch<Types.CreateClientResponse>(
+      'CreateClient',
+      ['graphql', 'rest'],
+      {
+        query: `mutation _create_client($params: CreateClientRequest!) { _create_client(params: $params) { client { ${clientFragment} } client_secret } }`,
+        operationName: '_create_client',
+        op: '_create_client',
+      },
+      { method: 'POST', path: '/v1/admin/create_client' },
+      { params },
+      params as unknown as Record<string, unknown>,
+    );
+
+  // updateClient updates a client's name, description, scopes, or active state.
+  updateClient = (
+    params: Types.UpdateClientRequest,
+  ): Promise<Types.ApiResponse<Types.Client>> =>
+    this.dispatch<Types.Client>(
+      'UpdateClient',
+      ['graphql', 'rest'],
+      {
+        query: `mutation _update_client($params: UpdateClientRequest!) { _update_client(params: $params) { ${clientFragment} } }`,
+        operationName: '_update_client',
+        op: '_update_client',
+      },
+      { method: 'POST', path: '/v1/admin/update_client', unwrap: 'client' },
+      { params },
+      params as unknown as Record<string, unknown>,
+    );
+
+  // deleteClient deletes a client by id. DESTRUCTIVE: the client and its
+  // credential are permanently removed.
+  deleteClient = (
+    params: Types.ClientRequest,
+  ): Promise<Types.ApiResponse<Types.Response>> =>
+    this.dispatch<Types.Response>(
+      'DeleteClient',
+      ['graphql', 'rest'],
+      {
+        query:
+          'mutation _delete_client($params: ClientRequest!) { _delete_client(params: $params) { message } }',
+        operationName: '_delete_client',
+        op: '_delete_client',
+      },
+      { method: 'POST', path: '/v1/admin/delete_client' },
+      { params },
+      params as unknown as Record<string, unknown>,
+    );
+
+  // rotateClientSecret mints a fresh secret for the client. The new secret is
+  // shown ONCE; the old secret stops working immediately.
+  rotateClientSecret = (
+    params: Types.ClientRequest,
+  ): Promise<Types.ApiResponse<Types.CreateClientResponse>> =>
+    this.dispatch<Types.CreateClientResponse>(
+      'RotateClientSecret',
+      ['graphql', 'rest'],
+      {
+        query: `mutation _rotate_client_secret($params: ClientRequest!) { _rotate_client_secret(params: $params) { client { ${clientFragment} } client_secret } }`,
+        operationName: '_rotate_client_secret',
+        op: '_rotate_client_secret',
+      },
+      { method: 'POST', path: '/v1/admin/rotate_client_secret' },
+      { params },
+      params as unknown as Record<string, unknown>,
+    );
+
+  // client returns a single client by id (never includes the secret).
+  client = (
+    params: Types.ClientRequest,
+  ): Promise<Types.ApiResponse<Types.Client>> =>
+    this.dispatch<Types.Client>(
+      'GetClient',
+      ['graphql', 'rest'],
+      {
+        query: `query _client($params: ClientRequest!) { _client(params: $params) { ${clientFragment} } }`,
+        operationName: '_client',
+        op: '_client',
+      },
+      { method: 'POST', path: '/v1/admin/client', unwrap: 'client' },
+      { params },
+      params as unknown as Record<string, unknown>,
+    );
+
+  // clients returns a paginated list of clients.
+  clients = (
+    params?: Types.ListClientsRequest,
+  ): Promise<Types.ApiResponse<Types.Clients>> =>
+    this.dispatch<Types.Clients>(
+      'Clients',
+      ['graphql', 'rest'],
+      {
+        query: `query _clients($params: ListClientsRequest) { _clients(params: $params) { pagination { ${paginationFragment} } clients { ${clientFragment} } } }`,
+        operationName: '_clients',
+        op: '_clients',
+      },
+      { method: 'POST', path: '/v1/admin/clients' },
+      { params },
+      (params || {}) as Record<string, unknown>,
+    );
+
+  // ---- Trusted issuers (secretless client authentication) ----
+
+  // addTrustedIssuer registers an external token issuer trusted to
+  // authenticate a service account via RFC 7523 client_assertion.
+  addTrustedIssuer = (
+    params: Types.AddTrustedIssuerRequest,
+  ): Promise<Types.ApiResponse<Types.TrustedIssuer>> =>
+    this.dispatch<Types.TrustedIssuer>(
+      'AddTrustedIssuer',
+      ['graphql', 'rest'],
+      {
+        query: `mutation _add_trusted_issuer($params: AddTrustedIssuerRequest!) { _add_trusted_issuer(params: $params) { ${trustedIssuerFragment} } }`,
+        operationName: '_add_trusted_issuer',
+        op: '_add_trusted_issuer',
+      },
+      {
+        method: 'POST',
+        path: '/v1/admin/add_trusted_issuer',
+        unwrap: 'trusted_issuer',
+      },
+      { params },
+      params as unknown as Record<string, unknown>,
+    );
+
+  // updateTrustedIssuer updates an existing trusted issuer.
+  updateTrustedIssuer = (
+    params: Types.UpdateTrustedIssuerRequest,
+  ): Promise<Types.ApiResponse<Types.TrustedIssuer>> =>
+    this.dispatch<Types.TrustedIssuer>(
+      'UpdateTrustedIssuer',
+      ['graphql', 'rest'],
+      {
+        query: `mutation _update_trusted_issuer($params: UpdateTrustedIssuerRequest!) { _update_trusted_issuer(params: $params) { ${trustedIssuerFragment} } }`,
+        operationName: '_update_trusted_issuer',
+        op: '_update_trusted_issuer',
+      },
+      {
+        method: 'POST',
+        path: '/v1/admin/update_trusted_issuer',
+        unwrap: 'trusted_issuer',
+      },
+      { params },
+      params as unknown as Record<string, unknown>,
+    );
+
+  // deleteTrustedIssuer deletes a trusted issuer by id. DESTRUCTIVE: tokens
+  // from that issuer stop authenticating immediately.
+  deleteTrustedIssuer = (
+    params: Types.TrustedIssuerRequest,
+  ): Promise<Types.ApiResponse<Types.Response>> =>
+    this.dispatch<Types.Response>(
+      'DeleteTrustedIssuer',
+      ['graphql', 'rest'],
+      {
+        query:
+          'mutation _delete_trusted_issuer($params: TrustedIssuerRequest!) { _delete_trusted_issuer(params: $params) { message } }',
+        operationName: '_delete_trusted_issuer',
+        op: '_delete_trusted_issuer',
+      },
+      { method: 'POST', path: '/v1/admin/delete_trusted_issuer' },
+      { params },
+      params as unknown as Record<string, unknown>,
+    );
+
+  // trustedIssuer returns a single trusted issuer by id.
+  trustedIssuer = (
+    params: Types.TrustedIssuerRequest,
+  ): Promise<Types.ApiResponse<Types.TrustedIssuer>> =>
+    this.dispatch<Types.TrustedIssuer>(
+      'GetTrustedIssuer',
+      ['graphql', 'rest'],
+      {
+        query: `query _trusted_issuer($params: TrustedIssuerRequest!) { _trusted_issuer(params: $params) { ${trustedIssuerFragment} } }`,
+        operationName: '_trusted_issuer',
+        op: '_trusted_issuer',
+      },
+      {
+        method: 'POST',
+        path: '/v1/admin/trusted_issuer',
+        unwrap: 'trusted_issuer',
+      },
+      { params },
+      params as unknown as Record<string, unknown>,
+    );
+
+  // trustedIssuers returns a paginated list of trusted issuers, optionally
+  // filtered by service account.
+  trustedIssuers = (
+    params?: Types.ListTrustedIssuersRequest,
+  ): Promise<Types.ApiResponse<Types.TrustedIssuers>> =>
+    this.dispatch<Types.TrustedIssuers>(
+      'TrustedIssuers',
+      ['graphql', 'rest'],
+      {
+        query: `query _trusted_issuers($params: ListTrustedIssuersRequest) { _trusted_issuers(params: $params) { pagination { ${paginationFragment} } trusted_issuers { ${trustedIssuerFragment} } } }`,
+        operationName: '_trusted_issuers',
+        op: '_trusted_issuers',
+      },
+      { method: 'POST', path: '/v1/admin/trusted_issuers' },
+      { params },
+      (params || {}) as Record<string, unknown>,
+    );
+
+  // ---- Organizations (graphql-only: no proto/REST routes yet) ----
+
+  // createOrganization creates a new organization.
+  createOrganization = (
+    params: Types.CreateOrganizationRequest,
+  ): Promise<Types.ApiResponse<Types.Organization>> =>
+    this.dispatch<Types.Organization>(
+      'CreateOrganization',
+      ['graphql'],
+      {
+        query: `mutation _create_organization($params: CreateOrganizationRequest!) { _create_organization(params: $params) { ${organizationFragment} } }`,
+        operationName: '_create_organization',
+        op: '_create_organization',
+      },
+      null,
+      { params },
+    );
+
+  // updateOrganization updates an existing organization.
+  updateOrganization = (
+    params: Types.UpdateOrganizationRequest,
+  ): Promise<Types.ApiResponse<Types.Organization>> =>
+    this.dispatch<Types.Organization>(
+      'UpdateOrganization',
+      ['graphql'],
+      {
+        query: `mutation _update_organization($params: UpdateOrganizationRequest!) { _update_organization(params: $params) { ${organizationFragment} } }`,
+        operationName: '_update_organization',
+        op: '_update_organization',
+      },
+      null,
+      { params },
+    );
+
+  // deleteOrganization deletes an organization by id. DESTRUCTIVE.
+  deleteOrganization = (
+    params: Types.OrganizationRequest,
+  ): Promise<Types.ApiResponse<Types.Response>> =>
+    this.dispatch<Types.Response>(
+      'DeleteOrganization',
+      ['graphql'],
+      {
+        query:
+          'mutation _delete_organization($params: OrganizationRequest!) { _delete_organization(params: $params) { message } }',
+        operationName: '_delete_organization',
+        op: '_delete_organization',
+      },
+      null,
+      { params },
+    );
+
+  // addOrgMember adds a user to an organization with optional per-org roles.
+  addOrgMember = (
+    params: Types.AddOrgMemberRequest,
+  ): Promise<Types.ApiResponse<Types.OrgMember>> =>
+    this.dispatch<Types.OrgMember>(
+      'AddOrgMember',
+      ['graphql'],
+      {
+        query: `mutation _add_org_member($params: AddOrgMemberRequest!) { _add_org_member(params: $params) { ${orgMemberFragment} } }`,
+        operationName: '_add_org_member',
+        op: '_add_org_member',
+      },
+      null,
+      { params },
+    );
+
+  // removeOrgMember removes a user from an organization.
+  removeOrgMember = (
+    params: Types.RemoveOrgMemberRequest,
+  ): Promise<Types.ApiResponse<Types.Response>> =>
+    this.dispatch<Types.Response>(
+      'RemoveOrgMember',
+      ['graphql'],
+      {
+        query:
+          'mutation _remove_org_member($params: RemoveOrgMemberRequest!) { _remove_org_member(params: $params) { message } }',
+        operationName: '_remove_org_member',
+        op: '_remove_org_member',
+      },
+      null,
+      { params },
+    );
+
+  // organization returns a single organization by id.
+  organization = (
+    params: Types.OrganizationRequest,
+  ): Promise<Types.ApiResponse<Types.Organization>> =>
+    this.dispatch<Types.Organization>(
+      'GetOrganization',
+      ['graphql'],
+      {
+        query: `query _organization($params: OrganizationRequest!) { _organization(params: $params) { ${organizationFragment} } }`,
+        operationName: '_organization',
+        op: '_organization',
+      },
+      null,
+      { params },
+    );
+
+  // organizations returns a paginated list of organizations.
+  organizations = (
+    params?: Types.ListOrganizationsRequest,
+  ): Promise<Types.ApiResponse<Types.Organizations>> =>
+    this.dispatch<Types.Organizations>(
+      'Organizations',
+      ['graphql'],
+      {
+        query: `query _organizations($params: ListOrganizationsRequest) { _organizations(params: $params) { pagination { ${paginationFragment} } organizations { ${organizationFragment} } } }`,
+        operationName: '_organizations',
+        op: '_organizations',
+      },
+      null,
+      { params },
+    );
+
+  // orgMembers returns a paginated list of an organization's members.
+  orgMembers = (
+    params: Types.ListOrgMembersRequest,
+  ): Promise<Types.ApiResponse<Types.OrgMembers>> =>
+    this.dispatch<Types.OrgMembers>(
+      'OrgMembers',
+      ['graphql'],
+      {
+        query: `query _org_members($params: ListOrgMembersRequest!) { _org_members(params: $params) { pagination { ${paginationFragment} } org_members { ${orgMemberFragment} } } }`,
+        operationName: '_org_members',
+        op: '_org_members',
+      },
+      null,
+      { params },
+    );
+
+  // ---- Org SSO connections (graphql-only: no proto/REST routes yet) ----
+
+  // createOrgOIDCConnection registers a per-org upstream OIDC IdP (Authorizer
+  // as Relying Party). The upstream client_secret is stored encrypted and
+  // never returned.
+  createOrgOIDCConnection = (
+    params: Types.CreateOrgOIDCConnectionRequest,
+  ): Promise<Types.ApiResponse<Types.OrgOIDCConnection>> =>
+    this.dispatch<Types.OrgOIDCConnection>(
+      'CreateOrgOIDCConnection',
+      ['graphql'],
+      {
+        query: `mutation _create_org_oidc_connection($params: CreateOrgOIDCConnectionRequest!) { _create_org_oidc_connection(params: $params) { ${orgOIDCConnectionFragment} } }`,
+        operationName: '_create_org_oidc_connection',
+        op: '_create_org_oidc_connection',
+      },
+      null,
+      { params },
+    );
+
+  // updateOrgOIDCConnection updates a per-org upstream OIDC connection.
+  updateOrgOIDCConnection = (
+    params: Types.UpdateOrgOIDCConnectionRequest,
+  ): Promise<Types.ApiResponse<Types.OrgOIDCConnection>> =>
+    this.dispatch<Types.OrgOIDCConnection>(
+      'UpdateOrgOIDCConnection',
+      ['graphql'],
+      {
+        query: `mutation _update_org_oidc_connection($params: UpdateOrgOIDCConnectionRequest!) { _update_org_oidc_connection(params: $params) { ${orgOIDCConnectionFragment} } }`,
+        operationName: '_update_org_oidc_connection',
+        op: '_update_org_oidc_connection',
+      },
+      null,
+      { params },
+    );
+
+  // deleteOrgOIDCConnection deletes a per-org upstream OIDC connection.
+  // DESTRUCTIVE: SSO via that IdP stops working immediately.
+  deleteOrgOIDCConnection = (
+    params: Types.OrgOIDCConnectionRequest,
+  ): Promise<Types.ApiResponse<Types.Response>> =>
+    this.dispatch<Types.Response>(
+      'DeleteOrgOIDCConnection',
+      ['graphql'],
+      {
+        query:
+          'mutation _delete_org_oidc_connection($params: OrgOIDCConnectionRequest!) { _delete_org_oidc_connection(params: $params) { message } }',
+        operationName: '_delete_org_oidc_connection',
+        op: '_delete_org_oidc_connection',
+      },
+      null,
+      { params },
+    );
+
+  // orgOIDCConnection returns a per-org upstream OIDC connection by id OR
+  // org_id (supply exactly one).
+  orgOIDCConnection = (
+    params: Types.OrgOIDCConnectionRequest,
+  ): Promise<Types.ApiResponse<Types.OrgOIDCConnection>> =>
+    this.dispatch<Types.OrgOIDCConnection>(
+      'GetOrgOIDCConnection',
+      ['graphql'],
+      {
+        query: `query _org_oidc_connection($params: OrgOIDCConnectionRequest!) { _org_oidc_connection(params: $params) { ${orgOIDCConnectionFragment} } }`,
+        operationName: '_org_oidc_connection',
+        op: '_org_oidc_connection',
+      },
+      null,
+      { params },
+    );
+
+  // createOrgSAMLConnection registers a per-org upstream SAML 2.0 IdP
+  // (Authorizer as Service Provider). The IdP certificate is accepted on
+  // write but never returned.
+  createOrgSAMLConnection = (
+    params: Types.CreateOrgSAMLConnectionRequest,
+  ): Promise<Types.ApiResponse<Types.OrgSAMLConnection>> =>
+    this.dispatch<Types.OrgSAMLConnection>(
+      'CreateOrgSAMLConnection',
+      ['graphql'],
+      {
+        query: `mutation _create_org_saml_connection($params: CreateOrgSAMLConnectionRequest!) { _create_org_saml_connection(params: $params) { ${orgSAMLConnectionFragment} } }`,
+        operationName: '_create_org_saml_connection',
+        op: '_create_org_saml_connection',
+      },
+      null,
+      { params },
+    );
+
+  // updateOrgSAMLConnection updates a per-org upstream SAML connection.
+  updateOrgSAMLConnection = (
+    params: Types.UpdateOrgSAMLConnectionRequest,
+  ): Promise<Types.ApiResponse<Types.OrgSAMLConnection>> =>
+    this.dispatch<Types.OrgSAMLConnection>(
+      'UpdateOrgSAMLConnection',
+      ['graphql'],
+      {
+        query: `mutation _update_org_saml_connection($params: UpdateOrgSAMLConnectionRequest!) { _update_org_saml_connection(params: $params) { ${orgSAMLConnectionFragment} } }`,
+        operationName: '_update_org_saml_connection',
+        op: '_update_org_saml_connection',
+      },
+      null,
+      { params },
+    );
+
+  // deleteOrgSAMLConnection deletes a per-org upstream SAML connection.
+  // DESTRUCTIVE: SSO via that IdP stops working immediately.
+  deleteOrgSAMLConnection = (
+    params: Types.OrgSAMLConnectionRequest,
+  ): Promise<Types.ApiResponse<Types.Response>> =>
+    this.dispatch<Types.Response>(
+      'DeleteOrgSAMLConnection',
+      ['graphql'],
+      {
+        query:
+          'mutation _delete_org_saml_connection($params: OrgSAMLConnectionRequest!) { _delete_org_saml_connection(params: $params) { message } }',
+        operationName: '_delete_org_saml_connection',
+        op: '_delete_org_saml_connection',
+      },
+      null,
+      { params },
+    );
+
+  // orgSAMLConnection returns a per-org upstream SAML connection by id OR
+  // org_id (supply exactly one).
+  orgSAMLConnection = (
+    params: Types.OrgSAMLConnectionRequest,
+  ): Promise<Types.ApiResponse<Types.OrgSAMLConnection>> =>
+    this.dispatch<Types.OrgSAMLConnection>(
+      'GetOrgSAMLConnection',
+      ['graphql'],
+      {
+        query: `query _org_saml_connection($params: OrgSAMLConnectionRequest!) { _org_saml_connection(params: $params) { ${orgSAMLConnectionFragment} } }`,
+        operationName: '_org_saml_connection',
+        op: '_org_saml_connection',
+      },
+      null,
+      { params },
+    );
+
+  // ---- SCIM endpoints (graphql-only: no proto/REST routes yet) ----
+
+  // createScimEndpoint provisions the org's inbound SCIM 2.0 endpoint. The
+  // returned bearer token is shown ONCE and can never be retrieved again.
+  createScimEndpoint = (
+    params: Types.CreateScimEndpointRequest,
+  ): Promise<Types.ApiResponse<Types.CreateScimEndpointResponse>> =>
+    this.dispatch<Types.CreateScimEndpointResponse>(
+      'CreateScimEndpoint',
+      ['graphql'],
+      {
+        query: `mutation _create_scim_endpoint($params: CreateScimEndpointRequest!) { _create_scim_endpoint(params: $params) { scim_endpoint { ${scimEndpointFragment} } token } }`,
+        operationName: '_create_scim_endpoint',
+        op: '_create_scim_endpoint',
+      },
+      null,
+      { params },
+    );
+
+  // rotateScimToken mints a fresh SCIM bearer token for the org. The new
+  // token is shown ONCE; the old token stops working immediately.
+  rotateScimToken = (
+    params: Types.ScimEndpointRequest,
+  ): Promise<Types.ApiResponse<Types.CreateScimEndpointResponse>> =>
+    this.dispatch<Types.CreateScimEndpointResponse>(
+      'RotateScimToken',
+      ['graphql'],
+      {
+        query: `mutation _rotate_scim_token($params: ScimEndpointRequest!) { _rotate_scim_token(params: $params) { scim_endpoint { ${scimEndpointFragment} } token } }`,
+        operationName: '_rotate_scim_token',
+        op: '_rotate_scim_token',
+      },
+      null,
+      { params },
+    );
+
+  // deleteScimEndpoint removes the org's SCIM endpoint. DESTRUCTIVE: inbound
+  // SCIM provisioning stops immediately.
+  deleteScimEndpoint = (
+    params: Types.ScimEndpointRequest,
+  ): Promise<Types.ApiResponse<Types.Response>> =>
+    this.dispatch<Types.Response>(
+      'DeleteScimEndpoint',
+      ['graphql'],
+      {
+        query:
+          'mutation _delete_scim_endpoint($params: ScimEndpointRequest!) { _delete_scim_endpoint(params: $params) { message } }',
+        operationName: '_delete_scim_endpoint',
+        op: '_delete_scim_endpoint',
+      },
+      null,
+      { params },
+    );
+
+  // scimEndpoint returns the org's SCIM endpoint (never includes the token).
+  scimEndpoint = (
+    params: Types.ScimEndpointRequest,
+  ): Promise<Types.ApiResponse<Types.ScimEndpoint>> =>
+    this.dispatch<Types.ScimEndpoint>(
+      'GetScimEndpoint',
+      ['graphql'],
+      {
+        query: `query _scim_endpoint($params: ScimEndpointRequest!) { _scim_endpoint(params: $params) { ${scimEndpointFragment} } }`,
+        operationName: '_scim_endpoint',
+        op: '_scim_endpoint',
+      },
+      null,
+      { params },
     );
 
   // ---- gql-only extras (no proto / no rest) ----
