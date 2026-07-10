@@ -31,12 +31,21 @@ const orgSAMLConnectionFragment =
   'id org_id name idp_entity_id idp_sso_url sp_entity_id acs_url attribute_mapping allow_idp_initiated is_active created_at updated_at';
 const scimEndpointFragment = 'id org_id enabled created_at updated_at';
 
-function toErrorList(errors: unknown): Error[] {
+function toErrorList(errors: unknown): Types.AuthorizerSDKError[] {
   if (Array.isArray(errors)) {
     return errors.map((item) => {
       if (item instanceof Error) return item;
-      if (item && typeof item === 'object' && 'message' in item)
-        return new Error(String((item as { message: unknown }).message));
+      if (item && typeof item === 'object' && 'message' in item) {
+        const err: Types.AuthorizerSDKError = new Error(
+          String((item as { message: unknown }).message),
+        );
+        const extensions = (item as { extensions?: unknown }).extensions;
+        if (extensions && typeof extensions === 'object') {
+          const code = (extensions as { code?: unknown }).code;
+          if (typeof code === 'string') err.code = code;
+        }
+        return err;
+      }
       return new Error(String(item));
     });
   }

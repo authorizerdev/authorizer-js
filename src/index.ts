@@ -25,12 +25,21 @@ const authTokenFragment = `message access_token expires_in refresh_token id_toke
 // set fetch based on window object. Cross fetch have issues with umd build
 const getFetcher = () => (hasWindow() ? window.fetch : crossFetch);
 
-function toErrorList(errors: unknown): Error[] {
+function toErrorList(errors: unknown): Types.AuthorizerSDKError[] {
   if (Array.isArray(errors)) {
     return errors.map((item) => {
       if (item instanceof Error) return item;
-      if (item && typeof item === 'object' && 'message' in item)
-        return new Error(String((item as { message: unknown }).message));
+      if (item && typeof item === 'object' && 'message' in item) {
+        const err: Types.AuthorizerSDKError = new Error(
+          String((item as { message: unknown }).message),
+        );
+        const extensions = (item as { extensions?: unknown }).extensions;
+        if (extensions && typeof extensions === 'object') {
+          const code = (extensions as { code?: unknown }).code;
+          if (typeof code === 'string') err.code = code;
+        }
+        return err;
+      }
       return new Error(String(item));
     });
   }
