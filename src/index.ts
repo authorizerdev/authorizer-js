@@ -17,6 +17,7 @@ import {
   trimURL,
 } from './utils';
 import { toSDKError } from './errors';
+import * as webauthn from './webauthn';
 
 // re-usable gql response fragment
 const userFragment =
@@ -51,6 +52,7 @@ function toErrorList(errors: unknown): Types.AuthorizerSDKError[] {
 
 export * from './types';
 export { AuthorizerAdmin } from './admin';
+export { isWebauthnSupported } from './webauthn';
 export {
   CLIENT_ASSERTION_TYPE_JWT_BEARER,
   GRANT_TYPE_AUTHORIZATION_CODE,
@@ -606,6 +608,151 @@ export class Authorizer {
       return res?.errors?.length
         ? this.errorResponse(res.errors)
         : this.okResponse(res.data);
+    } catch (err) {
+      return this.errorResponse([err]);
+    }
+  };
+
+  // WebAuthn / passkey ops are GraphQL-only (no REST route), so these call
+  // graphqlQuery directly rather than going through dispatch.
+
+  webauthnRegistrationOptions = async (
+    email?: string,
+  ): Promise<Types.ApiResponse<Types.WebauthnRegistrationOptionsResponse>> => {
+    try {
+      const res = await this.graphqlQuery({
+        query:
+          'mutation webauthn_registration_options($email: String) { webauthn_registration_options(email: $email) { options } }',
+        variables: { email },
+        operationName: 'webauthn_registration_options',
+      });
+      return res?.errors?.length
+        ? this.errorResponse(res.errors)
+        : this.okResponse(res.data?.webauthn_registration_options);
+    } catch (err) {
+      return this.errorResponse([err]);
+    }
+  };
+
+  webauthnRegistrationVerify = async (
+    data: Types.WebauthnRegistrationVerifyRequest,
+  ): Promise<Types.ApiResponse<Types.GenericResponse>> => {
+    try {
+      const res = await this.graphqlQuery({
+        query:
+          'mutation webauthn_registration_verify($data: WebauthnRegistrationVerifyRequest!) { webauthn_registration_verify(params: $data) { message } }',
+        variables: { data },
+        operationName: 'webauthn_registration_verify',
+      });
+      return res?.errors?.length
+        ? this.errorResponse(res.errors)
+        : this.okResponse(res.data?.webauthn_registration_verify);
+    } catch (err) {
+      return this.errorResponse([err]);
+    }
+  };
+
+  webauthnLoginOptions = async (
+    email?: string,
+  ): Promise<Types.ApiResponse<Types.WebauthnLoginOptionsResponse>> => {
+    try {
+      const res = await this.graphqlQuery({
+        query:
+          'mutation webauthn_login_options($email: String) { webauthn_login_options(email: $email) { options } }',
+        variables: { email },
+        operationName: 'webauthn_login_options',
+      });
+      return res?.errors?.length
+        ? this.errorResponse(res.errors)
+        : this.okResponse(res.data?.webauthn_login_options);
+    } catch (err) {
+      return this.errorResponse([err]);
+    }
+  };
+
+  webauthnLoginVerify = async (
+    data: Types.WebauthnLoginVerifyRequest,
+  ): Promise<Types.ApiResponse<Types.AuthToken>> => {
+    try {
+      const res = await this.graphqlQuery({
+        query: `mutation webauthn_login_verify($data: WebauthnLoginVerifyRequest!) { webauthn_login_verify(params: $data) { ${authTokenFragment} } }`,
+        variables: { data },
+        operationName: 'webauthn_login_verify',
+      });
+      return res?.errors?.length
+        ? this.errorResponse(res.errors)
+        : this.okResponse(res.data?.webauthn_login_verify);
+    } catch (err) {
+      return this.errorResponse([err]);
+    }
+  };
+
+  webauthnCredentials = async (): Promise<
+    Types.ApiResponse<Types.WebauthnCredentialInfo[]>
+  > => {
+    try {
+      const res = await this.graphqlQuery({
+        query:
+          'query webauthn_credentials { webauthn_credentials { id name transports created_at updated_at last_used_at } }',
+        operationName: 'webauthn_credentials',
+      });
+      return res?.errors?.length
+        ? this.errorResponse(res.errors)
+        : this.okResponse(res.data?.webauthn_credentials);
+    } catch (err) {
+      return this.errorResponse([err]);
+    }
+  };
+
+  webauthnDeleteCredential = async (
+    id: string,
+  ): Promise<Types.ApiResponse<Types.GenericResponse>> => {
+    try {
+      const res = await this.graphqlQuery({
+        query:
+          'mutation webauthn_delete_credential($id: ID!) { webauthn_delete_credential(id: $id) { message } }',
+        variables: { id },
+        operationName: 'webauthn_delete_credential',
+      });
+      return res?.errors?.length
+        ? this.errorResponse(res.errors)
+        : this.okResponse(res.data?.webauthn_delete_credential);
+    } catch (err) {
+      return this.errorResponse([err]);
+    }
+  };
+
+  // registerPasskey drives the full registration ceremony end to end: fetch
+  // options from the server, prompt the platform authenticator via the
+  // browser's WebAuthn API, and send the resulting credential back for
+  // verification. Requires an authenticated session (a passkey is always
+  // added to the caller's own account).
+  registerPasskey = async (
+    name?: string,
+  ): Promise<Types.ApiResponse<Types.GenericResponse>> => {
+    try {
+      const optRes = await this.webauthnRegistrationOptions();
+      if (optRes.errors.length) return this.errorResponse(optRes.errors);
+      const credential = await webauthn.registerPasskey(
+        optRes.data!.options,
+      );
+      return this.webauthnRegistrationVerify({ name, credential });
+    } catch (err) {
+      return this.errorResponse([err]);
+    }
+  };
+
+  // loginWithPasskey drives the full login ceremony end to end. Omit `email`
+  // for a usernameless (discoverable-credential) login; pass it to scope the
+  // ceremony to one account's own passkeys (the MFA-alternative flow).
+  loginWithPasskey = async (
+    email?: string,
+  ): Promise<Types.ApiResponse<Types.AuthToken>> => {
+    try {
+      const optRes = await this.webauthnLoginOptions(email);
+      if (optRes.errors.length) return this.errorResponse(optRes.errors);
+      const credential = await webauthn.loginWithPasskey(optRes.data!.options);
+      return this.webauthnLoginVerify({ credential });
     } catch (err) {
       return this.errorResponse([err]);
     }

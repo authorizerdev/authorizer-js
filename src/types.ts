@@ -232,6 +232,38 @@ export interface VerifyOTPRequest {
 // Keep VerifyOtpRequest as alias for backward compatibility
 export type VerifyOtpRequest = VerifyOTPRequest;
 
+// WebAuthn / passkey types. `options`/`credential` are opaque JSON strings -
+// the server's PublicKeyCredentialCreationOptionsJSON / RequestOptionsJSON on
+// the way out, and the browser's RegistrationResponseJSON /
+// AuthenticationResponseJSON (from PublicKeyCredential.toJSON()) on the way
+// back in. See src/webauthn.ts for the browser ceremony glue.
+export interface WebauthnRegistrationOptionsResponse {
+  options: string;
+}
+
+export interface WebauthnRegistrationVerifyRequest {
+  name?: string | null;
+  credential: string;
+}
+
+export interface WebauthnLoginOptionsResponse {
+  options: string;
+}
+
+export interface WebauthnLoginVerifyRequest {
+  state?: string | null;
+  credential: string;
+}
+
+export interface WebauthnCredentialInfo {
+  id: string;
+  name: string;
+  transports?: string[] | null;
+  created_at?: number | null;
+  updated_at?: number | null;
+  last_used_at?: number | null;
+}
+
 // ResendOTPRequest
 export interface ResendOTPRequest {
   email?: string | null;
