@@ -1,9 +1,18 @@
+// AuthorizerSDKError is a native Error additionally carrying the GraphQL
+// extensions.code from the server (e.g. "TOO_MANY_REQUESTS"), when present,
+// so callers can switch on a stable code instead of matching message text.
+// Optional and additive - existing code that only reads `.message` is
+// unaffected.
+export interface AuthorizerSDKError extends Error {
+  code?: string;
+}
+
 export interface GrapQlResponseType {
   data: any | undefined;
-  errors: Error[];
+  errors: AuthorizerSDKError[];
 }
 export interface ApiResponse<T> {
-  errors: Error[];
+  errors: AuthorizerSDKError[];
   data: T | undefined;
 }
 /**

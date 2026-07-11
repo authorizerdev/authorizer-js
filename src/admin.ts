@@ -2,6 +2,7 @@
 import crossFetch from 'cross-fetch';
 import * as Types from './types';
 import { coerceInt64Fields, hasWindow, trimURL } from './utils';
+import { toSDKError } from './errors';
 
 // set fetch based on window object. Cross fetch have issues with umd build
 const getFetcher = () => (hasWindow() ? window.fetch : crossFetch);
@@ -31,14 +32,9 @@ const orgSAMLConnectionFragment =
   'id org_id name idp_entity_id idp_sso_url sp_entity_id acs_url attribute_mapping allow_idp_initiated is_active created_at updated_at';
 const scimEndpointFragment = 'id org_id enabled created_at updated_at';
 
-function toErrorList(errors: unknown): Error[] {
+function toErrorList(errors: unknown): Types.AuthorizerSDKError[] {
   if (Array.isArray(errors)) {
-    return errors.map((item) => {
-      if (item instanceof Error) return item;
-      if (item && typeof item === 'object' && 'message' in item)
-        return new Error(String((item as { message: unknown }).message));
-      return new Error(String(item));
-    });
+    return errors.map(toSDKError);
   }
   if (errors instanceof Error) return [errors];
   if (errors !== null && typeof errors === 'object') {
