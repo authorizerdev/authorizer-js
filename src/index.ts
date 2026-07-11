@@ -16,6 +16,7 @@ import {
   sha256,
   trimURL,
 } from './utils';
+import { toSDKError } from './errors';
 
 // re-usable gql response fragment
 const userFragment =
@@ -27,21 +28,7 @@ const getFetcher = () => (hasWindow() ? window.fetch : crossFetch);
 
 function toErrorList(errors: unknown): Types.AuthorizerSDKError[] {
   if (Array.isArray(errors)) {
-    return errors.map((item) => {
-      if (item instanceof Error) return item;
-      if (item && typeof item === 'object' && 'message' in item) {
-        const err: Types.AuthorizerSDKError = new Error(
-          String((item as { message: unknown }).message),
-        );
-        const extensions = (item as { extensions?: unknown }).extensions;
-        if (extensions && typeof extensions === 'object') {
-          const code = (extensions as { code?: unknown }).code;
-          if (typeof code === 'string') err.code = code;
-        }
-        return err;
-      }
-      return new Error(String(item));
-    });
+    return errors.map(toSDKError);
   }
   if (errors instanceof Error) return [errors];
   if (errors !== null && typeof errors === 'object') {

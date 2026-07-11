@@ -65,4 +65,27 @@ describe('GraphQL error extensions.code propagation', () => {
     expect(res.errors[0].message).toBe('invalid otp');
     expect(res.errors[0].code).toBeUndefined();
   });
+
+  it('attaches code as non-enumerable, so it does not change Object.keys()/JSON.stringify() output', async () => {
+    mockFetch.mockReturnValueOnce(
+      jsonResponse({
+        errors: [
+          {
+            message: 'too many failed attempts, please try again later',
+            extensions: { code: 'TOO_MANY_REQUESTS' },
+          },
+        ],
+        data: null,
+      }),
+    );
+
+    const res = await authorizerRef.graphqlQuery({
+      query: 'mutation { verify_otp(params: {}) { message } }',
+    });
+
+    const err = res.errors[0];
+    expect(err.code).toBe('TOO_MANY_REQUESTS');
+    expect(Object.keys(err)).toEqual([]);
+    expect(JSON.stringify(err)).toBe('{}');
+  });
 });
