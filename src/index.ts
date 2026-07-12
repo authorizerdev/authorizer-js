@@ -71,6 +71,10 @@ export class Authorizer {
   // class variable
   config: Types.ConfigType;
   codeVerifier: string;
+  // Tracks the in-flight passkey-autofill (conditional mediation) ceremony so
+  // it can be aborted before a modal ceremony starts - the browser allows only
+  // one outstanding navigator.credentials.get() at a time.
+  private conditionalPasskeyAbort?: AbortController;
 
   // constructor
   constructor(config: Types.ConfigType) {
@@ -744,18 +748,62 @@ export class Authorizer {
 
   // loginWithPasskey drives the full login ceremony end to end. Omit `email`
   // for a usernameless (discoverable-credential) login; pass it to scope the
-  // ceremony to one account's own passkeys (the MFA-alternative flow).
+  // ceremony to one account's own passkeys (the MFA-alternative flow). Pass
+  // `opts.mediation: 'conditional'` (with an AbortSignal) for passkey autofill;
+  // prefer loginWithPasskeyAutofill() which manages the signal for you.
   loginWithPasskey = async (
     email?: string,
+    opts?: { mediation?: CredentialMediationRequirement; signal?: AbortSignal },
   ): Promise<Types.ApiResponse<Types.AuthToken>> => {
     try {
+      // A modal ceremony must cancel any pending autofill request first, or the
+      // browser rejects the modal get() with "a request is already pending".
+      if (opts?.mediation !== 'conditional') {
+        this.conditionalPasskeyAbort?.abort();
+        this.conditionalPasskeyAbort = undefined;
+      }
       const optRes = await this.webauthnLoginOptions(email);
       if (optRes.errors.length) return this.errorResponse(optRes.errors);
-      const credential = await webauthn.loginWithPasskey(optRes.data!.options);
+      const credential = await webauthn.loginWithPasskey(
+        optRes.data!.options,
+        opts,
+      );
       return this.webauthnLoginVerify({ credential });
     } catch (err) {
       return this.errorResponse([err]);
     }
+  };
+
+  // loginWithPasskeyAutofill starts a "passkey autofill" (conditional
+  // mediation) login: the browser offers discoverable passkeys inline in a
+  // username field's autofill dropdown rather than a modal. The returned
+  // promise resolves ONLY when the user actually picks a passkey (or rejects
+  // when aborted/cancelled), so fire it on mount and ignore abort errors.
+  // Requires an input with autocomplete="username webauthn" on the page. Only
+  // one runs at a time: a new call, or an explicit modal loginWithPasskey(),
+  // aborts the previous one.
+  loginWithPasskeyAutofill = async (): Promise<
+    Types.ApiResponse<Types.AuthToken>
+  > => {
+    if (!(await webauthn.isConditionalMediationAvailable())) {
+      return this.errorResponse([
+        new Error('Passkey autofill is not available in this browser.'),
+      ]);
+    }
+    this.conditionalPasskeyAbort?.abort();
+    const controller = new AbortController();
+    this.conditionalPasskeyAbort = controller;
+    return this.loginWithPasskey(undefined, {
+      mediation: 'conditional',
+      signal: controller.signal,
+    });
+  };
+
+  // cancelPasskeyAutofill aborts a pending loginWithPasskeyAutofill ceremony,
+  // e.g. on component unmount. Safe to call when none is in flight.
+  cancelPasskeyAutofill = (): void => {
+    this.conditionalPasskeyAbort?.abort();
+    this.conditionalPasskeyAbort = undefined;
   };
 
   resetPassword = async (

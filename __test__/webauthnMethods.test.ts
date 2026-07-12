@@ -132,4 +132,18 @@ describe('WebAuthn SDK methods', () => {
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body.variables.id).toBe('cred-1');
   });
+
+  it('loginWithPasskeyAutofill fails cleanly when conditional mediation is unavailable', async () => {
+    // No PublicKeyCredential in the Node test env, so conditional mediation is
+    // unavailable: the method must return an error WITHOUT touching the network
+    // (no login-options request) rather than throwing.
+    const res = await authorizerRef.loginWithPasskeyAutofill();
+    expect(res.errors).toHaveLength(1);
+    expect(res.errors[0].message).toMatch(/autofill is not available/i);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('cancelPasskeyAutofill is safe to call with no ceremony in flight', () => {
+    expect(() => authorizerRef.cancelPasskeyAutofill()).not.toThrow();
+  });
 });
