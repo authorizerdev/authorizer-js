@@ -68,6 +68,12 @@ export interface Meta {
   is_multi_factor_auth_enabled: boolean;
   is_mobile_basic_authentication_enabled: boolean;
   is_phone_verification_enabled: boolean;
+  // Per-method MFA availability for the login UI (server derives email/SMS from
+  // their provider being configured; webauthn is always available).
+  is_totp_mfa_enabled: boolean;
+  is_email_otp_mfa_enabled: boolean;
+  is_sms_otp_mfa_enabled: boolean;
+  is_webauthn_enabled: boolean;
 }
 
 // User
