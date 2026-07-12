@@ -27,6 +27,26 @@ const assertSupported = () => {
   }
 };
 
+// isConditionalMediationAvailable reports whether the browser supports
+// conditional mediation ("passkey autofill") - surfacing discoverable passkeys
+// inline in a username field's autofill dropdown instead of a modal prompt.
+// Async because the underlying PublicKeyCredential API is a promise; returns
+// false (never throws) when unsupported so callers can guard cheaply.
+export const isConditionalMediationAvailable = async (): Promise<boolean> => {
+  if (
+    !isWebauthnSupported() ||
+    typeof window.PublicKeyCredential.isConditionalMediationAvailable !==
+      'function'
+  ) {
+    return false;
+  }
+  try {
+    return await window.PublicKeyCredential.isConditionalMediationAvailable();
+  } catch {
+    return false;
+  }
+};
+
 // wrapCeremonyError normalizes what navigator.credentials.create/get can
 // throw. A DOMException (e.g. NotAllowedError for "user cancelled or the
 // ceremony timed out") gets its standard `.name` attached as `.code` - the
@@ -75,15 +95,25 @@ export const registerPasskey = async (optionsJSON: string): Promise<string> => {
 
 // loginWithPasskey drives a full login (assertion) ceremony: pass the
 // `options` string returned by webauthn_login_options, get back the
-// `credential` string to send to webauthn_login_verify.
-export const loginWithPasskey = async (optionsJSON: string): Promise<string> => {
+// `credential` string to send to webauthn_login_verify. Pass
+// `mediation: 'conditional'` (with an AbortSignal) for the passkey-autofill
+// flow, where the browser offers passkeys inline in a username field instead
+// of a modal.
+export const loginWithPasskey = async (
+  optionsJSON: string,
+  opts?: { mediation?: CredentialMediationRequirement; signal?: AbortSignal },
+): Promise<string> => {
   assertSupported();
   const options = window.PublicKeyCredential.parseRequestOptionsFromJSON(
     JSON.parse(optionsJSON),
   );
   let credential: Credential | null;
   try {
-    credential = await navigator.credentials.get({ publicKey: options });
+    credential = await navigator.credentials.get({
+      publicKey: options,
+      mediation: opts?.mediation,
+      signal: opts?.signal,
+    });
   } catch (err) {
     throw wrapCeremonyError(err, 'Passkey login');
   }
