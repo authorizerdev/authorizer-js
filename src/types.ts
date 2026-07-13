@@ -97,6 +97,7 @@ export interface User {
   updated_at: number | null;
   revoked_timestamp: number | null;
   is_multi_factor_auth_enabled: boolean | null;
+  has_skipped_mfa_setup_at: number | null;
   app_data: Record<string, any> | null;
 }
 
@@ -137,6 +138,7 @@ export interface AuthResponse {
   should_show_email_otp_screen: boolean | null;
   should_show_mobile_otp_screen: boolean | null;
   should_show_totp_screen: boolean | null;
+  should_offer_mfa_setup: boolean | null;
   access_token: string | null;
   id_token: string | null;
   refresh_token: string | null;

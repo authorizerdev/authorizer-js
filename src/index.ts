@@ -21,8 +21,8 @@ import * as webauthn from './webauthn';
 
 // re-usable gql response fragment
 const userFragment =
-  'id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at revoked_timestamp is_multi_factor_auth_enabled app_data';
-const authTokenFragment = `message access_token expires_in refresh_token id_token should_show_email_otp_screen should_show_mobile_otp_screen should_show_totp_screen authenticator_scanner_image authenticator_secret authenticator_recovery_codes user { ${userFragment} }`;
+  'id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at revoked_timestamp is_multi_factor_auth_enabled has_skipped_mfa_setup_at app_data';
+const authTokenFragment = `message access_token expires_in refresh_token id_token should_show_email_otp_screen should_show_mobile_otp_screen should_show_totp_screen should_offer_mfa_setup authenticator_scanner_image authenticator_secret authenticator_recovery_codes user { ${userFragment} }`;
 
 // set fetch based on window object. Cross fetch have issues with umd build
 const getFetcher = () => (hasWindow() ? window.fetch : crossFetch);
@@ -607,6 +607,34 @@ export class Authorizer {
         },
         { method: 'POST', path: '/v1/resend_otp', body: data },
         { data },
+      );
+
+      return res?.errors?.length
+        ? this.errorResponse(res.errors)
+        : this.okResponse(res.data);
+    } catch (err) {
+      return this.errorResponse([err]);
+    }
+  };
+
+  // Authenticated (cookie/bearer) call — mirrors deactivateAccount's auth
+  // pattern (optional headers passthrough), not resendOtp's unauthenticated
+  // shape, since this dismisses the current user's own MFA setup prompt.
+  skipMfaSetup = async (
+    headers?: Types.Headers,
+  ): Promise<Types.ApiResponse<Types.GenericResponse>> => {
+    try {
+      const res = await this.dispatch(
+        'skipMfaSetup',
+        ['graphql'],
+        {
+          query: 'mutation skip_mfa_setup { skip_mfa_setup { message } }',
+          operationName: 'skip_mfa_setup',
+          op: 'skip_mfa_setup',
+        },
+        { method: 'POST', path: '/v1/skip_mfa_setup', body: {} },
+        undefined,
+        headers,
       );
 
       return res?.errors?.length
