@@ -74,6 +74,7 @@ export interface Meta {
   is_email_otp_mfa_enabled: boolean;
   is_sms_otp_mfa_enabled: boolean;
   is_webauthn_enabled: boolean;
+  is_mfa_enforced: boolean;
 }
 
 // User
