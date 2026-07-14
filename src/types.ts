@@ -138,6 +138,7 @@ export interface AuthResponse {
   should_show_email_otp_screen: boolean | null;
   should_show_mobile_otp_screen: boolean | null;
   should_show_totp_screen: boolean | null;
+  should_offer_webauthn_mfa_verify: boolean | null;
   should_offer_mfa_setup: boolean | null;
   access_token: string | null;
   id_token: string | null;
