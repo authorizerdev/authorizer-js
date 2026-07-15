@@ -1083,6 +1083,105 @@ export class Authorizer {
     }
   };
 
+  skipMfaSetup = async (
+    data: Types.SkipMfaSetupRequest,
+  ): Promise<Types.ApiResponse<Types.AuthToken>> => {
+    try {
+      const res = await this.dispatch(
+        'skipMfaSetup',
+        ['graphql', 'rest'],
+        {
+          query: `mutation skip_mfa_setup($data: SkipMfaSetupRequest!) { skip_mfa_setup(params: $data) { ${authTokenFragment}}}`,
+          operationName: 'skip_mfa_setup',
+          op: 'skip_mfa_setup',
+        },
+        { method: 'POST', path: '/v1/skip_mfa_setup', body: data },
+        { data },
+      );
+
+      return res?.errors?.length
+        ? this.errorResponse(res.errors)
+        : this.okResponse(res.data);
+    } catch (err) {
+      return this.errorResponse([err]);
+    }
+  };
+
+  lockMfa = async (
+    data: Types.LockMfaRequest,
+  ): Promise<Types.ApiResponse<Types.Response>> => {
+    try {
+      const res = await this.dispatch(
+        'lockMfa',
+        ['graphql', 'rest'],
+        {
+          query:
+            'mutation lock_mfa($data: LockMfaRequest!) { lock_mfa(params: $data) { message } }',
+          operationName: 'lock_mfa',
+          op: 'lock_mfa',
+        },
+        { method: 'POST', path: '/v1/lock_mfa', body: data },
+        { data },
+      );
+
+      return res?.errors?.length
+        ? this.errorResponse(res.errors)
+        : this.okResponse(res.data);
+    } catch (err) {
+      return this.errorResponse([err]);
+    }
+  };
+
+  emailOtpMfaSetup = async (
+    data?: Types.OtpMfaSetupRequest,
+  ): Promise<Types.ApiResponse<Types.Response>> => {
+    try {
+      const res = await this.dispatch(
+        'emailOtpMfaSetup',
+        ['graphql', 'rest'],
+        {
+          query:
+            'mutation email_otp_mfa_setup($data: OtpMfaSetupRequest) { email_otp_mfa_setup(params: $data) { message } }',
+          operationName: 'email_otp_mfa_setup',
+          op: 'email_otp_mfa_setup',
+        },
+        { method: 'POST', path: '/v1/email_otp_mfa_setup', body: data },
+        { data },
+      );
+
+      return res?.errors?.length
+        ? this.errorResponse(res.errors)
+        : this.okResponse(res.data);
+    } catch (err) {
+      return this.errorResponse([err]);
+    }
+  };
+
+  smsOtpMfaSetup = async (
+    data?: Types.OtpMfaSetupRequest,
+  ): Promise<Types.ApiResponse<Types.Response>> => {
+    try {
+      const res = await this.dispatch(
+        'smsOtpMfaSetup',
+        ['graphql', 'rest'],
+        {
+          query:
+            'mutation sms_otp_mfa_setup($data: OtpMfaSetupRequest) { sms_otp_mfa_setup(params: $data) { message } }',
+          operationName: 'sms_otp_mfa_setup',
+          op: 'sms_otp_mfa_setup',
+        },
+        { method: 'POST', path: '/v1/sms_otp_mfa_setup', body: data },
+        { data },
+      );
+
+      return res?.errors?.length
+        ? this.errorResponse(res.errors)
+        : this.okResponse(res.data);
+    } catch (err) {
+      return this.errorResponse([err]);
+    }
+  };
+
   // helper to execute graphql queries
   // takes in any query or mutation string as value
   graphqlQuery = async (
