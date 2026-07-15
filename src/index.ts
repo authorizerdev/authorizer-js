@@ -54,6 +54,12 @@ export * from './types';
 export { AuthorizerAdmin } from './admin';
 export { isWebauthnSupported } from './webauthn';
 export {
+  parseMfaRedirectParams,
+  MFA_REQUIRED_PARAM,
+  MFA_METHODS_PARAM,
+} from './mfaRedirect';
+export type { MfaRedirectParams } from './mfaRedirect';
+export {
   CLIENT_ASSERTION_TYPE_JWT_BEARER,
   GRANT_TYPE_AUTHORIZATION_CODE,
   GRANT_TYPE_CLIENT_CREDENTIALS,
