@@ -21,8 +21,8 @@ import * as webauthn from './webauthn';
 
 // re-usable gql response fragment
 const userFragment =
-  'id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at revoked_timestamp is_multi_factor_auth_enabled app_data';
-const authTokenFragment = `message access_token expires_in refresh_token id_token should_show_email_otp_screen should_show_mobile_otp_screen should_show_totp_screen authenticator_scanner_image authenticator_secret authenticator_recovery_codes user { ${userFragment} }`;
+  'id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at revoked_timestamp is_multi_factor_auth_enabled has_skipped_mfa_setup_at mfa_locked_at app_data';
+const authTokenFragment = `message access_token expires_in refresh_token id_token should_show_email_otp_screen should_show_mobile_otp_screen should_show_totp_screen should_offer_webauthn_mfa_verify should_offer_webauthn_mfa_setup should_offer_email_otp_mfa_setup should_offer_sms_otp_mfa_setup authenticator_scanner_image authenticator_secret authenticator_recovery_codes user { ${userFragment} }`;
 
 // set fetch based on window object. Cross fetch have issues with umd build
 const getFetcher = () => (hasWindow() ? window.fetch : crossFetch);
@@ -244,7 +244,7 @@ export class Authorizer {
         ['graphql', 'rest'],
         {
           query:
-            'query meta { meta { version client_id is_google_login_enabled is_facebook_login_enabled is_github_login_enabled is_linkedin_login_enabled is_apple_login_enabled is_discord_login_enabled is_twitter_login_enabled is_microsoft_login_enabled is_twitch_login_enabled is_roblox_login_enabled is_email_verification_enabled is_basic_authentication_enabled is_magic_link_login_enabled is_sign_up_enabled is_strong_password_enabled is_multi_factor_auth_enabled is_mobile_basic_authentication_enabled is_phone_verification_enabled is_totp_mfa_enabled is_email_otp_mfa_enabled is_sms_otp_mfa_enabled is_webauthn_enabled } }',
+            'query meta { meta { version client_id is_google_login_enabled is_facebook_login_enabled is_github_login_enabled is_linkedin_login_enabled is_apple_login_enabled is_discord_login_enabled is_twitter_login_enabled is_microsoft_login_enabled is_twitch_login_enabled is_roblox_login_enabled is_email_verification_enabled is_basic_authentication_enabled is_magic_link_login_enabled is_sign_up_enabled is_strong_password_enabled is_multi_factor_auth_enabled is_mobile_basic_authentication_enabled is_phone_verification_enabled is_totp_mfa_enabled is_email_otp_mfa_enabled is_sms_otp_mfa_enabled is_webauthn_enabled is_mfa_enforced } }',
           operationName: 'meta',
           op: 'meta',
         },
