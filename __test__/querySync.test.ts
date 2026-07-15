@@ -43,8 +43,20 @@ describe('query/type sync', () => {
     expect(fragmentMatch).not.toBeNull();
     const fragment = fragmentMatch![1];
 
+    // Extract only top-level tokens, excluding nested content inside user { ... }
+    const userStart = fragment.indexOf('user {');
+    const topLevelFragment = userStart !== -1
+      ? fragment.substring(0, userStart) + 'user'
+      : fragment;
+    const queryFields = topLevelFragment
+      .split(/\s+/)
+      .filter((f) => f && f !== 'user'); // exclude nested user fragment
+
     for (const field of fields) {
       expect(fragment).toContain(field);
+    }
+    for (const queryField of queryFields) {
+      expect(fields).toContain(queryField);
     }
   });
 
@@ -59,6 +71,22 @@ describe('query/type sync', () => {
     }
     for (const queryField of queryFields) {
       expect(fields).toContain(queryField);
+    }
+  });
+
+  it('every User field appears in userFragment, and vice versa', () => {
+    const fields = fieldsOfInterface(typesSource, 'User');
+    const fragmentMatch = indexSource.match(
+      /const userFragment =\s*'([\s\S]*?)';/,
+    );
+    expect(fragmentMatch).not.toBeNull();
+    const fragmentFields = fragmentMatch![1].split(/\s+/).filter(f => f);
+
+    for (const field of fields) {
+      expect(fragmentFields).toContain(field);
+    }
+    for (const fragmentField of fragmentFields) {
+      expect(fields).toContain(fragmentField);
     }
   });
 });
