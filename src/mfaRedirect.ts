@@ -19,6 +19,12 @@ export interface MfaRedirectParams {
   mfaMethods: string[];
 }
 
+/**
+ * @param url The full redirect URL (e.g. `window.location.href`), or a
+ * `URL` instance. Must be absolute -- passing `window.location.search` or
+ * `.pathname` will throw, since those aren't parseable as a `URL` on their
+ * own.
+ */
 export function parseMfaRedirectParams(
   url: string | URL,
 ): MfaRedirectParams | null {

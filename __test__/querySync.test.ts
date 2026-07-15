@@ -53,7 +53,7 @@ describe('query/type sync', () => {
       .filter((f) => f && f !== 'user'); // exclude nested user fragment
 
     for (const field of fields) {
-      expect(fragment).toContain(field);
+      expect(queryFields).toContain(field);
     }
     for (const queryField of queryFields) {
       expect(fields).toContain(queryField);
