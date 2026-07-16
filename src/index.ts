@@ -1188,6 +1188,38 @@ export class Authorizer {
     }
   };
 
+  // totpMfaSetup generates a fresh TOTP secret/QR/recovery-codes for the
+  // caller to enroll as an MFA method - email/smsOtpMfaSetup's TOTP twin.
+  // Unlike those, nothing is sent anywhere: the enrollment payload comes
+  // back directly (same shape login/signup/verifyOtp already return via
+  // authenticator_scanner_image/authenticator_secret/authenticator_recovery_codes),
+  // so the caller scans/enters it, then completes enrollment via
+  // verifyOtp({ is_totp: true }).
+  totpMfaSetup = async (
+    data?: Types.OtpMfaSetupRequest,
+  ): Promise<Types.ApiResponse<Types.AuthResponse>> => {
+    try {
+      const res = await this.dispatch(
+        'totpMfaSetup',
+        ['graphql', 'rest'],
+        {
+          query:
+            'mutation totp_mfa_setup($data: OtpMfaSetupRequest) { totp_mfa_setup(params: $data) { message should_show_totp_screen authenticator_scanner_image authenticator_secret authenticator_recovery_codes } }',
+          operationName: 'totp_mfa_setup',
+          op: 'totp_mfa_setup',
+        },
+        { method: 'POST', path: '/v1/totp_mfa_setup', body: data },
+        { data },
+      );
+
+      return res?.errors?.length
+        ? this.errorResponse(res.errors)
+        : this.okResponse(res.data);
+    } catch (err) {
+      return this.errorResponse([err]);
+    }
+  };
+
   // helper to execute graphql queries
   // takes in any query or mutation string as value
   graphqlQuery = async (

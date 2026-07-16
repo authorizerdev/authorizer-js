@@ -114,4 +114,48 @@ describe('MFA setup/skip/lock SDK methods', () => {
     expect(body.operationName).toBe('sms_otp_mfa_setup');
     expect(body.variables.data.phone_number).toBe('+15551234567');
   });
+
+  it('totpMfaSetup works with no params (bearer-token mode) and returns the enrollment payload', async () => {
+    mockFetch.mockReturnValueOnce(
+      jsonResponse({
+        data: {
+          totp_mfa_setup: {
+            message: 'Proceed to totp verification screen',
+            should_show_totp_screen: true,
+            authenticator_scanner_image: 'base64-image-data',
+            authenticator_secret: 'JBSWY3DPEHPK3PXP',
+            authenticator_recovery_codes: ['code-1', 'code-2'],
+          },
+        },
+      }),
+    );
+    const res = await authorizerRef.totpMfaSetup();
+    expect(res.errors).toHaveLength(0);
+    expect(res.data?.authenticator_secret).toBe('JBSWY3DPEHPK3PXP');
+    expect(res.data?.authenticator_recovery_codes).toEqual([
+      'code-1',
+      'code-2',
+    ]);
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.operationName).toBe('totp_mfa_setup');
+  });
+
+  it('totpMfaSetup sends email when provided (cookie mode)', async () => {
+    mockFetch.mockReturnValueOnce(
+      jsonResponse({
+        data: {
+          totp_mfa_setup: {
+            message: 'Proceed to totp verification screen',
+            should_show_totp_screen: true,
+            authenticator_scanner_image: 'base64-image-data',
+            authenticator_secret: 'JBSWY3DPEHPK3PXP',
+            authenticator_recovery_codes: ['code-1'],
+          },
+        },
+      }),
+    );
+    await authorizerRef.totpMfaSetup({ email: 'user@example.com' });
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.variables.data.email).toBe('user@example.com');
+  });
 });
