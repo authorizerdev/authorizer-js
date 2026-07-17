@@ -68,6 +68,10 @@ function buildAuthorizerCliArgs(): { args: string[]; clientId: string } {
     'test@authorizer.dev',
     '--enable-email-verification=true',
     '--enable-magic-link-login=true',
+    // MFA is on by default (TOTP/WebAuthn need no external provider
+    // configured) and would withhold access_token behind the MFA-setup
+    // gate; this suite tests basic auth/FGA, not MFA.
+    '--disable-mfa',
     // Raise the rate limit well above what this suite generates; we are not
     // testing rate limiting, and the default (30 rps / 20 burst) trips when the
     // cross-protocol tests fire several requests back-to-back.

@@ -75,6 +75,7 @@ export interface Meta {
   is_sms_otp_mfa_enabled: boolean;
   is_webauthn_enabled: boolean;
   is_mfa_enforced: boolean;
+  is_org_discovery_enabled: boolean;
 }
 
 // User
@@ -637,6 +638,14 @@ export interface AdminMeta {
 // PaginatedRequest wraps the pagination input for list queries.
 export interface PaginatedRequest {
   pagination?: PaginationRequest | null;
+}
+
+// ListUsersRequest is the admin _users query input. query is an optional
+// case-insensitive substring filter matched against email, given_name,
+// family_name and nickname. Empty/absent means no filter (full list).
+export interface ListUsersRequest {
+  pagination?: PaginationRequest | null;
+  query?: string | null;
 }
 
 // GetUserRequest fetches a single user by id or email (at least one required).

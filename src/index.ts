@@ -250,7 +250,7 @@ export class Authorizer {
         ['graphql', 'rest'],
         {
           query:
-            'query meta { meta { version client_id is_google_login_enabled is_facebook_login_enabled is_github_login_enabled is_linkedin_login_enabled is_apple_login_enabled is_discord_login_enabled is_twitter_login_enabled is_microsoft_login_enabled is_twitch_login_enabled is_roblox_login_enabled is_email_verification_enabled is_basic_authentication_enabled is_magic_link_login_enabled is_sign_up_enabled is_strong_password_enabled is_multi_factor_auth_enabled is_mobile_basic_authentication_enabled is_phone_verification_enabled is_totp_mfa_enabled is_email_otp_mfa_enabled is_sms_otp_mfa_enabled is_webauthn_enabled is_mfa_enforced } }',
+            'query meta { meta { version client_id is_google_login_enabled is_facebook_login_enabled is_github_login_enabled is_linkedin_login_enabled is_apple_login_enabled is_discord_login_enabled is_twitter_login_enabled is_microsoft_login_enabled is_twitch_login_enabled is_roblox_login_enabled is_email_verification_enabled is_basic_authentication_enabled is_magic_link_login_enabled is_sign_up_enabled is_strong_password_enabled is_multi_factor_auth_enabled is_mobile_basic_authentication_enabled is_phone_verification_enabled is_totp_mfa_enabled is_email_otp_mfa_enabled is_sms_otp_mfa_enabled is_webauthn_enabled is_mfa_enforced is_org_discovery_enabled } }',
           operationName: 'meta',
           op: 'meta',
         },

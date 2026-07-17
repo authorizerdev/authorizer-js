@@ -291,13 +291,13 @@ export class AuthorizerAdmin {
 
   // users returns a paginated list of all users.
   users = (
-    params?: Types.PaginatedRequest,
+    params?: Types.ListUsersRequest,
   ): Promise<Types.ApiResponse<Types.Users>> =>
     this.dispatch<Types.Users>(
       'Users',
       ['graphql', 'rest'],
       {
-        query: `query _users($params: PaginatedRequest) { _users(params: $params) { pagination { ${paginationFragment} } users { ${userFragment} } } }`,
+        query: `query _users($params: ListUsersRequest) { _users(params: $params) { pagination { ${paginationFragment} } users { ${userFragment} } } }`,
         operationName: '_users',
         op: '_users',
       },
