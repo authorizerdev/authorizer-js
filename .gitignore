@@ -12,5 +12,5 @@ package-lock.json
 .pnpm-store
 # Local planning artifacts (not for publication)
 docs/superpowers/
-
+# Local git-worktree scratch dir
 .worktrees/

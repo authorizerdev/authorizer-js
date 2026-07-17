@@ -74,6 +74,8 @@ export interface Meta {
   is_email_otp_mfa_enabled: boolean;
   is_sms_otp_mfa_enabled: boolean;
   is_webauthn_enabled: boolean;
+  is_mfa_enforced: boolean;
+  is_org_discovery_enabled: boolean;
 }
 
 // User
@@ -97,6 +99,8 @@ export interface User {
   updated_at: number | null;
   revoked_timestamp: number | null;
   is_multi_factor_auth_enabled: boolean | null;
+  has_skipped_mfa_setup_at: number | null;
+  mfa_locked_at: number | null;
   app_data: Record<string, any> | null;
 }
 
@@ -137,6 +141,10 @@ export interface AuthResponse {
   should_show_email_otp_screen: boolean | null;
   should_show_mobile_otp_screen: boolean | null;
   should_show_totp_screen: boolean | null;
+  should_offer_webauthn_mfa_verify: boolean | null;
+  should_offer_webauthn_mfa_setup: boolean | null;
+  should_offer_email_otp_mfa_setup: boolean | null;
+  should_offer_sms_otp_mfa_setup: boolean | null;
   access_token: string | null;
   id_token: string | null;
   refresh_token: string | null;
@@ -238,6 +246,25 @@ export interface VerifyOTPRequest {
 // Keep VerifyOtpRequest as alias for backward compatibility
 export type VerifyOtpRequest = VerifyOTPRequest;
 
+// SkipMfaSetupRequest
+export interface SkipMfaSetupRequest {
+  email?: string;
+  phone_number?: string;
+  state?: string;
+}
+
+// LockMfaRequest
+export interface LockMfaRequest {
+  email?: string;
+  phone_number?: string;
+}
+
+// OtpMfaSetupRequest
+export interface OtpMfaSetupRequest {
+  email?: string;
+  phone_number?: string;
+}
+
 // WebAuthn / passkey types. `options`/`credential` are opaque JSON strings -
 // the server's PublicKeyCredentialCreationOptionsJSON / RequestOptionsJSON on
 // the way out, and the browser's RegistrationResponseJSON /
@@ -315,6 +342,7 @@ export interface UpdateUserRequest {
   roles?: string[] | null;
   is_multi_factor_auth_enabled?: boolean | null;
   app_data?: Record<string, any> | null;
+  reset_mfa?: boolean;
 }
 
 // ForgotPasswordRequest
@@ -610,6 +638,14 @@ export interface AdminMeta {
 // PaginatedRequest wraps the pagination input for list queries.
 export interface PaginatedRequest {
   pagination?: PaginationRequest | null;
+}
+
+// ListUsersRequest is the admin _users query input. query is an optional
+// case-insensitive substring filter matched against email, given_name,
+// family_name and nickname. Empty/absent means no filter (full list).
+export interface ListUsersRequest {
+  pagination?: PaginationRequest | null;
+  query?: string | null;
 }
 
 // GetUserRequest fetches a single user by id or email (at least one required).

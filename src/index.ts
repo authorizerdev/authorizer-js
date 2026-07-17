@@ -21,8 +21,8 @@ import * as webauthn from './webauthn';
 
 // re-usable gql response fragment
 const userFragment =
-  'id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at revoked_timestamp is_multi_factor_auth_enabled app_data';
-const authTokenFragment = `message access_token expires_in refresh_token id_token should_show_email_otp_screen should_show_mobile_otp_screen should_show_totp_screen authenticator_scanner_image authenticator_secret authenticator_recovery_codes user { ${userFragment} }`;
+  'id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at revoked_timestamp is_multi_factor_auth_enabled has_skipped_mfa_setup_at mfa_locked_at app_data';
+const authTokenFragment = `message access_token expires_in refresh_token id_token should_show_email_otp_screen should_show_mobile_otp_screen should_show_totp_screen should_offer_webauthn_mfa_verify should_offer_webauthn_mfa_setup should_offer_email_otp_mfa_setup should_offer_sms_otp_mfa_setup authenticator_scanner_image authenticator_secret authenticator_recovery_codes user { ${userFragment} }`;
 
 // set fetch based on window object. Cross fetch have issues with umd build
 const getFetcher = () => (hasWindow() ? window.fetch : crossFetch);
@@ -53,6 +53,12 @@ function toErrorList(errors: unknown): Types.AuthorizerSDKError[] {
 export * from './types';
 export { AuthorizerAdmin } from './admin';
 export { isWebauthnSupported } from './webauthn';
+export {
+  parseMfaRedirectParams,
+  MFA_REQUIRED_PARAM,
+  MFA_METHODS_PARAM,
+} from './mfaRedirect';
+export type { MfaRedirectParams } from './mfaRedirect';
 export {
   CLIENT_ASSERTION_TYPE_JWT_BEARER,
   GRANT_TYPE_AUTHORIZATION_CODE,
@@ -244,7 +250,7 @@ export class Authorizer {
         ['graphql', 'rest'],
         {
           query:
-            'query meta { meta { version client_id is_google_login_enabled is_facebook_login_enabled is_github_login_enabled is_linkedin_login_enabled is_apple_login_enabled is_discord_login_enabled is_twitter_login_enabled is_microsoft_login_enabled is_twitch_login_enabled is_roblox_login_enabled is_email_verification_enabled is_basic_authentication_enabled is_magic_link_login_enabled is_sign_up_enabled is_strong_password_enabled is_multi_factor_auth_enabled is_mobile_basic_authentication_enabled is_phone_verification_enabled is_totp_mfa_enabled is_email_otp_mfa_enabled is_sms_otp_mfa_enabled is_webauthn_enabled } }',
+            'query meta { meta { version client_id is_google_login_enabled is_facebook_login_enabled is_github_login_enabled is_linkedin_login_enabled is_apple_login_enabled is_discord_login_enabled is_twitter_login_enabled is_microsoft_login_enabled is_twitch_login_enabled is_roblox_login_enabled is_email_verification_enabled is_basic_authentication_enabled is_magic_link_login_enabled is_sign_up_enabled is_strong_password_enabled is_multi_factor_auth_enabled is_mobile_basic_authentication_enabled is_phone_verification_enabled is_totp_mfa_enabled is_email_otp_mfa_enabled is_sms_otp_mfa_enabled is_webauthn_enabled is_mfa_enforced is_org_discovery_enabled } }',
           operationName: 'meta',
           op: 'meta',
         },
@@ -1072,6 +1078,137 @@ export class Authorizer {
           op: 'verify_otp',
         },
         { method: 'POST', path: '/v1/verify_otp', body: data },
+        { data },
+      );
+
+      return res?.errors?.length
+        ? this.errorResponse(res.errors)
+        : this.okResponse(res.data);
+    } catch (err) {
+      return this.errorResponse([err]);
+    }
+  };
+
+  skipMfaSetup = async (
+    data: Types.SkipMfaSetupRequest,
+  ): Promise<Types.ApiResponse<Types.AuthToken>> => {
+    try {
+      const res = await this.dispatch(
+        'skipMfaSetup',
+        ['graphql', 'rest'],
+        {
+          query: `mutation skip_mfa_setup($data: SkipMfaSetupRequest!) { skip_mfa_setup(params: $data) { ${authTokenFragment}}}`,
+          operationName: 'skip_mfa_setup',
+          op: 'skip_mfa_setup',
+        },
+        { method: 'POST', path: '/v1/skip_mfa_setup', body: data },
+        { data },
+      );
+
+      return res?.errors?.length
+        ? this.errorResponse(res.errors)
+        : this.okResponse(res.data);
+    } catch (err) {
+      return this.errorResponse([err]);
+    }
+  };
+
+  lockMfa = async (
+    data: Types.LockMfaRequest,
+  ): Promise<Types.ApiResponse<Types.Response>> => {
+    try {
+      const res = await this.dispatch(
+        'lockMfa',
+        ['graphql', 'rest'],
+        {
+          query:
+            'mutation lock_mfa($data: LockMfaRequest!) { lock_mfa(params: $data) { message } }',
+          operationName: 'lock_mfa',
+          op: 'lock_mfa',
+        },
+        { method: 'POST', path: '/v1/lock_mfa', body: data },
+        { data },
+      );
+
+      return res?.errors?.length
+        ? this.errorResponse(res.errors)
+        : this.okResponse(res.data);
+    } catch (err) {
+      return this.errorResponse([err]);
+    }
+  };
+
+  emailOtpMfaSetup = async (
+    data?: Types.OtpMfaSetupRequest,
+  ): Promise<Types.ApiResponse<Types.Response>> => {
+    try {
+      const res = await this.dispatch(
+        'emailOtpMfaSetup',
+        ['graphql', 'rest'],
+        {
+          query:
+            'mutation email_otp_mfa_setup($data: OtpMfaSetupRequest) { email_otp_mfa_setup(params: $data) { message } }',
+          operationName: 'email_otp_mfa_setup',
+          op: 'email_otp_mfa_setup',
+        },
+        { method: 'POST', path: '/v1/email_otp_mfa_setup', body: data },
+        { data },
+      );
+
+      return res?.errors?.length
+        ? this.errorResponse(res.errors)
+        : this.okResponse(res.data);
+    } catch (err) {
+      return this.errorResponse([err]);
+    }
+  };
+
+  smsOtpMfaSetup = async (
+    data?: Types.OtpMfaSetupRequest,
+  ): Promise<Types.ApiResponse<Types.Response>> => {
+    try {
+      const res = await this.dispatch(
+        'smsOtpMfaSetup',
+        ['graphql', 'rest'],
+        {
+          query:
+            'mutation sms_otp_mfa_setup($data: OtpMfaSetupRequest) { sms_otp_mfa_setup(params: $data) { message } }',
+          operationName: 'sms_otp_mfa_setup',
+          op: 'sms_otp_mfa_setup',
+        },
+        { method: 'POST', path: '/v1/sms_otp_mfa_setup', body: data },
+        { data },
+      );
+
+      return res?.errors?.length
+        ? this.errorResponse(res.errors)
+        : this.okResponse(res.data);
+    } catch (err) {
+      return this.errorResponse([err]);
+    }
+  };
+
+  // totpMfaSetup generates a fresh TOTP secret/QR/recovery-codes for the
+  // caller to enroll as an MFA method - email/smsOtpMfaSetup's TOTP twin.
+  // Unlike those, nothing is sent anywhere: the enrollment payload comes
+  // back directly (same shape login/signup/verifyOtp already return via
+  // authenticator_scanner_image/authenticator_secret/authenticator_recovery_codes),
+  // so the caller scans/enters it, then completes enrollment via
+  // verifyOtp({ is_totp: true }).
+  totpMfaSetup = async (
+    data?: Types.OtpMfaSetupRequest,
+  ): Promise<Types.ApiResponse<Types.AuthResponse>> => {
+    try {
+      const res = await this.dispatch(
+        'totpMfaSetup',
+        ['graphql', 'rest'],
+        {
+          query:
+            'mutation totp_mfa_setup($data: OtpMfaSetupRequest) { totp_mfa_setup(params: $data) { message should_show_totp_screen authenticator_scanner_image authenticator_secret authenticator_recovery_codes } }',
+          operationName: 'totp_mfa_setup',
+          op: 'totp_mfa_setup',
+        },
+        { method: 'POST', path: '/v1/totp_mfa_setup', body: data },
         { data },
       );
 
