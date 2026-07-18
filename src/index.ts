@@ -57,6 +57,7 @@ export {
   parseMfaRedirectParams,
   MFA_REQUIRED_PARAM,
   MFA_METHODS_PARAM,
+  MFA_GATE_PARAM,
 } from './mfaRedirect';
 export type { MfaRedirectParams } from './mfaRedirect';
 export {
@@ -628,12 +629,13 @@ export class Authorizer {
 
   webauthnRegistrationOptions = async (
     email?: string,
+    phoneNumber?: string,
   ): Promise<Types.ApiResponse<Types.WebauthnRegistrationOptionsResponse>> => {
     try {
       const res = await this.graphqlQuery({
         query:
-          'mutation webauthn_registration_options($email: String) { webauthn_registration_options(email: $email) { options } }',
-        variables: { email },
+          'mutation webauthn_registration_options($email: String, $phone_number: String) { webauthn_registration_options(email: $email, phone_number: $phone_number) { options } }',
+        variables: { email, phone_number: phoneNumber },
         operationName: 'webauthn_registration_options',
       });
       return res?.errors?.length
@@ -644,13 +646,18 @@ export class Authorizer {
     }
   };
 
+  // webauthnRegistrationVerify returns the full AuthResponse shape (not just
+  // a message): on the MFA-session-cookie path (registering a passkey mid
+  // login-time MFA offer) this also completes the gate, so access_token and
+  // friends are populated exactly like verify_otp/skip_mfa_setup. On the
+  // ordinary authenticated-settings-page path access_token is always null -
+  // the caller already has one.
   webauthnRegistrationVerify = async (
     data: Types.WebauthnRegistrationVerifyRequest,
-  ): Promise<Types.ApiResponse<Types.GenericResponse>> => {
+  ): Promise<Types.ApiResponse<Types.AuthToken>> => {
     try {
       const res = await this.graphqlQuery({
-        query:
-          'mutation webauthn_registration_verify($data: WebauthnRegistrationVerifyRequest!) { webauthn_registration_verify(params: $data) { message } }',
+        query: `mutation webauthn_registration_verify($data: WebauthnRegistrationVerifyRequest!) { webauthn_registration_verify(params: $data) { ${authTokenFragment} } }`,
         variables: { data },
         operationName: 'webauthn_registration_verify',
       });
@@ -735,18 +742,30 @@ export class Authorizer {
   // registerPasskey drives the full registration ceremony end to end: fetch
   // options from the server, prompt the platform authenticator via the
   // browser's WebAuthn API, and send the resulting credential back for
-  // verification. Requires an authenticated session (a passkey is always
-  // added to the caller's own account).
+  // verification. Normally requires an authenticated session (a passkey is
+  // added to the caller's own account) - pass `mfaSetup` to instead
+  // authenticate via the MFA session cookie mid a login-time MFA offer,
+  // which also completes the gate and returns the previously-withheld token.
   registerPasskey = async (
     name?: string,
-  ): Promise<Types.ApiResponse<Types.GenericResponse>> => {
+    mfaSetup?: { email?: string; phoneNumber?: string; state?: string },
+  ): Promise<Types.ApiResponse<Types.AuthToken>> => {
     try {
-      const optRes = await this.webauthnRegistrationOptions();
+      const optRes = await this.webauthnRegistrationOptions(
+        mfaSetup?.email,
+        mfaSetup?.phoneNumber,
+      );
       if (optRes.errors.length) return this.errorResponse(optRes.errors);
       const credential = await webauthn.registerPasskey(
         optRes.data!.options,
       );
-      return this.webauthnRegistrationVerify({ name, credential });
+      return this.webauthnRegistrationVerify({
+        name,
+        credential,
+        email: mfaSetup?.email,
+        phone_number: mfaSetup?.phoneNumber,
+        state: mfaSetup?.state,
+      });
     } catch (err) {
       return this.errorResponse([err]);
     }

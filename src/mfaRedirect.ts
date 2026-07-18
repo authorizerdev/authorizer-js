@@ -8,6 +8,7 @@
 
 export const MFA_REQUIRED_PARAM = 'mfa_required';
 export const MFA_METHODS_PARAM = 'mfa_methods';
+export const MFA_GATE_PARAM = 'mfa_gate';
 
 export interface MfaRedirectParams {
   mfaRequired: true;
@@ -17,6 +18,12 @@ export interface MfaRedirectParams {
   // here would need updating in lockstep for no benefit to the caller, who
   // only needs to know which setup/verify screens to route to.
   mfaMethods: string[];
+  // 'verify': the user already has a completed second factor to challenge -
+  // route to the code/passkey-assertion screen. 'offer': first-time
+  // enrollment with a Skip option - route to the setup screen. Defaults to
+  // 'offer' when the param is absent (older server), matching the only
+  // screen callers rendered before this field existed.
+  mfaGate: 'offer' | 'verify';
 }
 
 /**
@@ -36,5 +43,7 @@ export function parseMfaRedirectParams(
   const mfaMethods = methodsParam
     ? methodsParam.split(',').filter((m) => m.length > 0)
     : [];
-  return { mfaRequired: true, mfaMethods };
+  const mfaGate: 'offer' | 'verify' =
+    parsed.searchParams.get(MFA_GATE_PARAM) === 'verify' ? 'verify' : 'offer';
+  return { mfaRequired: true, mfaMethods, mfaGate };
 }

@@ -277,6 +277,12 @@ export interface WebauthnRegistrationOptionsResponse {
 export interface WebauthnRegistrationVerifyRequest {
   name?: string | null;
   credential: string;
+  // email/phone_number/state are only used on the MFA-session-cookie path
+  // (registering a passkey mid login-time MFA offer) — ignored for an
+  // ordinary authenticated-settings-page caller.
+  email?: string | null;
+  phone_number?: string | null;
+  state?: string | null;
 }
 
 export interface WebauthnLoginOptionsResponse {

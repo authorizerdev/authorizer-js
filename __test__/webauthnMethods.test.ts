@@ -54,6 +54,38 @@ describe('WebAuthn SDK methods', () => {
     expect(body.variables.data.credential).toBe('{"id":"cred-id"}');
   });
 
+  it('webauthnRegistrationVerify returns access_token when the server completes an MFA-session offer', async () => {
+    mockFetch.mockReturnValueOnce(
+      jsonResponse({
+        data: {
+          webauthn_registration_verify: {
+            message: 'Passkey registered and MFA setup complete.',
+            access_token: 'token-mfa-setup',
+          },
+        },
+      }),
+    );
+    const res = await authorizerRef.webauthnRegistrationVerify({
+      credential: '{"id":"cred-id"}',
+      email: 'a@b.com',
+    });
+    expect(res.errors).toHaveLength(0);
+    expect(res.data?.access_token).toBe('token-mfa-setup');
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.variables.data.email).toBe('a@b.com');
+  });
+
+  it('webauthnRegistrationOptions sends phone_number when provided', async () => {
+    mockFetch.mockReturnValueOnce(
+      jsonResponse({
+        data: { webauthn_registration_options: { options: '{"challenge":"abc"}' } },
+      }),
+    );
+    await authorizerRef.webauthnRegistrationOptions(undefined, '+15551234567');
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.variables.phone_number).toBe('+15551234567');
+  });
+
   it('webauthnLoginOptions supports the usernameless (no email) call', async () => {
     mockFetch.mockReturnValueOnce(
       jsonResponse({
