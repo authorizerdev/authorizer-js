@@ -101,6 +101,7 @@ export interface User {
   is_multi_factor_auth_enabled: boolean | null;
   has_skipped_mfa_setup_at: number | null;
   mfa_locked_at: number | null;
+  enrolled_mfa_methods?: string[];
   app_data: Record<string, any> | null;
 }
 
@@ -639,6 +640,7 @@ export interface AdminMeta {
   roles: string[];
   default_roles: string[];
   protected_roles: string[];
+  is_multi_factor_auth_service_enabled: boolean;
 }
 
 // PaginatedRequest wraps the pagination input for list queries.
@@ -1105,6 +1107,26 @@ export interface ListOrgMembersRequest {
   pagination?: PaginationRequest | null;
 }
 
+// UserOrganization pairs an organization with the roles a specific user holds
+// in it. Returned by the admin _user_organizations query.
+export interface UserOrganization {
+  organization: Organization;
+  roles: string[];
+}
+
+// UserOrganizations is a paginated list of a user's organization memberships.
+export interface UserOrganizations {
+  pagination: Pagination;
+  user_organizations: UserOrganization[];
+}
+
+// UserOrganizationsRequest lists the organizations a user belongs to, with the
+// roles held per org.
+export interface UserOrganizationsRequest {
+  user_id: string;
+  pagination?: PaginationRequest | null;
+}
+
 // OrgOIDCConnection is a per-organization upstream OIDC IdP that Authorizer
 // brokers as a Relying Party. The upstream client_secret is NEVER projected.
 export interface OrgOIDCConnection {
@@ -1251,4 +1273,65 @@ export interface CreateScimEndpointRequest {
 
 export interface ScimEndpointRequest {
   org_id: string;
+}
+
+// OrgDomain is a VERIFIED mapping from a DNS domain to exactly one organization,
+// used for home-realm discovery. A row exists ONLY once the domain is verified.
+export interface OrgDomain {
+  domain: string;
+  org_id: string;
+  verified_at: number | null;
+  created_at: number | null;
+  updated_at: number | null;
+}
+
+// OrgDomains is a paginated list of an organization's verified domains.
+export interface OrgDomains {
+  pagination: Pagination;
+  org_domains: OrgDomain[];
+}
+
+// OrgDomainChallenge is the DNS TXT record a tenant must publish to prove
+// control of a domain. Returned by _request_org_domain; no durable row exists
+// until the domain is verified.
+export interface OrgDomainChallenge {
+  domain: string;
+  // record_type is always "TXT".
+  record_type: string;
+  // record_name is the DNS name to create, e.g. _authorizer-challenge.acme.com
+  record_name: string;
+  // record_value is the exact TXT value to publish.
+  record_value: string;
+}
+
+// RequestOrgDomainRequest starts domain verification for an org, returning the
+// DNS challenge to publish.
+export interface RequestOrgDomainRequest {
+  org_id: string;
+  domain: string;
+}
+
+// VerifyOrgDomainRequest checks the published DNS challenge and, on success,
+// records the verified domain.
+export interface VerifyOrgDomainRequest {
+  org_id: string;
+  domain: string;
+}
+
+// AddVerifiedOrgDomainRequest records a verified domain without a DNS challenge
+// (super-admin only, trusted-assert).
+export interface AddVerifiedOrgDomainRequest {
+  org_id: string;
+  domain: string;
+}
+
+// ListOrgDomainsRequest is a paginated read of one organization's verified domains.
+export interface ListOrgDomainsRequest {
+  org_id: string;
+  pagination?: PaginationRequest | null;
+}
+
+// DeleteOrgDomainRequest removes a verified domain (keyed by domain alone).
+export interface DeleteOrgDomainRequest {
+  domain: string;
 }

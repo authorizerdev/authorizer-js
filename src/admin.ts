@@ -9,7 +9,7 @@ const getFetcher = () => (hasWindow() ? window.fetch : crossFetch);
 
 // re-usable gql response fragments shared across admin ops.
 const userFragment =
-  'id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at revoked_timestamp is_multi_factor_auth_enabled app_data';
+  'id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at revoked_timestamp is_multi_factor_auth_enabled has_skipped_mfa_setup_at mfa_locked_at enrolled_mfa_methods app_data';
 const paginationFragment = 'limit page offset total';
 const webhookFragment =
   'id event_name event_description endpoint enabled headers created_at updated_at';
@@ -31,6 +31,7 @@ const orgOIDCConnectionFragment =
 const orgSAMLConnectionFragment =
   'id org_id name idp_entity_id idp_sso_url sp_entity_id acs_url attribute_mapping allow_idp_initiated is_active created_at updated_at';
 const scimEndpointFragment = 'id org_id enabled created_at updated_at';
+const orgDomainFragment = 'domain org_id verified_at created_at updated_at';
 
 function toErrorList(errors: unknown): Types.AuthorizerSDKError[] {
   if (Array.isArray(errors)) {
@@ -1133,6 +1134,23 @@ export class AuthorizerAdmin {
       { params },
     );
 
+  // userOrganizations returns the organizations a user belongs to along with
+  // the roles held in each.
+  userOrganizations = (
+    params: Types.UserOrganizationsRequest,
+  ): Promise<Types.ApiResponse<Types.UserOrganizations>> =>
+    this.dispatch<Types.UserOrganizations>(
+      'UserOrganizations',
+      ['graphql'],
+      {
+        query: `query _user_organizations($params: UserOrganizationsRequest!) { _user_organizations(params: $params) { pagination { ${paginationFragment} } user_organizations { organization { ${organizationFragment} } roles } } }`,
+        operationName: '_user_organizations',
+        op: '_user_organizations',
+      },
+      null,
+      { params },
+    );
+
   // ---- Org SSO connections (graphql-only: no proto/REST routes yet) ----
 
   // createOrgOIDCConnection registers a per-org upstream OIDC IdP (Authorizer
@@ -1338,6 +1356,94 @@ export class AuthorizerAdmin {
         query: `query _scim_endpoint($params: ScimEndpointRequest!) { _scim_endpoint(params: $params) { ${scimEndpointFragment} } }`,
         operationName: '_scim_endpoint',
         op: '_scim_endpoint',
+      },
+      null,
+      { params },
+    );
+
+  // ---- Org verified domains (graphql-only: no proto/REST routes yet) ----
+
+  // requestOrgDomain starts domain verification for an org, returning the DNS
+  // TXT challenge the tenant must publish.
+  requestOrgDomain = (
+    params: Types.RequestOrgDomainRequest,
+  ): Promise<Types.ApiResponse<Types.OrgDomainChallenge>> =>
+    this.dispatch<Types.OrgDomainChallenge>(
+      'RequestOrgDomain',
+      ['graphql'],
+      {
+        query:
+          'mutation _request_org_domain($params: RequestOrgDomainRequest!) { _request_org_domain(params: $params) { domain record_type record_name record_value } }',
+        operationName: '_request_org_domain',
+        op: '_request_org_domain',
+      },
+      null,
+      { params },
+    );
+
+  // verifyOrgDomain checks the published DNS challenge and, on success, records
+  // the verified domain.
+  verifyOrgDomain = (
+    params: Types.VerifyOrgDomainRequest,
+  ): Promise<Types.ApiResponse<Types.OrgDomain>> =>
+    this.dispatch<Types.OrgDomain>(
+      'VerifyOrgDomain',
+      ['graphql'],
+      {
+        query: `mutation _verify_org_domain($params: VerifyOrgDomainRequest!) { _verify_org_domain(params: $params) { ${orgDomainFragment} } }`,
+        operationName: '_verify_org_domain',
+        op: '_verify_org_domain',
+      },
+      null,
+      { params },
+    );
+
+  // addVerifiedOrgDomain records a verified domain without a DNS challenge
+  // (super-admin only, trusted-assert).
+  addVerifiedOrgDomain = (
+    params: Types.AddVerifiedOrgDomainRequest,
+  ): Promise<Types.ApiResponse<Types.OrgDomain>> =>
+    this.dispatch<Types.OrgDomain>(
+      'AddVerifiedOrgDomain',
+      ['graphql'],
+      {
+        query: `mutation _add_verified_org_domain($params: AddVerifiedOrgDomainRequest!) { _add_verified_org_domain(params: $params) { ${orgDomainFragment} } }`,
+        operationName: '_add_verified_org_domain',
+        op: '_add_verified_org_domain',
+      },
+      null,
+      { params },
+    );
+
+  // deleteOrgDomain removes a verified domain by domain. DESTRUCTIVE: home-realm
+  // discovery for that domain stops immediately.
+  deleteOrgDomain = (
+    params: Types.DeleteOrgDomainRequest,
+  ): Promise<Types.ApiResponse<Types.Response>> =>
+    this.dispatch<Types.Response>(
+      'DeleteOrgDomain',
+      ['graphql'],
+      {
+        query:
+          'mutation _delete_org_domain($params: DeleteOrgDomainRequest!) { _delete_org_domain(params: $params) { message } }',
+        operationName: '_delete_org_domain',
+        op: '_delete_org_domain',
+      },
+      null,
+      { params },
+    );
+
+  // orgDomains returns a paginated list of an organization's verified domains.
+  orgDomains = (
+    params: Types.ListOrgDomainsRequest,
+  ): Promise<Types.ApiResponse<Types.OrgDomains>> =>
+    this.dispatch<Types.OrgDomains>(
+      'OrgDomains',
+      ['graphql'],
+      {
+        query: `query _org_domains($params: ListOrgDomainsRequest!) { _org_domains(params: $params) { pagination { ${paginationFragment} } org_domains { ${orgDomainFragment} } } }`,
+        operationName: '_org_domains',
+        op: '_org_domains',
       },
       null,
       { params },

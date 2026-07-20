@@ -21,7 +21,7 @@ import * as webauthn from './webauthn';
 
 // re-usable gql response fragment
 const userFragment =
-  'id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at revoked_timestamp is_multi_factor_auth_enabled has_skipped_mfa_setup_at mfa_locked_at app_data';
+  'id email email_verified given_name family_name middle_name nickname preferred_username picture signup_methods gender birthdate phone_number phone_number_verified roles created_at updated_at revoked_timestamp is_multi_factor_auth_enabled has_skipped_mfa_setup_at mfa_locked_at enrolled_mfa_methods app_data';
 const authTokenFragment = `message access_token expires_in refresh_token id_token should_show_email_otp_screen should_show_mobile_otp_screen should_show_totp_screen should_offer_webauthn_mfa_verify should_offer_webauthn_mfa_setup should_offer_email_otp_mfa_setup should_offer_sms_otp_mfa_setup authenticator_scanner_image authenticator_secret authenticator_recovery_codes user { ${userFragment} }`;
 
 // set fetch based on window object. Cross fetch have issues with umd build
