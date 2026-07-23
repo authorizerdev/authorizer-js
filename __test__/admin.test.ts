@@ -190,7 +190,7 @@ describe('Integration Tests - AuthorizerAdmin (graphql + rest)', () => {
       });
       expect(addRes.errors).toHaveLength(0);
 
-      const listRes = await a.webhooks({ pagination: { limit: 50, page: 1 } });
+      const listRes = await a.webhooks({ limit: 50, page: 1 });
       expect(listRes.errors).toHaveLength(0);
       const created = listRes.data?.webhooks.find((w) =>
         (w.event_name ?? '').startsWith(event),
@@ -219,9 +219,7 @@ describe('Integration Tests - AuthorizerAdmin (graphql + rest)', () => {
       });
       expect(addRes.errors).toHaveLength(0);
 
-      const listRes = await a.emailTemplates({
-        pagination: { limit: 50, page: 1 },
-      });
+      const listRes = await a.emailTemplates({ limit: 50, page: 1 });
       expect(listRes.errors).toHaveLength(0);
       const created = listRes.data?.email_templates.find(
         (t) => t.event_name === event,

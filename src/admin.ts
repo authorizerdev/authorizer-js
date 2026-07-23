@@ -366,13 +366,13 @@ export class AuthorizerAdmin {
 
   // verificationRequests returns a paginated list of pending verification requests.
   verificationRequests = (
-    params?: Types.PaginatedRequest,
+    params?: Types.PaginationRequest,
   ): Promise<Types.ApiResponse<Types.VerificationRequests>> =>
     this.dispatch<Types.VerificationRequests>(
       'VerificationRequests',
       ['graphql', 'rest'],
       {
-        query: `query _verification_requests($params: PaginatedRequest) { _verification_requests(params: $params) { pagination { ${paginationFragment} } verification_requests { id identifier token email expires created_at updated_at nonce redirect_uri } } }`,
+        query: `query _verification_requests($params: PaginationRequest) { _verification_requests(params: $params) { pagination { ${paginationFragment} } verification_requests { id identifier token email expires created_at updated_at nonce redirect_uri } } }`,
         operationName: '_verification_requests',
         op: '_verification_requests',
       },
@@ -515,13 +515,13 @@ export class AuthorizerAdmin {
 
   // webhooks returns a paginated list of webhooks.
   webhooks = (
-    params?: Types.PaginatedRequest,
+    params?: Types.PaginationRequest,
   ): Promise<Types.ApiResponse<Types.Webhooks>> =>
     this.dispatch<Types.Webhooks>(
       'Webhooks',
       ['graphql', 'rest'],
       {
-        query: `query _webhooks($params: PaginatedRequest) { _webhooks(params: $params) { pagination { ${paginationFragment} } webhooks { ${webhookFragment} } } }`,
+        query: `query _webhooks($params: PaginationRequest) { _webhooks(params: $params) { pagination { ${paginationFragment} } webhooks { ${webhookFragment} } } }`,
         operationName: '_webhooks',
         op: '_webhooks',
       },
@@ -626,13 +626,13 @@ export class AuthorizerAdmin {
 
   // emailTemplates returns a paginated list of email templates.
   emailTemplates = (
-    params?: Types.PaginatedRequest,
+    params?: Types.PaginationRequest,
   ): Promise<Types.ApiResponse<Types.EmailTemplates>> =>
     this.dispatch<Types.EmailTemplates>(
       'EmailTemplates',
       ['graphql', 'rest'],
       {
-        query: `query _email_templates($params: PaginatedRequest) { _email_templates(params: $params) { pagination { ${paginationFragment} } email_templates { ${emailTemplateFragment} } } }`,
+        query: `query _email_templates($params: PaginationRequest) { _email_templates(params: $params) { pagination { ${paginationFragment} } email_templates { ${emailTemplateFragment} } } }`,
         operationName: '_email_templates',
         op: '_email_templates',
       },
