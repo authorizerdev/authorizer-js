@@ -642,11 +642,6 @@ export interface AdminMeta {
   is_multi_factor_auth_service_enabled: boolean;
 }
 
-// PaginatedRequest wraps the pagination input for list queries.
-export interface PaginatedRequest {
-  pagination?: PaginationRequest | null;
-}
-
 // ListUsersRequest is the admin _users query input. query is an optional
 // case-insensitive substring filter matched against email, given_name,
 // family_name and nickname. Empty/absent means no filter (full list).
@@ -910,6 +905,13 @@ export interface AdminSignupRequest {
 // CreateClientResponse (creation and rotation) and never again.
 export interface Client {
   id: string;
+  // client_id is the public OAuth identifier presented at the authorize/token
+  // endpoints. Distinct from id (internal surrogate key); for a client
+  // created via createClient (no way to set it separately), it defaults to
+  // id server-side, but this MUST NOT be assumed to always equal id — pass
+  // client_id, not id, wherever an OAuth client_id is expected (e.g.
+  // getToken's client_credentials/token-exchange grants).
+  client_id: string;
   name: string;
   description: string | null;
   allowed_scopes: string[];
@@ -1244,6 +1246,121 @@ export interface UpdateOrgSAMLConnectionRequest {
 export interface OrgSAMLConnectionRequest {
   id?: string | null;
   org_id?: string | null;
+}
+
+// SAMLServiceProvider is a downstream SAML 2.0 SP that Authorizer (acting as
+// the IdP) issues signed assertions to. This is the inverse of
+// OrgSAMLConnection.
+export interface SAMLServiceProvider {
+  id: string;
+  org_id: string;
+  name: string;
+  // entity_id: the SP entity ID (the AuthnRequest Issuer and assertion Audience).
+  entity_id: string;
+  // acs_url: the SP Assertion Consumer Service URL — the only place assertions
+  // are POSTed. Never taken from the request.
+  acs_url: string;
+  // sp_cert_pem: the SP's optional X.509 signing certificate (PEM).
+  sp_cert_pem: string | null;
+  // name_id_format: SAML NameID format for the Subject (default emailAddress).
+  name_id_format: string | null;
+  // mapped_attributes: JSON mapping profile fields to emitted SAML attribute names.
+  mapped_attributes: string | null;
+  // allow_idp_initiated: whether unsolicited IdP-initiated SSO is permitted.
+  allow_idp_initiated: boolean;
+  is_active: boolean;
+  created_at: number | null;
+  updated_at: number | null;
+}
+
+// SAMLServiceProviders is a paginated list of downstream SAML SPs for an org.
+export interface SAMLServiceProviders {
+  pagination: Pagination;
+  saml_service_providers: SAMLServiceProvider[];
+}
+
+// CreateSAMLServiceProviderRequest registers a downstream SP.
+export interface CreateSAMLServiceProviderRequest {
+  org_id: string;
+  name: string;
+  entity_id: string;
+  acs_url: string;
+  sp_cert_pem?: string | null;
+  // name_id_format: default urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress.
+  name_id_format?: string | null;
+  mapped_attributes?: string | null;
+  // allow_idp_initiated: default false (SP-initiated only).
+  allow_idp_initiated?: boolean | null;
+}
+
+// UpdateSAMLServiceProviderRequest updates an existing downstream SP.
+export interface UpdateSAMLServiceProviderRequest {
+  id: string;
+  name?: string | null;
+  entity_id?: string | null;
+  acs_url?: string | null;
+  sp_cert_pem?: string | null;
+  name_id_format?: string | null;
+  mapped_attributes?: string | null;
+  allow_idp_initiated?: boolean | null;
+  is_active?: boolean | null;
+}
+
+// SAMLServiceProviderRequest looks up (or deletes) a single downstream SP by id.
+export interface SAMLServiceProviderRequest {
+  id: string;
+}
+
+// ListSAMLServiceProvidersRequest is a paginated read of one org's downstream SPs.
+export interface ListSAMLServiceProvidersRequest {
+  org_id: string;
+  pagination?: PaginationRequest | null;
+}
+
+// SAMLIDPKey is a per-org SAML IdP signing keypair. The private key is NEVER
+// projected — only the certificate and rotation status.
+export interface SAMLIDPKey {
+  id: string;
+  org_id: string;
+  // cert_pem: the self-signed X.509 signing certificate (PEM), pinned by SPs.
+  cert_pem: string;
+  algorithm: string;
+  // status: "current" (signs new assertions), "active" (published in metadata,
+  // not signing), or "retired" (neither).
+  status: string;
+  created_at: number | null;
+  updated_at: number | null;
+}
+
+// RotateSAMLIDPCertRequest generates a new current signing keypair for an
+// org's SAML IdP, demoting the previous current key.
+export interface RotateSAMLIDPCertRequest {
+  org_id: string;
+}
+
+// RetireSAMLIDPKeyRequest retires a published-but-superseded key by id.
+// Cannot retire the current key.
+export interface RetireSAMLIDPKeyRequest {
+  id: string;
+}
+
+// ListSAMLIDPKeysRequest lists all SAML IdP signing keys for an org (unpaginated).
+export interface ListSAMLIDPKeysRequest {
+  org_id: string;
+}
+
+// SAMLSPMetadataParseResult is the parsed output of importSAMLSPMetadata. It
+// does NOT create a record — it returns fields to prefill a create call.
+export interface SAMLSPMetadataParseResult {
+  entity_id: string;
+  acs_url: string;
+  certificate: string | null;
+}
+
+// ImportSAMLSPMetadataRequest parses pasted SP metadata XML (NOT a URL — no
+// remote fetch).
+export interface ImportSAMLSPMetadataRequest {
+  metadata_xml: string;
 }
 
 // ScimEndpoint is the per-org inbound SCIM 2.0 connection credential. The

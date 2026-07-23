@@ -32,4 +32,4 @@ jobs:
       - name: Run integration tests
         run: pnpm test # Make sure this command runs your integration tests
         env:
-          AUTHORIZER_IMAGE: quay.io/authorizer/authorizer:2.3.0
+          AUTHORIZER_IMAGE: quay.io/authorizer/authorizer:2.4.0-rc.9
