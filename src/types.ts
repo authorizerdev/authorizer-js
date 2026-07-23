@@ -205,7 +205,6 @@ export interface SignUpRequest {
   roles?: string[] | null;
   scope?: string[] | null;
   redirect_uri?: string | null;
-  is_multi_factor_auth_enabled?: boolean | null;
   state?: string | null;
   app_data?: Record<string, any> | null;
 }
