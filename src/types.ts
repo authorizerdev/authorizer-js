@@ -643,11 +643,6 @@ export interface AdminMeta {
   is_multi_factor_auth_service_enabled: boolean;
 }
 
-// PaginatedRequest wraps the pagination input for list queries.
-export interface PaginatedRequest {
-  pagination?: PaginationRequest | null;
-}
-
 // ListUsersRequest is the admin _users query input. query is an optional
 // case-insensitive substring filter matched against email, given_name,
 // family_name and nickname. Empty/absent means no filter (full list).
