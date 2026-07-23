@@ -20,7 +20,7 @@ const emailTemplateFragment =
 const auditLogFragment =
   'id actor_id actor_type actor_email action resource_type resource_id ip_address user_agent metadata created_at';
 const clientFragment =
-  'id name description allowed_scopes is_active created_at updated_at';
+  'id client_id name description allowed_scopes is_active created_at updated_at';
 const trustedIssuerFragment =
   'id service_account_id name issuer_url key_source_type jwks_url expected_aud subject_claim allowed_subjects issuer_type is_active spiffe_refresh_hint_seconds created_at updated_at';
 const organizationFragment =
@@ -30,6 +30,10 @@ const orgOIDCConnectionFragment =
   'id org_id name issuer_url sso_client_id scopes redirect_uri is_active created_at updated_at';
 const orgSAMLConnectionFragment =
   'id org_id name idp_entity_id idp_sso_url sp_entity_id acs_url attribute_mapping allow_idp_initiated is_active created_at updated_at';
+const samlServiceProviderFragment =
+  'id org_id name entity_id acs_url sp_cert_pem name_id_format mapped_attributes allow_idp_initiated is_active created_at updated_at';
+const samlIdpKeyFragment =
+  'id org_id cert_pem algorithm status created_at updated_at';
 const scimEndpointFragment = 'id org_id enabled created_at updated_at';
 const orgDomainFragment = 'domain org_id verified_at created_at updated_at';
 
@@ -1289,6 +1293,194 @@ export class AuthorizerAdmin {
       },
       null,
       { params },
+    );
+
+  // ---- SAML IdP (Authorizer as Identity Provider for downstream SPs) ----
+
+  // createSAMLServiceProvider registers a downstream SP that Authorizer (acting
+  // as the IdP) issues signed assertions to.
+  createSAMLServiceProvider = (
+    params: Types.CreateSAMLServiceProviderRequest,
+  ): Promise<Types.ApiResponse<Types.SAMLServiceProvider>> =>
+    this.dispatch<Types.SAMLServiceProvider>(
+      'CreateSAMLServiceProvider',
+      ['graphql', 'rest'],
+      {
+        query: `mutation _create_saml_service_provider($params: CreateSAMLServiceProviderRequest!) { _create_saml_service_provider(params: $params) { ${samlServiceProviderFragment} } }`,
+        operationName: '_create_saml_service_provider',
+        op: '_create_saml_service_provider',
+      },
+      {
+        method: 'POST',
+        path: '/v1/admin/create_saml_service_provider',
+        unwrap: 'saml_service_provider',
+      },
+      { params },
+      params as unknown as Record<string, unknown>,
+    );
+
+  // updateSAMLServiceProvider updates a downstream SP's name, endpoints,
+  // certificate, attribute mapping, or active state.
+  updateSAMLServiceProvider = (
+    params: Types.UpdateSAMLServiceProviderRequest,
+  ): Promise<Types.ApiResponse<Types.SAMLServiceProvider>> =>
+    this.dispatch<Types.SAMLServiceProvider>(
+      'UpdateSAMLServiceProvider',
+      ['graphql', 'rest'],
+      {
+        query: `mutation _update_saml_service_provider($params: UpdateSAMLServiceProviderRequest!) { _update_saml_service_provider(params: $params) { ${samlServiceProviderFragment} } }`,
+        operationName: '_update_saml_service_provider',
+        op: '_update_saml_service_provider',
+      },
+      {
+        method: 'POST',
+        path: '/v1/admin/update_saml_service_provider',
+        unwrap: 'saml_service_provider',
+      },
+      { params },
+      params as unknown as Record<string, unknown>,
+    );
+
+  // deleteSAMLServiceProvider deletes a downstream SP by id. DESTRUCTIVE: SSO
+  // for that SP stops working immediately.
+  deleteSAMLServiceProvider = (
+    params: Types.SAMLServiceProviderRequest,
+  ): Promise<Types.ApiResponse<Types.Response>> =>
+    this.dispatch<Types.Response>(
+      'DeleteSAMLServiceProvider',
+      ['graphql', 'rest'],
+      {
+        query:
+          'mutation _delete_saml_service_provider($params: SAMLServiceProviderRequest!) { _delete_saml_service_provider(params: $params) { message } }',
+        operationName: '_delete_saml_service_provider',
+        op: '_delete_saml_service_provider',
+      },
+      { method: 'POST', path: '/v1/admin/delete_saml_service_provider' },
+      { params },
+      params as unknown as Record<string, unknown>,
+    );
+
+  // samlServiceProvider returns a single downstream SP by id.
+  samlServiceProvider = (
+    params: Types.SAMLServiceProviderRequest,
+  ): Promise<Types.ApiResponse<Types.SAMLServiceProvider>> =>
+    this.dispatch<Types.SAMLServiceProvider>(
+      'GetSAMLServiceProvider',
+      ['graphql', 'rest'],
+      {
+        query: `query _saml_service_provider($params: SAMLServiceProviderRequest!) { _saml_service_provider(params: $params) { ${samlServiceProviderFragment} } }`,
+        operationName: '_saml_service_provider',
+        op: '_saml_service_provider',
+      },
+      {
+        method: 'POST',
+        path: '/v1/admin/saml_service_provider',
+        unwrap: 'saml_service_provider',
+      },
+      { params },
+      params as unknown as Record<string, unknown>,
+    );
+
+  // listSAMLServiceProviders returns a paginated list of downstream SPs for an org.
+  listSAMLServiceProviders = (
+    params: Types.ListSAMLServiceProvidersRequest,
+  ): Promise<Types.ApiResponse<Types.SAMLServiceProviders>> =>
+    this.dispatch<Types.SAMLServiceProviders>(
+      'ListSAMLServiceProviders',
+      ['graphql', 'rest'],
+      {
+        query: `query _list_saml_service_providers($params: ListSAMLServiceProvidersRequest!) { _list_saml_service_providers(params: $params) { pagination { ${paginationFragment} } saml_service_providers { ${samlServiceProviderFragment} } } }`,
+        operationName: '_list_saml_service_providers',
+        op: '_list_saml_service_providers',
+      },
+      { method: 'POST', path: '/v1/admin/saml_service_providers' },
+      { params },
+      params as unknown as Record<string, unknown>,
+    );
+
+  // rotateSAMLIDPCert generates a new current signing keypair for an org's SAML
+  // IdP; the previously-current key stays "active" (still published) until retired.
+  rotateSAMLIDPCert = (
+    params: Types.RotateSAMLIDPCertRequest,
+  ): Promise<Types.ApiResponse<Types.SAMLIDPKey>> =>
+    this.dispatch<Types.SAMLIDPKey>(
+      'RotateSAMLIDPCert',
+      ['graphql', 'rest'],
+      {
+        query: `mutation _rotate_saml_idp_cert($params: RotateSAMLIDPCertRequest!) { _rotate_saml_idp_cert(params: $params) { ${samlIdpKeyFragment} } }`,
+        operationName: '_rotate_saml_idp_cert',
+        op: '_rotate_saml_idp_cert',
+      },
+      {
+        method: 'POST',
+        path: '/v1/admin/rotate_saml_idp_cert',
+        unwrap: 'saml_idp_key',
+      },
+      { params },
+      params as unknown as Record<string, unknown>,
+    );
+
+  // retireSAMLIDPKey retires a published-but-superseded key so it stops
+  // appearing in IdP metadata. Cannot retire the current key.
+  retireSAMLIDPKey = (
+    params: Types.RetireSAMLIDPKeyRequest,
+  ): Promise<Types.ApiResponse<Types.Response>> =>
+    this.dispatch<Types.Response>(
+      'RetireSAMLIDPKey',
+      ['graphql', 'rest'],
+      {
+        query:
+          'mutation _retire_saml_idp_key($params: RetireSAMLIDPKeyRequest!) { _retire_saml_idp_key(params: $params) { message } }',
+        operationName: '_retire_saml_idp_key',
+        op: '_retire_saml_idp_key',
+      },
+      { method: 'POST', path: '/v1/admin/retire_saml_idp_key' },
+      { params },
+      params as unknown as Record<string, unknown>,
+    );
+
+  // listSAMLIDPKeys returns all SAML IdP signing keys for an org (unpaginated).
+  listSAMLIDPKeys = (
+    params: Types.ListSAMLIDPKeysRequest,
+  ): Promise<Types.ApiResponse<Types.SAMLIDPKey[]>> =>
+    this.dispatch<Types.SAMLIDPKey[]>(
+      'ListSAMLIDPKeys',
+      ['graphql', 'rest'],
+      {
+        query: `query _list_saml_idp_keys($params: ListSAMLIDPKeysRequest!) { _list_saml_idp_keys(params: $params) { ${samlIdpKeyFragment} } }`,
+        operationName: '_list_saml_idp_keys',
+        op: '_list_saml_idp_keys',
+      },
+      {
+        method: 'POST',
+        path: '/v1/admin/saml_idp_keys',
+        unwrap: 'saml_idp_keys',
+      },
+      { params },
+      params as unknown as Record<string, unknown>,
+    );
+
+  // importSAMLSPMetadata parses pasted SP metadata XML and returns the
+  // extracted entity_id / acs_url / certificate. It does NOT create a record.
+  importSAMLSPMetadata = (
+    params: Types.ImportSAMLSPMetadataRequest,
+  ): Promise<Types.ApiResponse<Types.SAMLSPMetadataParseResult>> =>
+    this.dispatch<Types.SAMLSPMetadataParseResult>(
+      'ImportSAMLSPMetadata',
+      ['graphql', 'rest'],
+      {
+        query:
+          'mutation _import_saml_sp_metadata($params: ImportSAMLSPMetadataRequest!) { _import_saml_sp_metadata(params: $params) { entity_id acs_url certificate } }',
+        operationName: '_import_saml_sp_metadata',
+        op: '_import_saml_sp_metadata',
+      },
+      {
+        method: 'POST',
+        path: '/v1/admin/import_saml_sp_metadata',
+        unwrap: 'result',
+      },
+      { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // ---- SCIM endpoints (graphql-only: no proto/REST routes yet) ----
