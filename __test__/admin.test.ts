@@ -73,7 +73,7 @@ describe('Integration Tests - AuthorizerAdmin (graphql + rest)', () => {
     const { args } = buildAuthorizerCliArgs();
 
     container = await new GenericContainer(
-      process.env.AUTHORIZER_IMAGE || 'quay.io/authorizer/authorizer:2.4.0-rc.1',
+      process.env.AUTHORIZER_IMAGE || 'quay.io/authorizer/authorizer:2.4.0-rc.13',
     )
       .withCommand(args)
       .withExposedPorts(8080)
@@ -112,14 +112,18 @@ describe('Integration Tests - AuthorizerAdmin (graphql + rest)', () => {
     ).toThrow(/grpc/);
   });
 
-  it('rejects rest-only methods over graphql with a clear error', async () => {
-    const admin = adminFor('graphql');
-    const res = await admin.adminMeta();
-    expect(res.data).toBeUndefined();
-    expect(res.errors.length).toBeGreaterThan(0);
-    expect(res.errors[0].message).toMatch(
-      /AdminMeta is not available over graphql/,
-    );
+  // adminMeta used to be rest-only in the SDK even though `_admin_meta` exists
+  // on the server; it now works over both, returning the same payload either
+  // way. REST nests it under admin_meta while GraphQL returns it directly, so
+  // a wrong unwrap shows up here as a missing roles array.
+  it('adminMeta agrees over graphql and rest', async () => {
+    const viaGql = await adminFor('graphql').adminMeta();
+    expect(viaGql.errors).toHaveLength(0);
+    expect(viaGql.data?.roles?.length).toBeGreaterThan(0);
+
+    const viaRest = await adminFor('rest').adminMeta();
+    expect(viaRest.errors).toHaveLength(0);
+    expect(viaRest.data).toEqual(viaGql.data);
   });
 
   it('rejects graphql-only methods over rest with a clear error', async () => {

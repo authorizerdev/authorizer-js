@@ -624,23 +624,35 @@ export class Authorizer {
     }
   };
 
-  // WebAuthn / passkey ops are GraphQL-only (no REST route), so these call
-  // graphqlQuery directly rather than going through dispatch.
+  // WebAuthn / passkey ops. Server 2.4.0 added the proto RPCs and their REST
+  // routes, so these dispatch over graphql or rest like the rest of the client.
+  // The GraphQL fields take flat scalar args while REST takes a JSON body, so
+  // each passes both shapes to dispatch.
 
   webauthnRegistrationOptions = async (
     email?: string,
     phoneNumber?: string,
   ): Promise<Types.ApiResponse<Types.WebauthnRegistrationOptionsResponse>> => {
     try {
-      const res = await this.graphqlQuery({
-        query:
-          'mutation webauthn_registration_options($email: String, $phone_number: String) { webauthn_registration_options(email: $email, phone_number: $phone_number) { options } }',
-        variables: { email, phone_number: phoneNumber },
-        operationName: 'webauthn_registration_options',
-      });
+      const res = await this.dispatch(
+        'webauthnRegistrationOptions',
+        ['graphql', 'rest'],
+        {
+          query:
+            'mutation webauthn_registration_options($email: String, $phone_number: String) { webauthn_registration_options(email: $email, phone_number: $phone_number) { options } }',
+          operationName: 'webauthn_registration_options',
+          op: 'webauthn_registration_options',
+        },
+        {
+          method: 'POST',
+          path: '/v1/webauthn_registration_options',
+          body: { email, phone_number: phoneNumber },
+        },
+        { email, phone_number: phoneNumber },
+      );
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.webauthn_registration_options);
+        : this.okResponse(res.data);
     } catch (err) {
       return this.errorResponse([err]);
     }
@@ -656,14 +668,24 @@ export class Authorizer {
     data: Types.WebauthnRegistrationVerifyRequest,
   ): Promise<Types.ApiResponse<Types.AuthToken>> => {
     try {
-      const res = await this.graphqlQuery({
-        query: `mutation webauthn_registration_verify($data: WebauthnRegistrationVerifyRequest!) { webauthn_registration_verify(params: $data) { ${authTokenFragment} } }`,
-        variables: { data },
-        operationName: 'webauthn_registration_verify',
-      });
+      const res = await this.dispatch(
+        'webauthnRegistrationVerify',
+        ['graphql', 'rest'],
+        {
+          query: `mutation webauthn_registration_verify($data: WebauthnRegistrationVerifyRequest!) { webauthn_registration_verify(params: $data) { ${authTokenFragment} } }`,
+          operationName: 'webauthn_registration_verify',
+          op: 'webauthn_registration_verify',
+        },
+        {
+          method: 'POST',
+          path: '/v1/webauthn_registration_verify',
+          body: data as unknown as Record<string, unknown>,
+        },
+        { data },
+      );
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.webauthn_registration_verify);
+        : this.okResponse(res.data);
     } catch (err) {
       return this.errorResponse([err]);
     }
@@ -673,15 +695,21 @@ export class Authorizer {
     email?: string,
   ): Promise<Types.ApiResponse<Types.WebauthnLoginOptionsResponse>> => {
     try {
-      const res = await this.graphqlQuery({
-        query:
-          'mutation webauthn_login_options($email: String) { webauthn_login_options(email: $email) { options } }',
-        variables: { email },
-        operationName: 'webauthn_login_options',
-      });
+      const res = await this.dispatch(
+        'webauthnLoginOptions',
+        ['graphql', 'rest'],
+        {
+          query:
+            'mutation webauthn_login_options($email: String) { webauthn_login_options(email: $email) { options } }',
+          operationName: 'webauthn_login_options',
+          op: 'webauthn_login_options',
+        },
+        { method: 'POST', path: '/v1/webauthn_login_options', body: { email } },
+        { email },
+      );
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.webauthn_login_options);
+        : this.okResponse(res.data);
     } catch (err) {
       return this.errorResponse([err]);
     }
@@ -691,14 +719,24 @@ export class Authorizer {
     data: Types.WebauthnLoginVerifyRequest,
   ): Promise<Types.ApiResponse<Types.AuthToken>> => {
     try {
-      const res = await this.graphqlQuery({
-        query: `mutation webauthn_login_verify($data: WebauthnLoginVerifyRequest!) { webauthn_login_verify(params: $data) { ${authTokenFragment} } }`,
-        variables: { data },
-        operationName: 'webauthn_login_verify',
-      });
+      const res = await this.dispatch(
+        'webauthnLoginVerify',
+        ['graphql', 'rest'],
+        {
+          query: `mutation webauthn_login_verify($data: WebauthnLoginVerifyRequest!) { webauthn_login_verify(params: $data) { ${authTokenFragment} } }`,
+          operationName: 'webauthn_login_verify',
+          op: 'webauthn_login_verify',
+        },
+        {
+          method: 'POST',
+          path: '/v1/webauthn_login_verify',
+          body: data as unknown as Record<string, unknown>,
+        },
+        { data },
+      );
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.webauthn_login_verify);
+        : this.okResponse(res.data);
     } catch (err) {
       return this.errorResponse([err]);
     }
@@ -708,14 +746,25 @@ export class Authorizer {
     Types.ApiResponse<Types.WebauthnCredentialInfo[]>
   > => {
     try {
-      const res = await this.graphqlQuery({
-        query:
-          'query webauthn_credentials { webauthn_credentials { id name transports created_at updated_at last_used_at } }',
-        operationName: 'webauthn_credentials',
-      });
+      const res = await this.dispatch(
+        'webauthnCredentials',
+        ['graphql', 'rest'],
+        {
+          query:
+            'query webauthn_credentials { webauthn_credentials { id name transports created_at updated_at last_used_at } }',
+          operationName: 'webauthn_credentials',
+          op: 'webauthn_credentials',
+        },
+        // GraphQL returns the list directly; REST nests it under the same name.
+        {
+          method: 'POST',
+          path: '/v1/webauthn_credentials',
+          unwrap: 'webauthn_credentials',
+        },
+      );
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.webauthn_credentials);
+        : this.okResponse(res.data);
     } catch (err) {
       return this.errorResponse([err]);
     }
@@ -725,15 +774,21 @@ export class Authorizer {
     id: string,
   ): Promise<Types.ApiResponse<Types.GenericResponse>> => {
     try {
-      const res = await this.graphqlQuery({
-        query:
-          'mutation webauthn_delete_credential($id: ID!) { webauthn_delete_credential(id: $id) { message } }',
-        variables: { id },
-        operationName: 'webauthn_delete_credential',
-      });
+      const res = await this.dispatch(
+        'webauthnDeleteCredential',
+        ['graphql', 'rest'],
+        {
+          query:
+            'mutation webauthn_delete_credential($id: ID!) { webauthn_delete_credential(id: $id) { message } }',
+          operationName: 'webauthn_delete_credential',
+          op: 'webauthn_delete_credential',
+        },
+        { method: 'POST', path: '/v1/webauthn_delete_credential', body: { id } },
+        { id },
+      );
       return res?.errors?.length
         ? this.errorResponse(res.errors)
-        : this.okResponse(res.data?.webauthn_delete_credential);
+        : this.okResponse(res.data);
     } catch (err) {
       return this.errorResponse([err]);
     }

@@ -268,8 +268,12 @@ export class AuthorizerAdmin {
   adminLogout = (): Promise<Types.ApiResponse<Types.Response>> =>
     this.dispatch<Types.Response>(
       'AdminLogout',
-      ['rest'],
-      null,
+      ['graphql', 'rest'],
+      {
+        query: 'mutation _admin_logout { _admin_logout { message } }',
+        operationName: '_admin_logout',
+        op: '_admin_logout',
+      },
       { method: 'POST', path: '/v1/admin/logout' },
     );
 
@@ -277,8 +281,12 @@ export class AuthorizerAdmin {
   adminSession = (): Promise<Types.ApiResponse<Types.Response>> =>
     this.dispatch<Types.Response>(
       'AdminSession',
-      ['rest'],
-      null,
+      ['graphql', 'rest'],
+      {
+        query: 'query _admin_session { _admin_session { message } }',
+        operationName: '_admin_session',
+        op: '_admin_session',
+      },
       { method: 'GET', path: '/v1/admin/session' },
     );
 
@@ -287,8 +295,13 @@ export class AuthorizerAdmin {
   adminMeta = (): Promise<Types.ApiResponse<Types.AdminMeta>> =>
     this.dispatch<Types.AdminMeta>(
       'AdminMeta',
-      ['rest'],
-      null,
+      ['graphql', 'rest'],
+      {
+        query:
+          'query _admin_meta { _admin_meta { roles default_roles protected_roles is_multi_factor_auth_service_enabled } }',
+        operationName: '_admin_meta',
+        op: '_admin_meta',
+      },
       { method: 'GET', path: '/v1/admin/meta', unwrap: 'admin_meta' },
     );
 
@@ -667,8 +680,12 @@ export class AuthorizerAdmin {
   fgaGetModel = (): Promise<Types.ApiResponse<Types.FgaModel>> =>
     this.dispatch<Types.FgaModel>(
       'FgaGetModel',
-      ['rest'],
-      null,
+      ['graphql', 'rest'],
+      {
+        query: 'query _fga_get_model { _fga_get_model { id dsl } }',
+        operationName: '_fga_get_model',
+        op: '_fga_get_model',
+      },
       { method: 'GET', path: '/v1/admin/fga/model', unwrap: 'model' },
     );
 
@@ -790,8 +807,12 @@ export class AuthorizerAdmin {
   fgaReset = (): Promise<Types.ApiResponse<Types.Response>> =>
     this.dispatch<Types.Response>(
       'FgaReset',
-      ['rest'],
-      null,
+      ['graphql', 'rest'],
+      {
+        query: 'mutation _fga_reset { _fga_reset { message } }',
+        operationName: '_fga_reset',
+        op: '_fga_reset',
+      },
       { method: 'POST', path: '/v1/admin/fga/reset' },
     );
 
@@ -1014,14 +1035,15 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.Organization>> =>
     this.dispatch<Types.Organization>(
       'CreateOrganization',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query: `mutation _create_organization($params: CreateOrganizationRequest!) { _create_organization(params: $params) { ${organizationFragment} } }`,
         operationName: '_create_organization',
         op: '_create_organization',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/create_organization', unwrap: 'organization' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // updateOrganization updates an existing organization.
@@ -1030,14 +1052,15 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.Organization>> =>
     this.dispatch<Types.Organization>(
       'UpdateOrganization',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query: `mutation _update_organization($params: UpdateOrganizationRequest!) { _update_organization(params: $params) { ${organizationFragment} } }`,
         operationName: '_update_organization',
         op: '_update_organization',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/update_organization', unwrap: 'organization' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // deleteOrganization deletes an organization by id. DESTRUCTIVE.
@@ -1046,15 +1069,16 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.Response>> =>
     this.dispatch<Types.Response>(
       'DeleteOrganization',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query:
           'mutation _delete_organization($params: OrganizationRequest!) { _delete_organization(params: $params) { message } }',
         operationName: '_delete_organization',
         op: '_delete_organization',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/delete_organization' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // addOrgMember adds a user to an organization with optional per-org roles.
@@ -1063,14 +1087,15 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.OrgMember>> =>
     this.dispatch<Types.OrgMember>(
       'AddOrgMember',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query: `mutation _add_org_member($params: AddOrgMemberRequest!) { _add_org_member(params: $params) { ${orgMemberFragment} } }`,
         operationName: '_add_org_member',
         op: '_add_org_member',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/add_org_member', unwrap: 'org_member' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // removeOrgMember removes a user from an organization.
@@ -1079,15 +1104,16 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.Response>> =>
     this.dispatch<Types.Response>(
       'RemoveOrgMember',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query:
           'mutation _remove_org_member($params: RemoveOrgMemberRequest!) { _remove_org_member(params: $params) { message } }',
         operationName: '_remove_org_member',
         op: '_remove_org_member',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/remove_org_member' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // organization returns a single organization by id.
@@ -1096,14 +1122,15 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.Organization>> =>
     this.dispatch<Types.Organization>(
       'GetOrganization',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query: `query _organization($params: OrganizationRequest!) { _organization(params: $params) { ${organizationFragment} } }`,
         operationName: '_organization',
         op: '_organization',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/organization', unwrap: 'organization' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // organizations returns a paginated list of organizations.
@@ -1112,14 +1139,15 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.Organizations>> =>
     this.dispatch<Types.Organizations>(
       'Organizations',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query: `query _organizations($params: ListOrganizationsRequest) { _organizations(params: $params) { pagination { ${paginationFragment} } organizations { ${organizationFragment} } } }`,
         operationName: '_organizations',
         op: '_organizations',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/organizations' },
       { params },
+      (params || {}) as Record<string, unknown>,
     );
 
   // orgMembers returns a paginated list of an organization's members.
@@ -1128,14 +1156,15 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.OrgMembers>> =>
     this.dispatch<Types.OrgMembers>(
       'OrgMembers',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query: `query _org_members($params: ListOrgMembersRequest!) { _org_members(params: $params) { pagination { ${paginationFragment} } org_members { ${orgMemberFragment} } } }`,
         operationName: '_org_members',
         op: '_org_members',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/org_members' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // userOrganizations returns the organizations a user belongs to along with
@@ -1145,14 +1174,15 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.UserOrganizations>> =>
     this.dispatch<Types.UserOrganizations>(
       'UserOrganizations',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query: `query _user_organizations($params: UserOrganizationsRequest!) { _user_organizations(params: $params) { pagination { ${paginationFragment} } user_organizations { organization { ${organizationFragment} } roles } } }`,
         operationName: '_user_organizations',
         op: '_user_organizations',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/user_organizations' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // ---- Org SSO connections (graphql-only: no proto/REST routes yet) ----
@@ -1165,14 +1195,15 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.OrgOIDCConnection>> =>
     this.dispatch<Types.OrgOIDCConnection>(
       'CreateOrgOIDCConnection',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query: `mutation _create_org_oidc_connection($params: CreateOrgOIDCConnectionRequest!) { _create_org_oidc_connection(params: $params) { ${orgOIDCConnectionFragment} } }`,
         operationName: '_create_org_oidc_connection',
         op: '_create_org_oidc_connection',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/create_org_oidc_connection', unwrap: 'org_oidc_connection' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // updateOrgOIDCConnection updates a per-org upstream OIDC connection.
@@ -1181,14 +1212,15 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.OrgOIDCConnection>> =>
     this.dispatch<Types.OrgOIDCConnection>(
       'UpdateOrgOIDCConnection',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query: `mutation _update_org_oidc_connection($params: UpdateOrgOIDCConnectionRequest!) { _update_org_oidc_connection(params: $params) { ${orgOIDCConnectionFragment} } }`,
         operationName: '_update_org_oidc_connection',
         op: '_update_org_oidc_connection',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/update_org_oidc_connection', unwrap: 'org_oidc_connection' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // deleteOrgOIDCConnection deletes a per-org upstream OIDC connection.
@@ -1198,15 +1230,16 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.Response>> =>
     this.dispatch<Types.Response>(
       'DeleteOrgOIDCConnection',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query:
           'mutation _delete_org_oidc_connection($params: OrgOIDCConnectionRequest!) { _delete_org_oidc_connection(params: $params) { message } }',
         operationName: '_delete_org_oidc_connection',
         op: '_delete_org_oidc_connection',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/delete_org_oidc_connection' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // orgOIDCConnection returns a per-org upstream OIDC connection by id OR
@@ -1216,14 +1249,15 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.OrgOIDCConnection>> =>
     this.dispatch<Types.OrgOIDCConnection>(
       'GetOrgOIDCConnection',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query: `query _org_oidc_connection($params: OrgOIDCConnectionRequest!) { _org_oidc_connection(params: $params) { ${orgOIDCConnectionFragment} } }`,
         operationName: '_org_oidc_connection',
         op: '_org_oidc_connection',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/org_oidc_connection', unwrap: 'org_oidc_connection' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // createOrgSAMLConnection registers a per-org upstream SAML 2.0 IdP
@@ -1234,14 +1268,15 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.OrgSAMLConnection>> =>
     this.dispatch<Types.OrgSAMLConnection>(
       'CreateOrgSAMLConnection',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query: `mutation _create_org_saml_connection($params: CreateOrgSAMLConnectionRequest!) { _create_org_saml_connection(params: $params) { ${orgSAMLConnectionFragment} } }`,
         operationName: '_create_org_saml_connection',
         op: '_create_org_saml_connection',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/create_org_saml_connection', unwrap: 'org_saml_connection' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // updateOrgSAMLConnection updates a per-org upstream SAML connection.
@@ -1250,14 +1285,15 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.OrgSAMLConnection>> =>
     this.dispatch<Types.OrgSAMLConnection>(
       'UpdateOrgSAMLConnection',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query: `mutation _update_org_saml_connection($params: UpdateOrgSAMLConnectionRequest!) { _update_org_saml_connection(params: $params) { ${orgSAMLConnectionFragment} } }`,
         operationName: '_update_org_saml_connection',
         op: '_update_org_saml_connection',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/update_org_saml_connection', unwrap: 'org_saml_connection' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // deleteOrgSAMLConnection deletes a per-org upstream SAML connection.
@@ -1267,15 +1303,16 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.Response>> =>
     this.dispatch<Types.Response>(
       'DeleteOrgSAMLConnection',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query:
           'mutation _delete_org_saml_connection($params: OrgSAMLConnectionRequest!) { _delete_org_saml_connection(params: $params) { message } }',
         operationName: '_delete_org_saml_connection',
         op: '_delete_org_saml_connection',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/delete_org_saml_connection' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // orgSAMLConnection returns a per-org upstream SAML connection by id OR
@@ -1285,14 +1322,15 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.OrgSAMLConnection>> =>
     this.dispatch<Types.OrgSAMLConnection>(
       'GetOrgSAMLConnection',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query: `query _org_saml_connection($params: OrgSAMLConnectionRequest!) { _org_saml_connection(params: $params) { ${orgSAMLConnectionFragment} } }`,
         operationName: '_org_saml_connection',
         op: '_org_saml_connection',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/org_saml_connection', unwrap: 'org_saml_connection' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // ---- SAML IdP (Authorizer as Identity Provider for downstream SPs) ----
@@ -1492,14 +1530,15 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.CreateScimEndpointResponse>> =>
     this.dispatch<Types.CreateScimEndpointResponse>(
       'CreateScimEndpoint',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query: `mutation _create_scim_endpoint($params: CreateScimEndpointRequest!) { _create_scim_endpoint(params: $params) { scim_endpoint { ${scimEndpointFragment} } token } }`,
         operationName: '_create_scim_endpoint',
         op: '_create_scim_endpoint',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/create_scim_endpoint' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // rotateScimToken mints a fresh SCIM bearer token for the org. The new
@@ -1509,14 +1548,15 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.CreateScimEndpointResponse>> =>
     this.dispatch<Types.CreateScimEndpointResponse>(
       'RotateScimToken',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query: `mutation _rotate_scim_token($params: ScimEndpointRequest!) { _rotate_scim_token(params: $params) { scim_endpoint { ${scimEndpointFragment} } token } }`,
         operationName: '_rotate_scim_token',
         op: '_rotate_scim_token',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/rotate_scim_token' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // deleteScimEndpoint removes the org's SCIM endpoint. DESTRUCTIVE: inbound
@@ -1526,15 +1566,16 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.Response>> =>
     this.dispatch<Types.Response>(
       'DeleteScimEndpoint',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query:
           'mutation _delete_scim_endpoint($params: ScimEndpointRequest!) { _delete_scim_endpoint(params: $params) { message } }',
         operationName: '_delete_scim_endpoint',
         op: '_delete_scim_endpoint',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/delete_scim_endpoint' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // scimEndpoint returns the org's SCIM endpoint (never includes the token).
@@ -1543,14 +1584,15 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.ScimEndpoint>> =>
     this.dispatch<Types.ScimEndpoint>(
       'GetScimEndpoint',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query: `query _scim_endpoint($params: ScimEndpointRequest!) { _scim_endpoint(params: $params) { ${scimEndpointFragment} } }`,
         operationName: '_scim_endpoint',
         op: '_scim_endpoint',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/scim_endpoint', unwrap: 'scim_endpoint' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // ---- Org verified domains (graphql-only: no proto/REST routes yet) ----
@@ -1562,15 +1604,16 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.OrgDomainChallenge>> =>
     this.dispatch<Types.OrgDomainChallenge>(
       'RequestOrgDomain',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query:
           'mutation _request_org_domain($params: RequestOrgDomainRequest!) { _request_org_domain(params: $params) { domain record_type record_name record_value } }',
         operationName: '_request_org_domain',
         op: '_request_org_domain',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/request_org_domain', unwrap: 'challenge' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // verifyOrgDomain checks the published DNS challenge and, on success, records
@@ -1580,14 +1623,15 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.OrgDomain>> =>
     this.dispatch<Types.OrgDomain>(
       'VerifyOrgDomain',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query: `mutation _verify_org_domain($params: VerifyOrgDomainRequest!) { _verify_org_domain(params: $params) { ${orgDomainFragment} } }`,
         operationName: '_verify_org_domain',
         op: '_verify_org_domain',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/verify_org_domain', unwrap: 'org_domain' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // addVerifiedOrgDomain records a verified domain without a DNS challenge
@@ -1597,14 +1641,15 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.OrgDomain>> =>
     this.dispatch<Types.OrgDomain>(
       'AddVerifiedOrgDomain',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query: `mutation _add_verified_org_domain($params: AddVerifiedOrgDomainRequest!) { _add_verified_org_domain(params: $params) { ${orgDomainFragment} } }`,
         operationName: '_add_verified_org_domain',
         op: '_add_verified_org_domain',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/add_verified_org_domain', unwrap: 'org_domain' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // deleteOrgDomain removes a verified domain by domain. DESTRUCTIVE: home-realm
@@ -1614,15 +1659,16 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.Response>> =>
     this.dispatch<Types.Response>(
       'DeleteOrgDomain',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query:
           'mutation _delete_org_domain($params: DeleteOrgDomainRequest!) { _delete_org_domain(params: $params) { message } }',
         operationName: '_delete_org_domain',
         op: '_delete_org_domain',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/delete_org_domain' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // orgDomains returns a paginated list of an organization's verified domains.
@@ -1631,14 +1677,15 @@ export class AuthorizerAdmin {
   ): Promise<Types.ApiResponse<Types.OrgDomains>> =>
     this.dispatch<Types.OrgDomains>(
       'OrgDomains',
-      ['graphql'],
+      ['graphql', 'rest'],
       {
         query: `query _org_domains($params: ListOrgDomainsRequest!) { _org_domains(params: $params) { pagination { ${paginationFragment} } org_domains { ${orgDomainFragment} } } }`,
         operationName: '_org_domains',
         op: '_org_domains',
       },
-      null,
+      { method: 'POST', path: '/v1/admin/org_domains' },
       { params },
+      params as unknown as Record<string, unknown>,
     );
 
   // ---- gql-only extras (no proto / no rest) ----

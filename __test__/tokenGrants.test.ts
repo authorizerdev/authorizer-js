@@ -230,13 +230,52 @@ describe('AuthorizerAdmin machine-agent-identity methods', () => {
     expect(lastRequest().url).toBe('http://localhost:8080/v1/admin/client');
   });
 
-  it('graphql-only org methods refuse the rest protocol with a clear error', async () => {
+  // Organizations / org SSO / SCIM / org domains gained REST routes in server
+  // 2.4.0; they used to refuse the rest protocol outright. The wrapper the
+  // gateway puts around the payload differs per endpoint, so both shapes are
+  // pinned here: a single nested object is unwrapped, a paginated list is not.
+  it('createOrganization unwraps the proto-gateway wrapper over rest', async () => {
     const admin = new AuthorizerAdmin({ ...adminConfig, protocol: 'rest' });
+    mockJsonResponse({ organization: { id: 'o1', name: 'acme' } });
     const res = await admin.createOrganization({ name: 'acme' });
-    expect(res.errors[0].message).toBe(
-      'CreateOrganization is not available over rest; supported: graphql',
+    expect(res.errors).toHaveLength(0);
+    expect(res.data).toEqual({ id: 'o1', name: 'acme' });
+
+    const { url, body } = lastRequest();
+    expect(url).toBe('http://localhost:8080/v1/admin/create_organization');
+    expect(body).toEqual({ name: 'acme' });
+  });
+
+  it('organizations reads the paginated list whole over rest', async () => {
+    const admin = new AuthorizerAdmin({ ...adminConfig, protocol: 'rest' });
+    mockJsonResponse({
+      organizations: [{ id: 'o1', name: 'acme' }],
+      pagination: { limit: '10', page: '1', offset: '0', total: '1' },
+    });
+    const res = await admin.organizations();
+    expect(res.errors).toHaveLength(0);
+    expect(res.data?.organizations?.[0].id).toBe('o1');
+    expect(res.data?.pagination.total).toBe(1);
+    expect(lastRequest().url).toBe(
+      'http://localhost:8080/v1/admin/organizations',
     );
-    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('scimEndpoint unwraps while createScimEndpoint keeps the one-time token', async () => {
+    const admin = new AuthorizerAdmin({ ...adminConfig, protocol: 'rest' });
+    mockJsonResponse({ scim_endpoint: { id: 's1', org_id: 'o1' } });
+    const got = await admin.scimEndpoint({ org_id: 'o1' });
+    expect(got.data).toEqual({ id: 's1', org_id: 'o1' });
+
+    // create carries endpoint AND token side by side, so it is read whole -
+    // unwrapping either field would silently drop the other.
+    mockJsonResponse({
+      scim_endpoint: { id: 's1', org_id: 'o1' },
+      token: 'bearer-once',
+    });
+    const created = await admin.createScimEndpoint({ org_id: 'o1' });
+    expect(created.data?.token).toBe('bearer-once');
+    expect(created.data?.scim_endpoint?.id).toBe('s1');
   });
 
   it('createScimEndpoint posts the _create_scim_endpoint mutation', async () => {
