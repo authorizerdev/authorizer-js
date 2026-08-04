@@ -27,6 +27,11 @@ const authTokenFragment = `message access_token expires_in refresh_token id_toke
 // set fetch based on window object. Cross fetch have issues with umd build
 const getFetcher = () => (hasWindow() ? window.fetch : crossFetch);
 
+// Name prefix of the MFA-gate cookies the server sets on a token-withheld
+// signup/login (`mfa_session` and its domain-scoped twin `mfa_session_domain`
+// — see the backend's internal/cookie/mfa_session.go).
+const MFA_COOKIE_PREFIX = 'mfa_session';
+
 function toErrorList(errors: unknown): Types.AuthorizerSDKError[] {
   if (Array.isArray(errors)) {
     return errors.map(toSDKError);
@@ -82,6 +87,23 @@ export class Authorizer {
   // it can be aborted before a modal ceremony starts - the browser allows only
   // one outstanding navigator.credentials.get() at a time.
   private conditionalPasskeyAbort?: AbortController;
+  // MFA-session cookie store for non-browser runtimes. `credentials:
+  // 'include'` is a browser-only mechanism: node's fetch has no cookie store,
+  // so every Set-Cookie the server returns is dropped. That store is
+  // REQUIRED, not an optimisation - since server 2.4.0 MFA is on by default,
+  // so signup/login withhold the access token ("Proceed to mfa setup") and
+  // identify the pending user by an `mfa_session` cookie. skipMfaSetup /
+  // verifyOtp / the webauthn MFA-setup path resolve it only if that cookie
+  // comes back, so without a store they always fail with "invalid session"
+  // and the whole MFA surface is unreachable from node.
+  //
+  // Deliberately scoped to the MFA-gate cookies (MFA_COOKIE_PREFIX) rather
+  // than being a general cookie jar: the server resolves a request's identity
+  // from the `cookie` session BEFORE the Authorization header, so replaying a
+  // login session cookie would silently override the bearer token a caller
+  // passed explicitly. The MFA session is bound to one user id and consumed
+  // on use, so it cannot be traded for another user's token.
+  private mfaSessionCookies = new Map<string, string>();
 
   // constructor
   constructor(config: Types.ConfigType) {
@@ -1299,7 +1321,6 @@ export class Authorizer {
   graphqlQuery = async (
     data: Types.GraphqlQueryRequest,
   ): Promise<Types.GrapQlResponseType> => {
-    const fetcher = getFetcher();
     const body: Record<string, unknown> = {
       query: data.query,
       variables: data.variables || {},
@@ -1307,7 +1328,7 @@ export class Authorizer {
     if (data.operationName) {
       body.operationName = data.operationName;
     }
-    const res = await fetcher(`${this.config.authorizerURL}/graphql`, {
+    const res = await this.fetchWithCookies(`${this.config.authorizerURL}/graphql`, {
       method: 'POST',
       body: JSON.stringify(body),
       headers: {
@@ -1417,8 +1438,7 @@ export class Authorizer {
     body?: Record<string, unknown>,
     headers?: Types.Headers,
   ): Promise<Types.GrapQlResponseType> => {
-    const fetcher = getFetcher();
-    const res = await fetcher(`${this.config.authorizerURL}${path}`, {
+    const res = await this.fetchWithCookies(`${this.config.authorizerURL}${path}`, {
       method,
       ...(method === 'POST' ? { body: JSON.stringify(body || {}) } : {}),
       headers: {
@@ -1461,6 +1481,68 @@ export class Authorizer {
     // proto-gateway serializes int64 fields as strings; coerce to numbers so the
     // rest path returns the same number-typed shape as the graphql path.
     return { data: coerceInt64Fields(json), errors: [] };
+  };
+
+  // fetchWithCookies is the single choke point every graphql/rest call goes
+  // through. In a browser it is a plain fetch (the browser owns the cookies
+  // and `Cookie` is a forbidden request header anyway); elsewhere it replays
+  // the stored MFA session and records the one the response sets.
+  private fetchWithCookies = async (
+    url: string,
+    init: Record<string, any>,
+  ): Promise<any> => {
+    const fetcher = getFetcher();
+    if (hasWindow()) return fetcher(url, init as any);
+
+    const cookie = [...this.mfaSessionCookies]
+      .map(([k, v]) => `${k}=${v}`)
+      .join('; ');
+    const res = await fetcher(url, {
+      ...init,
+      headers: {
+        // Caller-supplied headers still win, so an explicit Cookie header
+        // overrides the stored one.
+        ...(cookie ? { Cookie: cookie } : {}),
+        ...init.headers,
+      },
+    } as any);
+    this.storeMfaSessionCookies(res);
+    return res;
+  };
+
+  // storeMfaSessionCookies records the MFA-gate cookies from a response.
+  // ponytail: name=value only - no domain/path/Secure matching, because every
+  // request from this instance goes to the one origin in config.authorizerURL.
+  private storeMfaSessionCookies = (res: any): void => {
+    const h = res?.headers;
+    // undici/whatwg expose getSetCookie(); cross-fetch on node (node-fetch v2)
+    // exposes raw(). `get('set-cookie')` is the last-resort single-value read.
+    const raw: string[] =
+      typeof h?.getSetCookie === 'function'
+        ? h.getSetCookie()
+        : typeof h?.raw === 'function'
+          ? h.raw()['set-cookie'] || []
+          : h?.get?.('set-cookie')
+            ? [h.get('set-cookie')]
+            : [];
+
+    for (const entry of raw) {
+      const [pair, ...attrs] = entry.split(';');
+      const eq = pair.indexOf('=');
+      if (eq < 1) continue;
+      const name = pair.slice(0, eq).trim();
+      if (!name.startsWith(MFA_COOKIE_PREFIX)) continue;
+      const value = pair.slice(eq + 1).trim();
+      // The server expires a cookie by resending it empty with Max-Age<=0
+      // (consuming or abandoning the mfa session); drop it rather than
+      // replaying a dead session id.
+      const expired = attrs.some((a) => {
+        const [k, v] = a.split('=');
+        return k.trim().toLowerCase() === 'max-age' && Number(v) <= 0;
+      });
+      if (!value || expired) this.mfaSessionCookies.delete(name);
+      else this.mfaSessionCookies.set(name, value);
+    }
   };
 
   errorResponse = (errors: unknown): Types.ApiResponse<any> => {
