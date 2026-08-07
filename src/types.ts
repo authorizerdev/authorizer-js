@@ -372,8 +372,12 @@ export interface ResetPasswordRequest {
 export type ResetPasswordInput = ResetPasswordRequest;
 
 // DeleteUserRequest (admin only)
+//
+// BREAKING (server 2.4.0): this took `email` and now takes `id`. Email is not
+// an identifier every account has — a phone-only signup has none — so an
+// email-keyed delete could not reach those accounts at all.
 export interface DeleteUserRequest {
-  email: string;
+  id: string;
 }
 
 // Fine-grained authorization (FGA) types — the client-facing surface of

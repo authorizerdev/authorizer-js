@@ -358,7 +358,7 @@ export class AuthorizerAdmin {
       params as unknown as Record<string, unknown>,
     );
 
-  // deleteUser deletes a user (and associated OTP/verification data) by email.
+  // deleteUser deletes a user (and associated OTP/verification data) by id.
   // DESTRUCTIVE: the user and their auth artifacts are permanently removed.
   deleteUser = (
     params: Types.DeleteUserRequest,
