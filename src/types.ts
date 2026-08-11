@@ -513,6 +513,18 @@ export interface AuthorizeRequest {
   response_type: ResponseTypes;
   use_refresh_token?: boolean;
   response_mode?: string;
+  /**
+   * RFC 8707 resource indicator: the resource server this token is for.
+   *
+   * When set it is sent on BOTH the authorization request and the code
+   * exchange, and the issued access token's `aud` becomes this value, so the
+   * token is usable only at that resource server. Authorizer's own MCP endpoint
+   * requires it — pass `<authorizerURL>/mcp`.
+   *
+   * Must be an absolute URI with no fragment. Omit it for ordinary logins,
+   * where the audience is the client.
+   */
+  resource?: string;
 }
 
 // Keep AuthorizeInput as alias for backward compatibility

@@ -142,6 +142,11 @@ export class Authorizer {
       requestData.code_challenge_method = 'S256';
     }
 
+    // RFC 8707 resource indicator. Sent only when the caller asked for one:
+    // omitting it leaves the audience as the client, which is what every
+    // ordinary login wants.
+    if (data.resource) requestData.resource = data.resource;
+
     const authorizeURL = `${
       this.config.authorizerURL
     }/authorize?${createQueryParams(requestData)}`;
@@ -160,9 +165,13 @@ export class Authorizer {
 
       if (data.response_type === Types.ResponseTypes.Code) {
         // get token and return it
+        // `resource` must be echoed on the exchange: the token endpoint binds
+        // it to the authorization code and rejects a code exchange whose
+        // resource does not match the one the /authorize request named.
         const tokenResp: Types.ApiResponse<Types.GetTokenResponse> =
           await this.getToken({
             code: iframeRes.code,
+            ...(data.resource ? { resource: data.resource } : {}),
           });
         return tokenResp.errors.length
           ? this.errorResponse(tokenResp.errors)
