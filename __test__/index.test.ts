@@ -53,6 +53,13 @@ function buildAuthorizerCliArgs(): { args: string[]; clientId: string } {
     'sqlite',
     '--database-url',
     '/tmp/authorizer.db',
+    // Required as of server 2.4.0 — startup fails without it. This is the
+    // server's own address *inside* the container, which is where it binds;
+    // the suite reaches it through a testcontainers-mapped host port, so the
+    // two differ. That only affects generated email links and the JWT `iss`
+    // claim, neither of which this suite asserts on.
+    '--url',
+    'http://localhost:8080',
     '--enable-playground=false',
     '--log-level',
     'debug',
