@@ -123,7 +123,7 @@ describe('Integration Tests - authorizer-js', () => {
     // Override with AUTHORIZER_IMAGE to test against a different server build
     // (e.g. a locally built image with newer GraphQL surface).
     container = await new GenericContainer(
-      process.env.AUTHORIZER_IMAGE || 'quay.io/authorizer/authorizer:2.4.0-rc.23',
+      process.env.AUTHORIZER_IMAGE || 'quay.io/authorizer/authorizer:2.4.0',
     )
       .withCommand(args)
       .withExposedPorts({ container: 8080, host: hostPort })
