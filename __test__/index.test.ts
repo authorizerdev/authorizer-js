@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { createServer } from 'node:net';
 import {
   GenericContainer,
   PullPolicy,
@@ -31,7 +32,26 @@ const testConfig = {
 };
 
 // Build v2 CLI args for authorizer (see authorizer/cmd/root.go). Using etheral.email for email sink.
-function buildAuthorizerCliArgs(): { args: string[]; clientId: string } {
+// Ask the OS for a free port and bind the container to it. The server must be
+// reachable at exactly the address it was given as --url: redirect_uri is
+// validated against that URL, so a testcontainers-mapped random port with
+// --url pointing somewhere else makes every redirect_uri the SDK sends invalid
+// (magic_link_login refuses with "Invalid redirect URI" and returns no data).
+const getFreePort = (): Promise<number> =>
+  new Promise((resolve, reject) => {
+    const srv = createServer();
+    srv.unref();
+    srv.on('error', reject);
+    srv.listen(0, () => {
+      const { port } = srv.address() as { port: number };
+      srv.close(() => resolve(port));
+    });
+  });
+
+function buildAuthorizerCliArgs(hostPort: number): {
+  args: string[];
+  clientId: string;
+} {
   const clientId = randomUUID();
   const clientSecret = randomUUID();
   const jwtSecret = randomUUID();
@@ -53,13 +73,11 @@ function buildAuthorizerCliArgs(): { args: string[]; clientId: string } {
     'sqlite',
     '--database-url',
     '/tmp/authorizer.db',
-    // Required as of server 2.4.0 — startup fails without it. This is the
-    // server's own address *inside* the container, which is where it binds;
-    // the suite reaches it through a testcontainers-mapped host port, so the
-    // two differ. That only affects generated email links and the JWT `iss`
-    // claim, neither of which this suite asserts on.
+    // Required as of server 2.4.0 — startup fails without it. It must match
+    // the address the suite actually reaches the server on: redirect_uri is
+    // validated against it, so a mismatch fails every flow that carries one.
     '--url',
-    'http://localhost:8080',
+    `http://localhost:${hostPort}`,
     '--enable-playground=false',
     '--log-level',
     'debug',
@@ -99,15 +117,16 @@ describe('Integration Tests - authorizer-js', () => {
   let authorizer: Authorizer;
 
   beforeAll(async () => {
-    const { args, clientId } = buildAuthorizerCliArgs();
+    const hostPort = await getFreePort();
+    const { args, clientId } = buildAuthorizerCliArgs(hostPort);
 
     // Override with AUTHORIZER_IMAGE to test against a different server build
     // (e.g. a locally built image with newer GraphQL surface).
     container = await new GenericContainer(
-      process.env.AUTHORIZER_IMAGE || 'quay.io/authorizer/authorizer:2.4.0-rc.13',
+      process.env.AUTHORIZER_IMAGE || 'quay.io/authorizer/authorizer:2.4.0-rc.23',
     )
       .withCommand(args)
-      .withExposedPorts(8080)
+      .withExposedPorts({ container: 8080, host: hostPort })
       // The image is built locally and not in any registry; the default policy
       // never pulls when the image is already present, so testcontainers uses
       // the local build instead of trying (and failing) to pull it.
