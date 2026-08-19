@@ -5,11 +5,13 @@ import { Authorizer } from '../lib';
 
 const mockFetch = crossFetch as unknown as jest.Mock;
 
-const jsonResponse = (body: unknown) =>
+const jsonResponse = (body: unknown, setCookie: string[] = []) =>
   Promise.resolve({
     ok: true,
     status: 200,
     text: () => Promise.resolve(JSON.stringify(body)),
+    // cross-fetch on node is node-fetch v2, whose Headers exposes raw().
+    headers: { raw: () => ({ 'set-cookie': setCookie }) },
   });
 
 describe('MFA setup/skip/lock SDK methods', () => {
@@ -42,6 +44,53 @@ describe('MFA setup/skip/lock SDK methods', () => {
     expect(body.operationName).toBe('skip_mfa_setup');
     expect(body.variables.data.email).toBe('user@example.com');
     expect(body.variables.data.state).toBe('oidc-state');
+  });
+
+  // Regression: node's fetch has no cookie store, so the mfa_session cookie
+  // signup/login set was dropped and skipMfaSetup always failed with
+  // "invalid session".
+  it('replays the mfa_session cookie signup set on the follow-up skipMfaSetup', async () => {
+    const authz = new Authorizer({
+      authorizerURL: 'http://localhost:8080',
+      redirectURL: 'http://localhost:8080/app',
+    });
+    mockFetch.mockReturnValueOnce(
+      jsonResponse(
+        { data: { signup: { message: 'Proceed to mfa setup', access_token: null } } },
+        [
+          'mfa_session=sess-1; Path=/; Domain=localhost; Max-Age=179; HttpOnly',
+          'mfa_session_domain=sess-1; Path=/; Domain=localhost; Max-Age=179; HttpOnly',
+          // The login session cookie must NOT be replayed: the server resolves
+          // identity from it before the Authorization header, so replaying it
+          // would override a caller-supplied bearer token.
+          'cookie=login-session; Path=/; Domain=localhost; HttpOnly',
+        ],
+      ),
+    );
+    await authz.signup({
+      email: 'user@example.com',
+      password: 'Test@123#',
+      confirm_password: 'Test@123#',
+    });
+    expect(mockFetch.mock.calls[0][1].headers.Cookie).toBeUndefined();
+
+    mockFetch.mockReturnValueOnce(
+      jsonResponse({ data: { skip_mfa_setup: { access_token: 'tok-123' } } }, [
+        // consuming the session expires the cookie
+        'mfa_session=; Path=/; Max-Age=0',
+        'mfa_session_domain=; Path=/; Max-Age=0',
+      ]),
+    );
+    const res = await authz.skipMfaSetup({ email: 'user@example.com' });
+    expect(res.data?.access_token).toBe('tok-123');
+    expect(mockFetch.mock.calls[1][1].headers.Cookie).toBe(
+      'mfa_session=sess-1; mfa_session_domain=sess-1',
+    );
+
+    // expired cookies are dropped, not replayed
+    mockFetch.mockReturnValueOnce(jsonResponse({ data: { logout: {} } }));
+    await authz.logout();
+    expect(mockFetch.mock.calls[2][1].headers.Cookie).toBeUndefined();
   });
 
   it('lockMfa sends email/phone_number and returns the message', async () => {
