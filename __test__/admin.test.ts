@@ -78,7 +78,7 @@ describe('Integration Tests - AuthorizerAdmin (graphql + rest)', () => {
     const { args } = buildAuthorizerCliArgs();
 
     container = await new GenericContainer(
-      process.env.AUTHORIZER_IMAGE || 'quay.io/authorizer/authorizer:2.4.0',
+      process.env.AUTHORIZER_IMAGE || 'quay.io/authorizer/authorizer:2.4.10',
     )
       .withCommand(args)
       .withExposedPorts(8080)
@@ -315,6 +315,89 @@ type document
       const res = await adminFor('rest').fgaGetModel();
       expect(res.errors).toHaveLength(0);
       expect(res.data?.dsl).toBeDefined();
+    });
+
+    // Conditional (time-limited) tuples. Needs server 2.4.10+.
+    const conditionModelDsl = `model
+  schema 1.1
+type user
+type document
+  relations
+    define viewer: [user, user with non_expired_grant]
+    define can_view: viewer
+condition non_expired_grant(current_time: timestamp, grant_time: timestamp, grant_duration: duration) {
+  current_time < grant_time + grant_duration
+}
+`;
+    const condUser = `user:${randomUUID()}`;
+    const grant = (start: Date, duration: string) => ({
+      name: 'non_expired_grant',
+      context: {
+        grant_time: start.toISOString().replace(/\.\d{3}Z$/, 'Z'),
+        grant_duration: duration,
+      },
+    });
+
+    it.each(['graphql', 'rest'] as Protocol[])(
+      'conditional tuples write and read back with their condition (%s)',
+      async (protocol) => {
+        if (!fgaSupported) return;
+        const admin = adminFor(protocol);
+        expect(
+          (await admin.fgaWriteModel({ dsl: conditionModelDsl })).errors,
+        ).toHaveLength(0);
+        const object = `document:cond-${protocol}`;
+        const write = await admin.fgaWriteTuples({
+          tuples: [
+            {
+              user: condUser,
+              relation: 'viewer',
+              object,
+              condition: grant(new Date(), '10m'),
+            },
+          ],
+        });
+        expect(write.errors).toHaveLength(0);
+
+        const read = await admin.fgaReadTuples({ object });
+        expect(read.errors).toHaveLength(0);
+        expect(read.data?.tuples).toHaveLength(1);
+        expect(read.data?.tuples[0].condition?.name).toBe('non_expired_grant');
+        expect(read.data?.tuples[0].condition?.context?.grant_duration).toBe(
+          '10m',
+        );
+
+        const plain = await admin.fgaReadTuples({ object: 'document:1' });
+        expect(plain.errors).toHaveLength(0);
+        for (const t of plain.data?.tuples ?? [])
+          expect(t.condition ?? null).toBeNull();
+
+        // A conditional tuple is revoked by key alone (no condition).
+        const del = await admin.fgaDeleteTuples({
+          tuples: [{ user: condUser, relation: 'viewer', object }],
+        });
+        expect(del.errors).toHaveLength(0);
+        expect((await admin.fgaReadTuples({ object })).data?.tuples).toHaveLength(0);
+      },
+    );
+
+    it('a condition missing a stored parameter is rejected (graphql)', async () => {
+      if (!fgaSupported) return;
+      const res = await adminFor('graphql').fgaWriteTuples({
+        tuples: [
+          {
+            user: condUser,
+            relation: 'viewer',
+            object: 'document:cond-missing',
+            condition: {
+              name: 'non_expired_grant',
+              context: { grant_time: '2026-01-01T00:00:00Z' },
+            },
+          },
+        ],
+      });
+      expect(res.errors.length).toBeGreaterThan(0);
+      expect(res.errors[0].message).toMatch(/missing parameters grant_duration/);
     });
 
     it('fgaDeleteTuples removes the tuple then fgaReset clears the store', async () => {

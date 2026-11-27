@@ -179,6 +179,17 @@ const { data } = await authRef.listPermissions({
 // data?.objects => ['document:1', 'document:7', ...]
 ```
 
+**Time-limited grants (Authorizer 2.4.10+)** — the admin client can attach an OpenFGA condition to a tuple, and the server's clock decides when it expires. `fgaReadTuples` returns each tuple's `condition`; against servers older than 2.4.10 its GraphQL query fails, so use 2.4.10 or newer.
+
+```js
+await admin.fgaWriteTuples({
+  tuples: [{
+    user: 'user:alice', relation: 'viewer', object: 'document:1',
+    condition: { name: 'non_expired_grant', context: { grant_time: '2026-11-27T10:00:00Z', grant_duration: '24h' } },
+  }],
+});
+```
+
 ---
 
 ## Local Development
