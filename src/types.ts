@@ -401,7 +401,7 @@ export interface FgaTupleInput {
   object: string;
   // condition makes a written tuple conditional (e.g. a time-limited grant).
   // Accepted only by fgaWriteTuples; the server rejects it on deletes and on
-  // contextual tuples. Requires a server newer than 2.4.9.
+  // contextual tuples. Requires server 2.4.10+.
   condition?: FgaCondition | null;
 }
 
@@ -434,8 +434,7 @@ export interface CheckPermissionsInput {
   user?: string | null;
   // context supplies request-time condition parameters. The server accepts it
   // only from a super-admin that is not using a delegated token, and never
-  // with current_time; any other caller is rejected. Requires a server newer
-  // than 2.4.9.
+  // with current_time; any other caller is rejected. Requires server 2.4.10+.
   context?: Record<string, unknown> | null;
 }
 

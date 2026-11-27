@@ -78,7 +78,7 @@ describe('Integration Tests - AuthorizerAdmin (graphql + rest)', () => {
     const { args } = buildAuthorizerCliArgs();
 
     container = await new GenericContainer(
-      process.env.AUTHORIZER_IMAGE || 'quay.io/authorizer/authorizer:2.4.0',
+      process.env.AUTHORIZER_IMAGE || 'quay.io/authorizer/authorizer:2.4.10',
     )
       .withCommand(args)
       .withExposedPorts(8080)
@@ -317,7 +317,7 @@ type document
       expect(res.data?.dsl).toBeDefined();
     });
 
-    // Conditional (time-limited) tuples. Needs a server newer than 2.4.9.
+    // Conditional (time-limited) tuples. Needs server 2.4.10+.
     const conditionModelDsl = `model
   schema 1.1
 type user
