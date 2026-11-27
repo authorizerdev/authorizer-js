@@ -754,7 +754,7 @@ export class AuthorizerAdmin {
       ['graphql', 'rest'],
       {
         query:
-          'query _fga_read_tuples($params: FgaReadTuplesInput!) { _fga_read_tuples(params: $params) { tuples { user relation object } continuation_token } }',
+          'query _fga_read_tuples($params: FgaReadTuplesInput!) { _fga_read_tuples(params: $params) { tuples { user relation object condition { name context } } continuation_token } }',
         operationName: '_fga_read_tuples',
         op: '_fga_read_tuples',
       },

@@ -399,6 +399,19 @@ export interface FgaTupleInput {
   user: string;
   relation: string;
   object: string;
+  // condition makes a written tuple conditional (e.g. a time-limited grant).
+  // Accepted only by fgaWriteTuples; the server rejects it on deletes and on
+  // contextual tuples. Requires a server newer than 2.4.9.
+  condition?: FgaCondition | null;
+}
+
+// FgaCondition names a condition declared in the authorization model and
+// binds its stored parameters, e.g. name "non_expired_grant" with context
+// { grant_time: "2026-11-27T10:00:00Z", grant_duration: "10m" }. Store every
+// parameter except current_time, which the server always supplies.
+export interface FgaCondition {
+  name: string;
+  context?: Record<string, unknown> | null;
 }
 
 // PermissionCheckInput is one permission to evaluate: "does the subject have
@@ -419,6 +432,11 @@ export interface PermissionCheckInput {
 export interface CheckPermissionsInput {
   checks: PermissionCheckInput[];
   user?: string | null;
+  // context supplies request-time condition parameters. The server accepts it
+  // only from a super-admin that is not using a delegated token, and never
+  // with current_time; any other caller is rejected. Requires a server newer
+  // than 2.4.9.
+  context?: Record<string, unknown> | null;
 }
 
 // PermissionCheckResult is the outcome of one permission check, echoing the
@@ -844,6 +862,8 @@ export interface FgaTuple {
   user: string;
   relation: string;
   object: string;
+  // Set when the tuple is conditional; null for a plain tuple.
+  condition?: FgaCondition | null;
 }
 
 // FgaTuples is a page of tuples plus a continuation token (empty when exhausted).
